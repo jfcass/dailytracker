@@ -1,0 +1,4398 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Daily Tracker — styles.css
+   Mobile-first · Green accent · Adapts to system dark / light mode
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --clr-bg:         #f8f9f8;
+  --clr-surface:    #ffffff;
+  --clr-surface-2:  #f0f5f0;
+  --clr-border:     #dde5dd;
+
+  /* Text */
+  --clr-text:       #1a211a;
+  --clr-text-2:     #5a6e5a;
+
+  /* Accent — green */
+  --clr-accent:     #3a8f40;
+  --clr-accent-h:   #2d7233;     /* hover / pressed */
+  --clr-accent-dim: #e6f4e7;
+
+  /* Feedback */
+  --clr-error:      #c62828;
+  --clr-error-bg:   #fdecea;
+
+  /* PIN key */
+  --clr-key-bg:     #eef2ee;
+  --clr-key-bg-h:   #dce8dc;
+  --clr-key-text:   #1a211a;
+
+  /* Misc */
+  --radius-card:    20px;
+  --radius-key:     50%;          /* circular keys */
+  --shadow-card:    0 2px 16px rgba(0, 0, 0, .08);
+  --transition:     0.15s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --clr-bg:         #0f1210;
+    --clr-surface:    #1a1f1a;
+    --clr-surface-2:  #222822;
+    --clr-border:     #2a342a;
+
+    --clr-text:       #e2ebe2;
+    --clr-text-2:     #7a967a;
+
+    --clr-accent:     #4caf50;
+    --clr-accent-h:   #66bb6a;
+    --clr-accent-dim: #1a2e1b;
+
+    --clr-error:      #ef5350;
+    --clr-error-bg:   #2c1515;
+
+    --clr-key-bg:     #202820;
+    --clr-key-bg-h:   #2a362a;
+    --clr-key-text:   #e2ebe2;
+
+    --shadow-card:    0 2px 20px rgba(0, 0, 0, .35);
+  }
+}
+
+/* Explicit dark override (data-theme="dark" on <html>) */
+:root[data-theme="dark"] {
+  --clr-bg:         #0f1210;
+  --clr-surface:    #1a1f1a;
+  --clr-surface-2:  #222822;
+  --clr-border:     #2a342a;
+
+  --clr-text:       #e2ebe2;
+  --clr-text-2:     #7a967a;
+
+  --clr-accent:     #4caf50;
+  --clr-accent-h:   #66bb6a;
+  --clr-accent-dim: #1a2e1b;
+
+  --clr-error:      #ef5350;
+  --clr-error-bg:   #2c1515;
+
+  --clr-key-bg:     #202820;
+  --clr-key-bg-h:   #2a362a;
+  --clr-key-text:   #e2ebe2;
+
+  --shadow-card:    0 2px 20px rgba(0, 0, 0, .35);
+}
+
+/* ── Reset / base ─────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent bounce-scroll from showing the bg color behind screens */
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;   /* no 300 ms delay on mobile */
+}
+
+/* ── Screen layer ─────────────────────────────────────────────────────── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+
+  /* Hidden by default — fade in/out */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.screen--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Center card (auth + loading) ─────────────────────────────────────── */
+.center-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--clr-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 40px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.center-card--narrow {
+  max-width: 260px;
+  padding: 40px 24px;
+}
+
+/* ── App logo / icon ──────────────────────────────────────────────────── */
+.app-logo {
+  color: var(--clr-accent);
+  margin-bottom: 4px;
+}
+
+.app-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--clr-text);
+}
+
+.app-subtitle {
+  font-size: 0.9rem;
+  color: var(--clr-text-2);
+  max-width: 260px;
+}
+
+/* ── Google sign-in button ────────────────────────────────────────────── */
+.btn-google {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border: 1.5px solid var(--clr-border);
+  border-radius: 10px;
+  background: var(--clr-surface);
+  color: var(--clr-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  width: 100%;
+  justify-content: center;
+  transition: background var(--transition), box-shadow var(--transition);
+  margin-top: 6px;
+}
+
+.btn-google:hover, .btn-google:focus-visible {
+  background: var(--clr-surface-2);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .12);
+  outline: none;
+}
+
+.btn-google:active {
+  transform: scale(0.98);
+}
+
+.btn-google:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.google-g {
+  flex-shrink: 0;
+}
+
+/* ── Auth note ────────────────────────────────────────────────────────── */
+.auth-note {
+  font-size: 0.77rem;
+  color: var(--clr-text-2);
+  line-height: 1.4;
+}
+
+/* ── Error message ────────────────────────────────────────────────────── */
+.error-msg {
+  font-size: 0.82rem;
+  color: var(--clr-error);
+  background: var(--clr-error-bg);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+}
+
+.error-msg--center {
+  text-align: center;
+  min-height: 32px;  /* reserve space so layout doesn't jump */
+  background: transparent;
+  padding: 4px 0;
+}
+
+/* ── Loading spinner ──────────────────────────────────────────────────── */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--clr-border);
+  border-top-color: var(--clr-accent);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-msg {
+  font-size: 0.9rem;
+  color: var(--clr-text-2);
+  margin-top: 4px;
+}
+
+/* ── PIN card ─────────────────────────────────────────────────────────── */
+.pin-card {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 8px 0 0;
+}
+
+.pin-logo {
+  color: var(--clr-accent);
+  margin-bottom: 12px;
+}
+
+.pin-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin-bottom: 4px;
+}
+
+.pin-subtitle {
+  font-size: 0.88rem;
+  color: var(--clr-text-2);
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+/* ── PIN dots ─────────────────────────────────────────────────────────── */
+.pin-dots {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.pin-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--clr-accent);
+  background: transparent;
+  transition: background 0.12s ease, transform 0.1s ease;
+}
+
+.pin-dot--filled {
+  background: var(--clr-accent);
+  transform: scale(1.15);
+}
+
+/* Shake animation for wrong PIN */
+@keyframes pin-shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.pin-dots--shake {
+  animation: pin-shake 0.5s ease;
+}
+
+/* ── PIN keypad ───────────────────────────────────────────────────────── */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 24px;
+}
+
+.pin-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  aspect-ratio: 1;               /* circular */
+  border-radius: var(--radius-key);
+  background: var(--clr-key-bg);
+  color: var(--clr-key-text);
+
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: 0;
+
+  transition: background var(--transition), transform 0.1s ease,
+              box-shadow var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pin-key:hover {
+  background: var(--clr-key-bg-h);
+}
+
+.pin-key:active {
+  transform: scale(0.88);
+  background: var(--clr-key-bg-h);
+}
+
+.pin-key--phantom {
+  background: transparent;
+  pointer-events: none;
+}
+
+.pin-key--del {
+  color: var(--clr-text-2);
+  font-size: 1rem;
+}
+
+.pin-key--del:active {
+  color: var(--clr-text);
+}
+
+/* ── Ghost / text button ──────────────────────────────────────────────── */
+.btn-ghost {
+  font-size: 0.82rem;
+  color: var(--clr-text-2);
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-top: 20px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.btn-ghost:hover, .btn-ghost:focus-visible {
+  color: var(--clr-text);
+  background: var(--clr-surface-2);
+  outline: none;
+}
+
+/* ── Main app header ──────────────────────────────────────────────────── */
+#screen-app {
+  justify-content: flex-start;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  /* Safe area top (iOS notch) */
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+
+.app-header__logo {
+  color: var(--clr-accent);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.app-header__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--clr-text);
+  flex: 1;
+}
+
+.app-header__date {
+  font-size: 0.8rem;
+  color: var(--clr-text-2);
+  white-space: nowrap;
+}
+
+/* ── Main app content ─────────────────────────────────────────────────── */
+.app-main {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+}
+
+/* ── Placeholder section cards (Phase 1 stub) ─────────────────────────── */
+.placeholder-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.placeholder-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.placeholder-icon {
+  font-size: 1.4rem;
+  color: var(--clr-accent);
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  line-height: 1;
+}
+
+.placeholder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.placeholder-text strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--clr-text);
+}
+
+.placeholder-text span {
+  font-size: 0.8rem;
+  color: var(--clr-text-2);
+}
+
+/* ── Focus ring (keyboard accessibility) ──────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--clr-accent);
+  outline-offset: 2px;
+}
+
+/* ── Responsive: wider screens get a max-width centered layout ────────── */
+@media (min-width: 480px) {
+  .pin-keypad {
+    gap: 14px;
+  }
+}
+
+@media (min-width: 600px) {
+  .app-main {
+    padding: 20px 24px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   App main layout — flex column so sections stack with consistent gap
+═══════════════════════════════════════════════════════════════════════════ */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Shared tracker section shell  (used by all phase sections)
+═══════════════════════════════════════════════════════════════════════════ */
+.tracker-section {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 16px;
+  overflow:      hidden;
+}
+
+/* Section header — title left, meta right */
+.section-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         13px 16px 11px;
+  border-bottom:   1px solid var(--clr-border);
+}
+
+.section-title {
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+  font-size:   0.9rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  letter-spacing: 0.1px;
+}
+
+.section-title svg {
+  color:       var(--clr-accent);
+  flex-shrink: 0;
+}
+
+/* Inline progress (text + bar) */
+.section-progress {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+
+.section-progress__text {
+  font-size:   0.78rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  white-space: nowrap;
+  min-width:   34px;
+  text-align:  right;
+}
+
+.progress-bar {
+  width:         52px;
+  height:        5px;
+  background:    var(--clr-border);
+  border-radius: 3px;
+  overflow:      hidden;
+}
+
+.progress-bar__fill {
+  height:        100%;
+  background:    var(--clr-accent);
+  border-radius: 3px;
+  width:         0%;
+  transition:    width 0.35s ease;
+}
+
+/* Empty state inside sections */
+.section-empty {
+  padding:    20px 16px;
+  font-size:  0.88rem;
+  color:      var(--clr-text-2);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Date navigator  (shared, used by Habits and future sections)
+═══════════════════════════════════════════════════════════════════════════ */
+.date-nav {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         6px 10px;
+  border-bottom:   1px solid var(--clr-border);
+}
+
+.date-nav__btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           36px;
+  height:          36px;
+  border-radius:   8px;
+  color:           var(--clr-text-2);
+  transition:      background var(--transition), color var(--transition);
+  flex-shrink:     0;
+}
+
+.date-nav__btn:hover:not(:disabled),
+.date-nav__btn:focus-visible:not(:disabled) {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+  outline:    none;
+}
+
+.date-nav__btn:active:not(:disabled) {
+  background: var(--clr-accent-dim);
+}
+
+.date-nav__btn:disabled {
+  opacity: 0.25;
+  cursor:  default;
+}
+
+.date-nav__label {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  text-align:  center;
+  flex:        1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Habit Tracker section
+═══════════════════════════════════════════════════════════════════════════ */
+.habit-list {
+  /* no extra padding — rows handle their own */
+}
+
+/* Individual habit row — full-width tap target */
+.habit-row {
+  display:     flex;
+  align-items: center;
+  gap:         13px;
+  width:       100%;
+  padding:     13px 16px;
+  text-align:  left;
+  border-bottom: 1px solid var(--clr-border);
+  transition:  background var(--transition);
+  min-height:  52px;   /* comfortable tap target */
+}
+
+.habit-row:last-child {
+  border-bottom: none;
+}
+
+.habit-row:hover,
+.habit-row:focus-visible {
+  background: var(--clr-surface-2);
+  outline:    none;
+}
+
+.habit-row:active {
+  background: var(--clr-accent-dim);
+}
+
+/* ── Check circle ── */
+.habit-check {
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  border:          2px solid var(--clr-border);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  color:           transparent;   /* checkmark hidden when unchecked */
+  background:      transparent;
+  transition:
+    background    0.2s ease,
+    border-color  0.2s ease,
+    color         0.15s ease,
+    transform     0.15s ease;
+}
+
+/* Pop animation on check */
+.habit-row--checked .habit-check {
+  background:   var(--clr-accent);
+  border-color: var(--clr-accent);
+  color:        #fff;
+  transform:    scale(1.08);
+}
+
+/* ── Name ── */
+.habit-name {
+  flex:        1;
+  font-size:   0.95rem;
+  font-weight: 500;
+  color:       var(--clr-text);
+  transition:  color var(--transition);
+  line-height: 1.3;
+}
+
+.habit-row--checked .habit-name {
+  color: var(--clr-text-2);   /* muted when done */
+}
+
+/* ── Streak badge ── */
+.habit-streak {
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Single-day streak: just the number, muted */
+.habit-streak--one {
+  font-size:   0.72rem;
+  color:       var(--clr-border);
+  font-weight: 500;
+}
+
+/* ── Inline save status ── */
+.save-status {
+  display:     flex;
+  align-items: center;
+  font-size:   0.72rem;
+  padding:     5px 16px 7px;
+  min-height:  26px;
+  color:       transparent;
+  transition:  color 0.3s ease;
+  letter-spacing: 0.1px;
+}
+
+.save-status[data-status="pending"] { color: var(--clr-text-2); }
+.save-status[data-status="saving"]  { color: var(--clr-accent);  }
+.save-status[data-status="saved"]   { color: var(--clr-accent);  }
+.save-status[data-status="error"]   { color: var(--clr-error);   }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Moderation Tracker section
+═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ── Substance row container ── */
+.mod-list {}   /* rows handle their own padding */
+
+.mod-row {
+  position: relative;
+}
+
+/* Divider between rows (not before the last child) */
+.mod-row:not(:last-child) {
+  border-bottom: 1px solid var(--clr-border);
+}
+
+/* Edit mode: subtle highlight */
+.mod-row--editing {
+  background: var(--clr-surface-2);
+}
+
+/* ── Display mode: substance row ── */
+.mod-display {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         13px 16px;
+  gap:             12px;
+}
+
+.mod-sub-info {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex:        1;
+  min-width:   0;
+}
+
+/* Letter-in-circle badge */
+.mod-badge {
+  width:           28px;
+  height:          28px;
+  border-radius:   50%;
+  background:      var(--clr-accent-dim);
+  color:           var(--clr-accent);
+  font-size:       0.76rem;
+  font-weight:     700;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  user-select:     none;
+  -webkit-user-select: none;
+}
+
+/* Alcohol gets a warm amber tint */
+.mod-badge[data-sub-id="alcohol"] {
+  background: #fef3c7;
+  color:      #d97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mod-badge[data-sub-id="alcohol"] {
+    background: #2d1900;
+    color:      #f59e0b;
+  }
+}
+
+.mod-sub-name {
+  font-size:   0.95rem;
+  font-weight: 500;
+  color:       var(--clr-text);
+  flex:        1;
+  min-width:   0;
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+/* Logged: quantity + edit button */
+.mod-logged {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex-shrink: 0;
+}
+
+.mod-quantity {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-accent);
+  white-space: nowrap;
+}
+
+.mod-edit-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           30px;
+  height:          30px;
+  border-radius:   8px;
+  color:           var(--clr-text-2);
+  transition:      background var(--transition), color var(--transition);
+}
+
+.mod-edit-btn:hover,
+.mod-edit-btn:focus-visible {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+  outline:    none;
+}
+
+/* Unlogged: "+ Log" pill button */
+.mod-log-btn {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+  padding:     6px 13px;
+  border-radius: 20px;
+  font-size:   0.82rem;
+  font-weight: 600;
+  color:       var(--clr-accent);
+  border:      1.5px solid currentColor;
+  transition:  background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.mod-log-btn:hover,
+.mod-log-btn:focus-visible {
+  background: var(--clr-accent-dim);
+  outline:    none;
+}
+
+.mod-log-btn:active {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+/* Optional note line — indented to align with substance name */
+.mod-note {
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  padding:     0 16px 12px 54px;   /* 16px left-pad + 28px badge + 10px gap = 54px */
+  line-height: 1.4;
+}
+
+/* ── Edit form ── */
+.mod-form {
+  padding: 14px 16px 16px;
+}
+
+.mod-form-header {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 14px;
+}
+
+/* Destructive "Clear" button inside form header */
+.mod-clear-btn {
+  margin-left: auto;
+  font-size:   0.78rem;
+  font-weight: 500;
+  color:       var(--clr-error);
+  padding:     4px 8px;
+  border-radius: 6px;
+  transition:  background var(--transition);
+}
+
+.mod-clear-btn:hover,
+.mod-clear-btn:focus-visible {
+  background: var(--clr-error-bg);
+  outline:    none;
+}
+
+/* Qty row: [−] [number input] [+] [unit input] */
+.mod-form-qty-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-bottom: 10px;
+}
+
+.mod-stepper {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           38px;
+  height:          38px;
+  border-radius:   50%;
+  background:      var(--clr-surface);
+  border:          1.5px solid var(--clr-border);
+  color:           var(--clr-text);
+  flex-shrink:     0;
+  transition:      background var(--transition), border-color var(--transition), color 0.1s;
+}
+
+.mod-stepper:hover,
+.mod-stepper:focus-visible {
+  background:   var(--clr-accent-dim);
+  border-color: var(--clr-accent);
+  outline:      none;
+}
+
+.mod-stepper:active {
+  background:   var(--clr-accent);
+  border-color: var(--clr-accent);
+  color:        #fff;
+}
+
+.mod-qty-input {
+  width:       64px;
+  text-align:  center;
+  font-size:   1.2rem;
+  font-weight: 700;
+  font-family: inherit;
+  color:       var(--clr-text);
+  background:  var(--clr-surface);
+  border:      1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:     6px 4px;
+  /* Hide browser spinners */
+  -moz-appearance: textfield;
+}
+
+.mod-qty-input::-webkit-outer-spin-button,
+.mod-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.mod-qty-input:focus {
+  outline:      2px solid var(--clr-accent);
+  outline-offset: 1px;
+  border-color: var(--clr-accent);
+}
+
+.mod-unit-input {
+  flex:         1;
+  font-size:    0.88rem;
+  font-family:  inherit;
+  color:        var(--clr-text-2);
+  background:   var(--clr-surface);
+  border:       1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:      8px 10px;
+  min-width:    0;
+}
+
+.mod-unit-input:focus {
+  outline:      2px solid var(--clr-accent);
+  outline-offset: 1px;
+  border-color: var(--clr-accent);
+  color:        var(--clr-text);
+}
+
+.mod-note-input {
+  width:        100%;
+  font-size:    0.88rem;
+  font-family:  inherit;
+  color:        var(--clr-text);
+  background:   var(--clr-surface);
+  border:       1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:      9px 12px;
+  margin-bottom: 14px;
+  display:      block;
+}
+
+.mod-note-input::placeholder {
+  color:   var(--clr-text-2);
+  opacity: 0.7;
+}
+
+.mod-note-input:focus {
+  outline:      2px solid var(--clr-accent);
+  outline-offset: 1px;
+  border-color: var(--clr-accent);
+}
+
+/* Cancel + Save action row */
+.mod-form-actions {
+  display: flex;
+  gap:     10px;
+}
+
+.mod-cancel-btn {
+  flex:          1;
+  padding:       10px;
+  border-radius: 10px;
+  font-size:     0.9rem;
+  font-weight:   500;
+  font-family:   inherit;
+  color:         var(--clr-text-2);
+  background:    var(--clr-surface);
+  border:        1.5px solid var(--clr-border);
+  transition:    background var(--transition), color var(--transition);
+}
+
+.mod-cancel-btn:hover,
+.mod-cancel-btn:focus-visible {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+  outline:    none;
+}
+
+.mod-save-btn {
+  flex:          2;
+  padding:       10px;
+  border-radius: 10px;
+  font-size:     0.9rem;
+  font-weight:   600;
+  font-family:   inherit;
+  color:         #fff;
+  background:    var(--clr-accent);
+  transition:    background var(--transition);
+}
+
+.mod-save-btn:hover,
+.mod-save-btn:focus-visible {
+  background: var(--clr-accent-h);
+  outline:    none;
+}
+
+.mod-save-btn:active {
+  background: var(--clr-accent-h);
+}
+
+/* Validation error state (applied to qty input) */
+.input--error {
+  border-color: var(--clr-error) !important;
+  outline:      2px solid var(--clr-error-bg) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Placeholder cards (future phases)
+═══════════════════════════════════════════════════════════════════════════ */
+.placeholder-card {
+  display:       flex;
+  align-items:   center;
+  gap:           14px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 16px;
+  padding:       15px 16px;
+  opacity:       0.7;
+}
+
+.placeholder-icon {
+  color:       var(--clr-accent);
+  flex-shrink: 0;
+  display:     flex;
+  align-items: center;
+  opacity:     0.6;
+}
+
+.placeholder-text {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.placeholder-text strong {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+
+.placeholder-text span {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Symptom Log (Phase 4)
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Section badge (entry count in header) ─────────────────────────────── */
+.section-badge {
+  font-size:     0.72rem;
+  font-weight:   600;
+  padding:       2px 9px;
+  border-radius: 999px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  white-space:   nowrap;
+  border:        1px solid var(--clr-border);
+}
+
+.section-badge:empty { display: none; }
+
+/* ── Ongoing issues strip ──────────────────────────────────────────────── */
+.symp-issues-strip {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       10px 12px;
+  margin-bottom: 4px;
+}
+
+.symp-issues-hdr {
+  font-size:      0.7rem;
+  font-weight:    700;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom:  8px;
+}
+
+.symp-issue-chips {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.symp-issue-chip {
+  display:       flex;
+  align-items:   center;
+  gap:           7px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       7px 10px;
+}
+
+.symp-issue-dot {
+  width:       8px;
+  height:      8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.symp-issue-name {
+  font-size:     0.84rem;
+  font-weight:   500;
+  color:         var(--clr-text);
+  flex:          1;
+  min-width:     0;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.symp-issue-dur {
+  font-size:   0.72rem;
+  color:       var(--clr-text-2);
+  flex-shrink: 0;
+}
+
+.symp-chip-log-btn,
+.symp-chip-resolve-btn {
+  font-size:   0.75rem;
+  font-weight: 600;
+  padding:     3px 9px;
+  border-radius: 6px;
+  border:      1.5px solid;
+  cursor:      pointer;
+  flex-shrink: 0;
+  transition:  background var(--transition), color var(--transition);
+}
+
+.symp-chip-log-btn {
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+}
+
+.symp-chip-log-btn:hover {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+.symp-chip-resolve-btn {
+  background:   transparent;
+  color:        var(--clr-text-2);
+  border-color: var(--clr-border);
+}
+
+.symp-chip-resolve-btn:hover {
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+}
+
+/* ── Entries container ─────────────────────────────────────────────────── */
+.symp-entries {
+  display:        flex;
+  flex-direction: column;
+  gap:            8px;
+}
+
+/* ── Entry card ────────────────────────────────────────────────────────── */
+.symp-card {
+  background:     var(--clr-surface);
+  border:         1px solid var(--clr-border);
+  border-radius:  12px;
+  padding:        11px 13px;
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.symp-card-top {
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+}
+
+.symp-cat-dot {
+  width:        9px;
+  height:       9px;
+  border-radius: 50%;
+  flex-shrink:  0;
+}
+
+.symp-card-cat {
+  font-size:   0.79rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  flex:        1;
+}
+
+.symp-sev-badge {
+  font-size:     0.72rem;
+  font-weight:   700;
+  padding:       1px 7px;
+  border-radius: 999px;
+  background:    var(--sev-bg);
+  color:         var(--sev-clr);
+  flex-shrink:   0;
+}
+
+.symp-card-time {
+  font-size:   0.75rem;
+  color:       var(--clr-text-2);
+  flex-shrink: 0;
+}
+
+.symp-card-actions {
+  display: flex;
+  gap:     3px;
+}
+
+.symp-edit-btn,
+.symp-del-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   7px;
+  border:          none;
+  cursor:          pointer;
+  color:           var(--clr-text-2);
+  background:      transparent;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.symp-edit-btn:hover { background: var(--clr-surface-2); color: var(--clr-text); }
+.symp-del-btn:hover  { background: var(--clr-error-bg);  color: var(--clr-error); }
+
+@media (prefers-color-scheme: dark) {
+  .symp-del-btn:hover { background: #3b1a1a; }
+}
+
+.symp-card-desc {
+  font-size:   0.875rem;
+  color:       var(--clr-text);
+  line-height: 1.4;
+  margin:      0;
+}
+
+.symp-card-issue-tag {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  font-size:     0.72rem;
+  font-weight:   500;
+  color:         var(--cat-color, var(--clr-text-2));
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  padding:       2px 8px;
+  border-radius: 999px;
+  align-self:    flex-start;
+}
+
+/* ── Entry form ────────────────────────────────────────────────────────── */
+.symp-form {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-accent);
+  border-radius: 14px;
+  overflow:      hidden;
+}
+
+.symp-form-inner {
+  padding:        14px;
+  display:        flex;
+  flex-direction: column;
+  gap:            13px;
+}
+
+.symp-form-heading {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  font-size:       0.9rem;
+  font-weight:     600;
+  color:           var(--clr-text);
+}
+
+.symp-cancel-btn {
+  font-size:   0.82rem;
+  font-weight: 500;
+  color:       var(--clr-text-2);
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  padding:     4px 8px;
+  border-radius: 6px;
+  transition:  background var(--transition);
+}
+
+.symp-cancel-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.symp-form-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.symp-form-label {
+  font-size:      0.72rem;
+  font-weight:    700;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.symp-optional {
+  font-weight:    400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Category pills */
+.symp-form-cats {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.symp-form-cat-btn {
+  font-size:     0.8rem;
+  font-weight:   500;
+  padding:       5px 12px;
+  border-radius: 999px;
+  border:        1.5px solid var(--cat-color, var(--clr-border));
+  color:         var(--cat-color, var(--clr-text));
+  background:    transparent;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.symp-form-cat-btn:hover:not(.symp-form-cat-btn--active) {
+  background: var(--clr-surface-2);
+}
+
+.symp-form-cat-btn--active {
+  background:   var(--cat-color, var(--clr-accent));
+  color:        #fff;
+  border-color: var(--cat-color, var(--clr-accent));
+}
+
+/* Severity buttons */
+.symp-form-sevs {
+  display: flex;
+  gap:     6px;
+}
+
+.symp-form-sev-btn {
+  flex:          1;
+  font-size:     0.875rem;
+  font-weight:   700;
+  padding:       7px 0;
+  border-radius: 8px;
+  border:        1.5px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.symp-form-sev-btn:hover:not(.symp-form-sev-btn--active) {
+  background:   var(--sev-bg, var(--clr-surface-2));
+  color:        var(--sev-clr, var(--clr-text));
+  border-color: var(--sev-clr, var(--clr-border));
+}
+
+.symp-form-sev-btn--active {
+  background:   var(--sev-bg);
+  color:        var(--sev-clr);
+  border-color: var(--sev-clr);
+}
+
+/* Text inputs */
+.symp-text-input {
+  width:         100%;
+  padding:       9px 11px;
+  font-size:     0.875rem;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-family:   inherit;
+  box-sizing:    border-box;
+  transition:    border-color var(--transition);
+}
+
+.symp-text-input:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.symp-time-input { width: 130px; }
+
+/* Issue dropdown */
+.symp-form-select {
+  width:         100%;
+  padding:       9px 11px;
+  font-size:     0.875rem;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-family:   inherit;
+  cursor:        pointer;
+  box-sizing:    border-box;
+  transition:    border-color var(--transition);
+}
+
+.symp-form-select:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+/* New issue title field */
+.symp-new-issue-wrap[hidden] { display: none; }
+
+/* Form actions */
+.symp-form-actions {
+  display:         flex;
+  justify-content: flex-end;
+}
+
+.symp-save-btn {
+  font-size:     0.875rem;
+  font-weight:   600;
+  padding:       9px 24px;
+  border-radius: 9px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.symp-save-btn:hover  { background: var(--clr-accent-h); }
+.symp-save-btn:active { background: var(--clr-accent-h); }
+
+/* ── Add button ────────────────────────────────────────────────────────── */
+.symp-add-btn {
+  width:         100%;
+  padding:       11px;
+  font-size:     0.875rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        1.5px dashed var(--clr-accent);
+  border-radius: 12px;
+  cursor:        pointer;
+  transition:    background var(--transition);
+  margin-top:    2px;
+}
+
+.symp-add-btn:hover {
+  background: var(--clr-surface-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Medication Tracker (Phase 5)
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Medication list container ─────────────────────────────────────────── */
+.med-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+/* ── Med row wrapper (holds row + optional edit form) ──────────────────── */
+.med-row-wrap {
+  display:        flex;
+  flex-direction: column;
+  gap:            0;
+}
+
+/* ── Main medication row ───────────────────────────────────────────────── */
+.med-row {
+  display:       flex;
+  align-items:   center;
+  gap:           11px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       10px 12px;
+  transition:    border-color var(--transition), background var(--transition);
+}
+
+.med-row--taken {
+  background:   var(--clr-surface);
+  border-color: var(--clr-border);
+}
+
+.med-row--editing {
+  border-color:        var(--clr-accent);
+  border-bottom-left-radius:  0;
+  border-bottom-right-radius: 0;
+}
+
+/* ── Check / uncheck button ────────────────────────────────────────────── */
+.med-check-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  width:           36px;
+  height:          36px;
+  min-width:       36px;
+  border-radius:   50%;
+  border:          2px solid var(--clr-border);
+  background:      transparent;
+  color:           transparent;         /* checkmark hidden when not taken */
+  cursor:          pointer;
+  transition:      border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.med-check-btn:hover:not(.med-check-btn--taken) {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+  background:   var(--clr-accent-dim);
+}
+
+.med-check-btn--taken {
+  border-color: var(--clr-accent);
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);       /* checkmark visible */
+}
+
+/* ── Medication info block ─────────────────────────────────────────────── */
+.med-info {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  flex:           1;
+  min-width:      0;
+}
+
+.med-name {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.med-row--taken .med-name {
+  color: var(--clr-text);
+}
+
+.med-meta {
+  font-size: 0.76rem;
+  color:     var(--clr-text-2);
+}
+
+.med-taken-time {
+  font-size:   0.76rem;
+  font-weight: 600;
+  color:       var(--clr-accent);
+}
+
+/* ── Edit button (shown on taken rows) ─────────────────────────────────── */
+.med-edit-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           30px;
+  height:          30px;
+  min-width:       30px;
+  border-radius:   8px;
+  border:          none;
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.med-edit-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+/* ── Inline edit-record form ───────────────────────────────────────────── */
+.med-edit-form {
+  background:              var(--clr-surface);
+  border:                  1px solid var(--clr-accent);
+  border-top:              none;
+  border-bottom-left-radius:  12px;
+  border-bottom-right-radius: 12px;
+  padding:                 12px 14px;
+  display:                 flex;
+  flex-direction:          column;
+  gap:                     10px;
+}
+
+/* ── Shared form field + label ─────────────────────────────────────────── */
+.med-form-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            5px;
+}
+
+.med-form-label {
+  font-size:      0.7rem;
+  font-weight:    700;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.med-form-optional {
+  font-weight:    400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.med-form-input {
+  width:         100%;
+  padding:       8px 10px;
+  font-size:     0.875rem;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-family:   inherit;
+  box-sizing:    border-box;
+  transition:    border-color var(--transition);
+}
+
+.med-form-input:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.med-time-input { width: 130px; }
+
+/* ── Form action buttons ───────────────────────────────────────────────── */
+.med-form-actions {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex-wrap:   wrap;
+}
+
+.med-form-spacer { flex: 1; }
+
+.med-unmark-btn {
+  font-size:     0.8rem;
+  font-weight:   600;
+  padding:       6px 11px;
+  border-radius: 7px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.med-unmark-btn:hover {
+  color:      var(--clr-error);
+  border-color: var(--clr-error);
+  background: var(--clr-error-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .med-unmark-btn:hover { background: #3b1a1a; }
+}
+:root[data-theme="dark"] .med-unmark-btn:hover { background: #3b1a1a; }
+
+.med-archive-btn {
+  font-size:     0.8rem;
+  font-weight:   600;
+  padding:       6px 11px;
+  border-radius: 7px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.med-archive-btn:hover {
+  color:        var(--clr-text);
+  border-color: var(--clr-text-2);
+}
+
+.med-cancel-btn {
+  font-size:   0.82rem;
+  font-weight: 500;
+  color:       var(--clr-text-2);
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  padding:     6px 10px;
+  border-radius: 7px;
+  transition:  background var(--transition);
+}
+
+.med-cancel-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.med-record-save-btn {
+  font-size:     0.875rem;
+  font-weight:   600;
+  padding:       7px 18px;
+  border-radius: 8px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.med-record-save-btn:hover  { background: var(--clr-accent-h); }
+.med-record-save-btn:active { background: var(--clr-accent-h); }
+
+/* ── Add-medication form ───────────────────────────────────────────────── */
+.med-add-form {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-accent);
+  border-radius: 14px;
+  padding:       14px;
+  display:       flex;
+  flex-direction: column;
+  gap:           12px;
+}
+
+.med-add-form-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  font-size:       0.9rem;
+  font-weight:     600;
+  color:           var(--clr-text);
+}
+
+.med-add-cancel-btn {
+  font-size:     0.82rem;
+  font-weight:   500;
+  color:         var(--clr-text-2);
+  background:    transparent;
+  border:        none;
+  cursor:        pointer;
+  padding:       4px 8px;
+  border-radius: 6px;
+  transition:    background var(--transition);
+}
+
+.med-add-cancel-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+/* Timing chip multi-select */
+.med-timing-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.med-timing-chip {
+  font-size:     0.8rem;
+  font-weight:   500;
+  padding:       5px 12px;
+  border-radius: 999px;
+  border:        1.5px solid var(--clr-border);
+  color:         var(--clr-text-2);
+  background:    transparent;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.med-timing-chip:hover:not(.med-timing-chip--active) {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+}
+
+.med-timing-chip--active {
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+  font-weight:  600;
+}
+
+.med-add-save-btn {
+  align-self:    flex-end;
+  font-size:     0.875rem;
+  font-weight:   600;
+  padding:       9px 24px;
+  border-radius: 9px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.med-add-save-btn:hover  { background: var(--clr-accent-h); }
+.med-add-save-btn:active { background: var(--clr-accent-h); }
+
+/* ── Add button ────────────────────────────────────────────────────────── */
+.med-add-btn {
+  width:         100%;
+  padding:       11px;
+  font-size:     0.875rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        1.5px dashed var(--clr-accent);
+  border-radius: 12px;
+  cursor:        pointer;
+  transition:    background var(--transition);
+  margin-top:    2px;
+}
+
+.med-add-btn:hover {
+  background: var(--clr-surface-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Symptom category manager
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Section header right-side cluster (badge + gear button) */
+.section-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+}
+
+/* Gear toggle button */
+.symp-cat-toggle-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   7px;
+  border:          none;
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  flex-shrink:     0;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.symp-cat-toggle-btn:hover,
+.symp-cat-toggle-btn[aria-expanded="true"] {
+  background: var(--clr-accent-dim);
+  color:      var(--clr-accent);
+}
+
+/* Panel container */
+.symp-cat-panel {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       12px;
+  display:       flex;
+  flex-direction: column;
+  gap:           10px;
+}
+
+/* ── Quick symptom multiselect ─────────────────────────────────────────────── */
+
+.symp-quick-symptoms {
+  padding:       2px 0 10px;
+}
+
+.symp-quick-pills {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       7px;
+}
+
+.symp-quick-pill {
+  padding:       5px 13px;
+  border-radius: 999px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.8rem;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition),
+                 border-color var(--transition);
+  white-space:   nowrap;
+}
+.symp-quick-pill:hover {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+}
+.symp-quick-pill--active {
+  background:   var(--clr-accent);
+  border-color: var(--clr-accent);
+  color:        #fff;
+}
+.symp-quick-pill--active:hover {
+  opacity: 0.88;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+.symp-cat-panel-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  font-size:       0.85rem;
+  font-weight:     600;
+  color:           var(--clr-text);
+}
+
+.symp-cat-done-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    transparent;
+  border:        none;
+  cursor:        pointer;
+  padding:       3px 8px;
+  border-radius: 6px;
+  transition:    background var(--transition);
+}
+
+.symp-cat-done-btn:hover {
+  background: var(--clr-accent-dim);
+}
+
+/* Category list */
+.symp-cat-list {
+  list-style:     none;
+  padding:        0;
+  margin:         0;
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+}
+
+.symp-cat-item {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  padding:       7px 10px;
+}
+
+.symp-cat-item-dot {
+  width:        8px;
+  height:       8px;
+  border-radius: 50%;
+  flex-shrink:  0;
+}
+
+.symp-cat-item-name {
+  font-size:   0.85rem;
+  font-weight: 500;
+  color:       var(--clr-text);
+  flex:        1;
+}
+
+.symp-cat-name-input {
+  flex:         1;
+  font-size:    0.85rem;
+  padding:      3px 7px;
+  border:       1.5px solid var(--clr-accent);
+  border-radius: 6px;
+  background:   var(--clr-surface);
+  color:        var(--clr-text);
+  font-family:  inherit;
+  min-width:    0;
+}
+
+.symp-cat-name-input:focus { outline: none; }
+
+/* Icon buttons inside each category row */
+.symp-cat-edit-btn,
+.symp-cat-del-btn,
+.symp-cat-save-btn,
+.symp-cat-item-cancel-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           26px;
+  height:          26px;
+  min-width:       26px;
+  border-radius:   6px;
+  border:          none;
+  cursor:          pointer;
+  flex-shrink:     0;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.symp-cat-edit-btn,
+.symp-cat-item-cancel-btn {
+  background: transparent;
+  color:      var(--clr-text-2);
+}
+
+.symp-cat-edit-btn:hover,
+.symp-cat-item-cancel-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.symp-cat-del-btn {
+  background: transparent;
+  color:      var(--clr-text-2);
+}
+
+.symp-cat-del-btn:hover {
+  background: var(--clr-error-bg);
+  color:      var(--clr-error);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .symp-cat-del-btn:hover { background: #3b1a1a; }
+}
+:root[data-theme="dark"] .symp-cat-del-btn:hover { background: #3b1a1a; }
+
+.symp-cat-save-btn {
+  background: var(--clr-accent-dim);
+  color:      var(--clr-accent);
+}
+
+.symp-cat-save-btn:hover {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+/* Add-category row */
+.symp-cat-add-row {
+  display:     flex;
+  gap:         6px;
+  align-items: center;
+}
+
+.symp-cat-add-input {
+  flex:          1;
+  padding:       7px 10px;
+  font-size:     0.85rem;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-family:   inherit;
+  min-width:     0;
+  transition:    border-color var(--transition);
+}
+
+.symp-cat-add-input:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.symp-cat-add-confirm-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       7px 14px;
+  border-radius: 8px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+  white-space:   nowrap;
+  transition:    background var(--transition);
+}
+
+.symp-cat-add-confirm-btn:hover { background: var(--clr-accent-h); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Global date bar (shared across all sections)
+═══════════════════════════════════════════════════════════════════════════ */
+.app-date-bar {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 14px;
+  padding:       8px 10px;
+  position:      sticky;
+  top:           0;
+  z-index:       20;
+  box-shadow:    0 2px 8px rgba(0,0,0,.06);
+}
+
+.app-date-bar__center {
+  flex:            1;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  position:        relative;
+}
+
+.app-date-label {
+  font-size:   0.92rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  white-space: nowrap;
+}
+
+.app-cal-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   7px;
+  border:          none;
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.app-cal-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+/* Invisible — only used to trigger the native date picker */
+.app-date-picker-hidden {
+  position:       absolute;
+  opacity:        0;
+  pointer-events: none;
+  width:          1px;
+  height:         1px;
+  top:            100%;
+  left:           50%;
+}
+
+.app-today-btn {
+  font-size:     0.78rem;
+  font-weight:   700;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        1.5px solid var(--clr-accent);
+  border-radius: 999px;
+  padding:       4px 11px;
+  cursor:        pointer;
+  white-space:   nowrap;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.app-today-btn:hover {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+/* ── Reading habit row (expandable) ─────────────────────────────────────────── */
+
+.habit-reading-wrapper {
+  display:        flex;
+  flex-direction: column;
+}
+
+/* Override button padding/gap on the reading row since child buttons own it */
+.habit-row--reading {
+  padding: 0;
+  gap:     0;
+  cursor:  default;   /* row itself isn't clickable */
+}
+
+/* Checkbox sub-button */
+.habit-check-btn {
+  background:  none;
+  border:      none;
+  cursor:      pointer;
+  padding:     13px 10px 13px 16px;
+  display:     flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 0;
+  transition:  opacity var(--transition);
+}
+.habit-check-btn:hover { opacity: 0.75; }
+
+/* Expand sub-button (name + chevron) */
+.habit-expand-btn {
+  flex:          1;
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  background:    none;
+  border:        none;
+  padding:       13px 16px 13px 6px;
+  text-align:    left;
+  cursor:        pointer;
+  border-radius: 0;
+  transition:    background var(--transition);
+  min-width:     0;
+}
+.habit-expand-btn:hover { background: var(--clr-surface-2); }
+
+/* Chevron icon */
+.habit-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color:       var(--clr-text-2);
+  transition:  transform 0.2s ease;
+}
+.habit-chevron--open { transform: rotate(180deg); }
+
+/* Remove bottom border when panel is open (panel takes over visually) */
+.habit-row--reading.habit-row--open { border-bottom: none; }
+
+/* Inline gym panel inside habits section */
+.gym-habits-inline {
+  border-top:    1px solid var(--clr-border);
+  border-bottom: 1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  padding:       14px;
+}
+
+.gym-panel {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       8px;
+}
+
+.gym-muscle-btn {
+  padding:       7px 16px;
+  border-radius: 999px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.85rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.gym-muscle-btn:hover {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+}
+.gym-muscle-btn--active {
+  background:   var(--clr-accent);
+  border-color: var(--clr-accent);
+  color:        #fff;
+}
+.gym-muscle-btn--active:hover {
+  background:   var(--clr-accent);
+  color:        #fff;
+  opacity:      0.88;
+}
+
+/* Inline reading panel inside habits section */
+.book-habits-inline {
+  border-top:    1px solid var(--clr-border);
+  border-bottom: 1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  padding:       14px;
+}
+.book-habits-inline .book-daily { gap: 8px; }
+
+/* ── Reading Tracker ─────────────────────────────────────────────────────────── */
+
+/* Library toggle button */
+.book-library-btn {
+  font-size:     0.78rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        1.5px solid var(--clr-accent);
+  border-radius: 999px;
+  padding:       4px 12px;
+  cursor:        pointer;
+  white-space:   nowrap;
+  transition:    background var(--transition), color var(--transition);
+}
+.book-library-btn:hover {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+/* Library panel */
+.book-library-panel {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       14px;
+  margin-bottom: 14px;
+}
+.book-lib-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   10px;
+}
+.book-lib-title {
+  font-size:   0.95rem;
+  font-weight: 700;
+  margin:      0;
+  color:       var(--clr-text);
+}
+.book-lib-done-btn {
+  font-size:     0.78rem;
+  font-weight:   600;
+  color:         var(--clr-text-2);
+  background:    transparent;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 999px;
+  padding:       3px 11px;
+  cursor:        pointer;
+}
+.book-lib-done-btn:hover { color: var(--clr-text); border-color: var(--clr-text-2); }
+
+/* Add book button */
+.book-add-book-btn {
+  display:       block;
+  width:         100%;
+  text-align:    left;
+  font-size:     0.85rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    transparent;
+  border:        1.5px dashed var(--clr-accent);
+  border-radius: 8px;
+  padding:       8px 12px;
+  margin-bottom: 12px;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+.book-add-book-btn:hover { background: var(--clr-accent-dim); }
+
+/* Book groups */
+.book-group        { margin-bottom: 12px; }
+.book-group-title  {
+  font-size:     0.7rem;
+  font-weight:   700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color:         var(--clr-text-2);
+  margin:        0 0 6px;
+}
+
+/* Book cards */
+.book-card {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  padding:       10px 12px;
+  margin-bottom: 8px;
+}
+.book-card-main   { display: flex; gap: 12px; align-items: flex-start; }
+.book-card-info   { flex: 1; min-width: 0; }
+.book-card-title  {
+  font-size:     0.9rem;
+  font-weight:   700;
+  color:         var(--clr-text);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+.book-card-author {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+  margin-top: 1px;
+}
+.book-card-stats  {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  margin-top: 3px;
+}
+.book-card-date   {
+  font-size:  0.72rem;
+  color:      var(--clr-text-2);
+  margin-top: 2px;
+  font-style: italic;
+}
+.book-card-progress {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-end;
+  gap:            4px;
+  min-width:      56px;
+}
+.book-card-progress-bar {
+  width:         52px;
+  height:        6px;
+  background:    var(--clr-border);
+  border-radius: 999px;
+  overflow:      hidden;
+}
+.book-card-progress-fill {
+  height:        100%;
+  background:    var(--clr-accent);
+  border-radius: 999px;
+  transition:    width 0.3s ease;
+}
+.book-card-progress-pct {
+  font-size:   0.7rem;
+  font-weight: 700;
+  color:       var(--clr-accent);
+}
+.book-card-actions {
+  display:    flex;
+  flex-wrap:  wrap;
+  gap:        6px;
+  margin-top: 8px;
+}
+.book-card-actions button {
+  font-size:     0.75rem;
+  padding:       3px 9px;
+  border-radius: 6px;
+  cursor:        pointer;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.book-card-actions button:hover { color: var(--clr-text); border-color: var(--clr-text-2); }
+.book-card-finish-btn { color: var(--clr-accent) !important; border-color: var(--clr-accent) !important; }
+.book-card-finish-btn:hover { background: var(--clr-accent-dim) !important; }
+.book-card-del-btn:hover { color: var(--clr-error) !important; border-color: var(--clr-error) !important; }
+
+/* Shared form styles */
+.book-add-form,
+.book-session-form {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  padding:       12px 14px;
+  margin-bottom: 10px;
+}
+.book-form-heading {
+  font-size:     0.85rem;
+  font-weight:   700;
+  color:         var(--clr-text);
+  margin:        0 0 10px;
+}
+.book-form-field  { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.book-form-label  { font-size: 0.78rem; font-weight: 600; color: var(--clr-text-2); }
+.book-form-required { color: var(--clr-error); margin-left: 2px; }
+.book-form-optional { font-weight: 400; color: var(--clr-text-2); }
+.book-form-input {
+  background:    var(--clr-surface-2);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 6px;
+  padding:       7px 10px;
+  font-size:     0.88rem;
+  color:         var(--clr-text);
+  width:         100%;
+  box-sizing:    border-box;
+  transition:    border-color var(--transition);
+}
+.book-form-input:focus { outline: none; border-color: var(--clr-accent); }
+.book-narrow-input { width: 100px !important; }
+.book-form-select {
+  background:    var(--clr-surface-2);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 6px;
+  padding:       7px 10px;
+  font-size:     0.88rem;
+  color:         var(--clr-text);
+  width:         100%;
+  box-sizing:    border-box;
+}
+.book-form-row {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       10px;
+}
+.book-form-row .book-form-field { flex: 0 0 auto; }
+.book-form-actions {
+  display:    flex;
+  gap:        8px;
+  margin-top: 4px;
+}
+.book-form-cancel-btn {
+  font-size:     0.82rem;
+  padding:       6px 14px;
+  border-radius: 6px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+}
+.book-form-cancel-btn:hover { color: var(--clr-text); }
+.book-form-save-btn {
+  font-size:     0.82rem;
+  padding:       6px 16px;
+  border-radius: 6px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-weight:   700;
+  cursor:        pointer;
+  transition:    opacity var(--transition);
+}
+.book-form-save-btn:hover { opacity: 0.88; }
+
+/* Empty states */
+.book-empty       { font-size: 0.85rem; color: var(--clr-text-2); text-align: center; padding: 16px 0; }
+.book-empty-daily { font-size: 0.85rem; color: var(--clr-text-2); padding: 10px 0; }
+
+/* Daily section */
+.book-daily { display: flex; flex-direction: column; gap: 10px; }
+
+/* Book selector */
+.book-selector-wrap {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       10px 14px;
+}
+.book-active-select {
+  background:    var(--clr-surface);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 6px;
+  padding:       5px 8px;
+  font-size:     0.92rem;
+  font-weight:   700;
+  color:         var(--clr-text);
+  width:         100%;
+  margin-bottom: 4px;
+}
+.book-sel-title  { font-size: 0.95rem; font-weight: 700; color: var(--clr-text); }
+.book-sel-author { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 1px; }
+.book-sel-meta   { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 4px; }
+.book-sel-progress {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-top:  8px;
+}
+.book-sel-progress-bar {
+  flex:          1;
+  height:        6px;
+  background:    var(--clr-border);
+  border-radius: 999px;
+  overflow:      hidden;
+}
+.book-sel-progress-fill {
+  height:        100%;
+  background:    var(--clr-accent);
+  border-radius: 999px;
+  transition:    width 0.3s ease;
+}
+.book-sel-progress-text {
+  font-size:   0.75rem;
+  font-weight: 700;
+  color:       var(--clr-accent);
+  white-space: nowrap;
+}
+
+/* Session history toggle */
+.book-history-toggle {
+  background:    transparent;
+  border:        none;
+  padding:       4px 0;
+  font-size:     0.78rem;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  text-align:    left;
+  transition:    color var(--transition);
+}
+.book-history-toggle:hover { color: var(--clr-text); }
+
+/* Session list */
+.book-sessions-list { display: flex; flex-direction: column; gap: 6px; }
+.book-session-card {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           10px;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  padding:       8px 10px;
+}
+.book-session-dot {
+  width:         8px;
+  height:        8px;
+  background:    var(--clr-accent);
+  border-radius: 50%;
+  flex-shrink:   0;
+  margin-top:    5px;
+}
+.book-session-body    { flex: 1; min-width: 0; }
+.book-session-summary { font-size: 0.85rem; color: var(--clr-text); }
+.book-session-notes   { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 3px; }
+.book-session-book-tag {
+  display:          inline-block;
+  font-size:        0.72rem;
+  background:       var(--clr-accent-dim);
+  color:            var(--clr-accent);
+  border-radius:    4px;
+  padding:          1px 6px;
+  margin-left:      6px;
+  vertical-align:   middle;
+}
+.book-session-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.book-sess-edit-btn,
+.book-sess-del-btn {
+  font-size:     0.73rem;
+  padding:       2px 8px;
+  border-radius: 5px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+}
+.book-sess-edit-btn:hover { color: var(--clr-text); }
+.book-sess-del-btn:hover  { color: var(--clr-error); border-color: var(--clr-error); }
+
+/* Action area */
+.book-action-area {
+  display:    flex;
+  gap:        10px;
+  flex-wrap:  wrap;
+  margin-top: 4px;
+}
+.book-start-timer-btn,
+.book-log-manual-btn {
+  flex:          1;
+  min-width:     120px;
+  padding:       10px 14px;
+  border-radius: 8px;
+  font-size:     0.88rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+.book-start-timer-btn {
+  background: var(--clr-accent);
+  color:      #fff;
+  border:     none;
+}
+.book-start-timer-btn:hover { opacity: 0.88; }
+.book-log-manual-btn {
+  background: transparent;
+  color:      var(--clr-text);
+  border:     1.5px solid var(--clr-border);
+}
+.book-log-manual-btn:hover { background: var(--clr-surface-2); }
+
+/* Timer bar */
+.book-timer-running {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  background:    var(--clr-accent-dim);
+  border:        1.5px solid var(--clr-accent);
+  border-radius: 10px;
+  padding:       10px 14px;
+}
+.book-timer-icon    { font-size: 1.2rem; }
+.book-timer-display {
+  font-size:   1.1rem;
+  font-weight: 700;
+  font-family: monospace;
+  color:       var(--clr-text);
+  flex:        1;
+}
+.book-timer-stop-btn {
+  font-size:     0.82rem;
+  font-weight:   700;
+  padding:       6px 14px;
+  border-radius: 6px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+}
+.book-timer-stop-btn:hover { opacity: 0.88; }
+
+/* ── Book search ─────────────────────────────────────────────────────────── */
+
+.book-search-wrap {
+  position: relative;
+}
+.book-search-input { padding-right: 90px; }
+
+.book-search-spinner {
+  position:    absolute;
+  right:       10px;
+  top:         50%;
+  transform:   translateY(-50%);
+  font-size:   0.75rem;
+  color:       var(--clr-text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Search result list */
+.book-search-results {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  margin:         4px 0 10px;
+  border:         1.5px solid var(--clr-border);
+  border-radius:  10px;
+  overflow:       hidden;
+  background:     var(--clr-surface);
+}
+
+.book-search-result {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  width:       100%;
+  padding:     8px 10px;
+  background:  transparent;
+  border:      none;
+  border-bottom: 1px solid var(--clr-border);
+  cursor:      pointer;
+  text-align:  left;
+  transition:  background var(--transition);
+}
+.book-search-result:last-child  { border-bottom: none; }
+.book-search-result:hover       { background: var(--clr-surface-2); }
+
+.book-result-cover {
+  width:         44px;
+  height:        60px;
+  object-fit:    cover;
+  border-radius: 4px;
+  flex-shrink:   0;
+  background:    var(--clr-surface-2);
+}
+.book-result-cover--empty {
+  border: 1.5px dashed var(--clr-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.book-result-info      { flex: 1; min-width: 0; }
+.book-result-title     { font-size: 0.88rem; font-weight: 600; color: var(--clr-text); }
+.book-result-author    { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 2px; }
+.book-result-pages     { font-size: 0.72rem; color: var(--clr-text-2); margin-top: 2px; }
+
+/* Cover preview in form */
+.book-cover-preview {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           10px;
+  margin-bottom: 14px;
+}
+.book-cover-preview-img {
+  width:         60px;
+  height:        82px;
+  object-fit:    cover;
+  border-radius: 5px;
+  border:        1px solid var(--clr-border);
+  flex-shrink:   0;
+}
+.book-cover-clear-btn {
+  font-size:     0.75rem;
+  padding:       3px 8px;
+  border-radius: 5px;
+  border:        1px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  align-self:    center;
+}
+.book-cover-clear-btn:hover { color: var(--clr-error); border-color: var(--clr-error); }
+
+/* ── Cover art in library cards ──────────────────────────────────────────── */
+
+.book-card {
+  display:   flex;
+  gap:       10px;
+  align-items: flex-start;
+}
+.book-card-cover {
+  width:         52px;
+  height:        74px;
+  object-fit:    cover;
+  border-radius: 5px;
+  border:        1px solid var(--clr-border);
+  flex-shrink:   0;
+}
+/* book-card-main already exists; ensure it fills remaining space */
+.book-card-main { flex: 1; min-width: 0; }
+
+/* ── Cover art in daily selector ─────────────────────────────────────────── */
+
+.book-selector-wrap {
+  display:   flex;
+  gap:       12px;
+  align-items: flex-start;
+}
+.book-sel-cover {
+  width:         54px;
+  height:        76px;
+  object-fit:    cover;
+  border-radius: 6px;
+  border:        1px solid var(--clr-border);
+  flex-shrink:   0;
+  box-shadow:    0 2px 8px rgba(0,0,0,0.15);
+}
+.book-sel-info {
+  flex:      1;
+  min-width: 0;
+}
+
+/* ── Health section (issue-based model) ──────────────────────────────────── */
+
+/* Section group label */
+.health-section { margin-bottom: 12px; }
+.health-section-label {
+  font-size:     0.72rem;
+  font-weight:   700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color:         var(--clr-text-2);
+  margin:        0 0 8px 2px;
+}
+
+/* Issue card */
+.health-issue-card {
+  background:    var(--clr-surface);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       12px 14px;
+  margin-bottom: 8px;
+  transition:    border-color var(--transition);
+}
+.health-issue-card--pending {
+  border-left:   4px solid var(--clr-border);
+  opacity:       0.85;
+}
+.health-issue-card--checked {
+  border-left:   4px solid var(--clr-accent);
+}
+
+/* Card header row */
+.health-issue-header {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+.health-issue-dot {
+  width:         10px;
+  height:        10px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+.health-issue-meta {
+  flex:          1;
+  min-width:     0;
+  display:       flex;
+  flex-direction: column;
+  gap:           2px;
+}
+.health-issue-name {
+  font-size:   0.92rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+.health-issue-cat {
+  font-size: 0.76rem;
+  color:     var(--clr-text-2);
+}
+.health-issue-since {
+  font-style: italic;
+  color:      var(--clr-text-2);
+}
+
+/* Severity badge */
+.health-sev-badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  font-size:     0.8rem;
+  font-weight:   700;
+  padding:       2px 8px;
+  border-radius: 6px;
+  background:    var(--sev-bg, var(--clr-surface-2));
+  color:         var(--sev-clr, var(--clr-text));
+  flex-shrink:   0;
+  white-space:   nowrap;
+}
+.health-sev-label {
+  font-weight: 400;
+  font-size:   0.74rem;
+}
+.health-sev-badge--last {
+  opacity: 0.75;
+  font-size: 0.74rem;
+}
+
+/* Symptom chips (read-only display) */
+.health-symp-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       5px;
+  margin-top: 8px;
+}
+.health-symp-chip {
+  font-size:     0.74rem;
+  padding:       2px 8px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  border-radius: 20px;
+  border:        1px solid var(--clr-border);
+}
+
+/* Log note */
+.health-log-note {
+  font-size:  0.82rem;
+  color:      var(--clr-text-2);
+  margin:     6px 0 0;
+  font-style: italic;
+}
+
+/* Card action row */
+.health-card-actions {
+  display:    flex;
+  gap:        8px;
+  margin-top: 10px;
+}
+.health-checkin-btn,
+.health-edit-btn,
+.health-resolve-btn,
+.health-delete-btn {
+  font-size:     0.78rem;
+  font-weight:   600;
+  padding:       5px 12px;
+  border-radius: 7px;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-checkin-btn {
+  background: var(--clr-accent);
+  color:      #fff;
+  border:     none;
+}
+.health-checkin-btn:hover { opacity: 0.88; }
+.health-edit-btn {
+  background: transparent;
+  color:      var(--clr-text-2);
+  border:     1.5px solid var(--clr-border);
+}
+.health-edit-btn:hover { background: var(--clr-surface-2); color: var(--clr-text); }
+.health-resolve-btn {
+  background: transparent;
+  color:      var(--clr-text-2);
+  border:     1.5px solid var(--clr-border);
+  margin-left: auto;
+}
+.health-resolve-btn:hover { color: var(--clr-accent); border-color: var(--clr-accent); }
+.health-delete-btn {
+  background: transparent;
+  color:      var(--clr-text-2);
+  border:     1.5px solid var(--clr-border);
+  margin-left: auto;
+}
+.health-delete-btn:hover { color: var(--clr-error); border-color: var(--clr-error); }
+
+/* Add button */
+.health-add-btn {
+  display:       block;
+  width:         100%;
+  padding:       10px;
+  margin-top:    4px;
+  border:        1.5px dashed var(--clr-border);
+  border-radius: 10px;
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.88rem;
+  font-weight:   600;
+  cursor:        pointer;
+  text-align:    center;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-add-btn:hover {
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+  border-color:  var(--clr-accent);
+}
+
+/* ── Health forms ─────────────────────────────────────────────────────────── */
+
+.health-form {
+  background:    var(--clr-surface);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 14px;
+  padding:       14px 16px;
+  margin-bottom: 8px;
+}
+.health-form--checkin { border-left: 4px solid var(--clr-accent); }
+.health-form--edit    { border-left: 4px solid var(--clr-text-2); }
+
+/* Form top row: title + cancel */
+.health-form-top {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  margin-bottom: 14px;
+}
+.health-form-title {
+  font-size:   0.92rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  flex:        1;
+}
+.health-form-issue-label {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex:        1;
+  font-size:   0.92rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  min-width:   0;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.health-cancel-btn {
+  font-size:     0.78rem;
+  padding:       4px 10px;
+  border-radius: 7px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  flex-shrink:   0;
+}
+.health-cancel-btn:hover { color: var(--clr-text); background: var(--clr-surface-2); }
+
+/* Form field */
+.health-form-field { margin-bottom: 12px; }
+.health-form-label {
+  display:       block;
+  font-size:     0.78rem;
+  font-weight:   600;
+  color:         var(--clr-text-2);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.health-req { color: var(--clr-error); }
+.health-opt {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.76rem;
+}
+
+/* Text input */
+.health-text-input {
+  width:         100%;
+  padding:       8px 10px;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.88rem;
+  font-family:   inherit;
+  box-sizing:    border-box;
+  transition:    border-color var(--transition);
+}
+.health-text-input:focus {
+  outline:       none;
+  border-color:  var(--clr-accent);
+}
+.health-text-input.input--error { border-color: var(--clr-error); }
+
+/* Category pills */
+.health-form-cats {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+.health-form-cat {
+  font-size:     0.78rem;
+  font-weight:   600;
+  padding:       4px 10px;
+  border-radius: 20px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-form-cat:hover:not(.health-form-cat--active) {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+.health-form-cat--active {
+  background:   var(--cat-color, var(--clr-accent));
+  color:        #fff;
+  border-color: var(--cat-color, var(--clr-accent));
+}
+
+/* Symptom grid */
+.health-symp-grid {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+.health-symp-btn {
+  font-size:     0.78rem;
+  padding:       4px 10px;
+  border-radius: 20px;
+  border:        1.5px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-symp-btn:hover:not(.health-symp-btn--active) {
+  background: var(--clr-surface);
+  color:      var(--clr-text);
+  border-color: var(--clr-text-2);
+}
+.health-symp-btn--active {
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+  font-weight:  600;
+}
+
+/* Severity buttons */
+.health-form-sevs {
+  display:   flex;
+  gap:       6px;
+  flex-wrap: wrap;
+}
+.health-form-sev {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            2px;
+  min-width:      48px;
+  padding:        6px 8px;
+  border-radius:  8px;
+  border:         1.5px solid var(--clr-border);
+  background:     var(--clr-surface-2);
+  color:          var(--clr-text-2);
+  font-size:      1rem;
+  font-weight:    700;
+  cursor:         pointer;
+  transition:     background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-form-sev span {
+  font-size:   0.62rem;
+  font-weight: 400;
+}
+.health-form-sev:hover:not(.health-form-sev--active) {
+  background:   var(--sev-bg, var(--clr-surface));
+  color:        var(--sev-clr, var(--clr-text));
+  border-color: var(--sev-clr, var(--clr-text-2));
+}
+.health-form-sev--active {
+  background:   var(--sev-bg);
+  color:        var(--sev-clr);
+  border-color: var(--sev-clr);
+}
+
+/* Ongoing checkbox row */
+.health-ongoing-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin:      4px 0 12px;
+  cursor:      pointer;
+  font-size:   0.85rem;
+  color:       var(--clr-text-2);
+}
+.health-ongoing-check {
+  width:  16px;
+  height: 16px;
+  accent-color: var(--clr-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Form action row */
+.health-form-actions {
+  display:    flex;
+  gap:        8px;
+  flex-wrap:  wrap;
+  margin-top: 4px;
+}
+.health-form-actions--checkin { justify-content: space-between; }
+.health-save-btn {
+  padding:       9px 20px;
+  border-radius: 8px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-size:     0.88rem;
+  font-weight:   700;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+.health-save-btn:hover  { background: var(--clr-accent-h); }
+.health-save-keep       { flex: 1; }
+.health-resolve-form-btn {
+  padding:       9px 16px;
+  border-radius: 8px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.85rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-resolve-form-btn:hover {
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+}
+
+/* ── Issue detail trigger (clickable header area on cards) ───────────────── */
+.health-issue-detail-trigger {
+  display:    block;
+  width:      100%;
+  background: transparent;
+  border:     none;
+  padding:    0;
+  cursor:     pointer;
+  text-align: left;
+  margin-bottom: 2px;
+}
+.health-issue-detail-trigger:hover .health-issue-name {
+  color: var(--clr-accent);
+}
+.health-detail-chevron {
+  flex-shrink: 0;
+  color:       var(--clr-text-2);
+  opacity:     0.5;
+  transition:  opacity var(--transition);
+}
+.health-issue-detail-trigger:hover .health-detail-chevron { opacity: 1; }
+
+/* ── Detail view container ───────────────────────────────────────────────── */
+.health-detail { }
+
+.health-detail-header {
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  margin-bottom: 14px;
+}
+.health-detail-back {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       5px 10px;
+  border-radius: 7px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    background var(--transition), color var(--transition);
+}
+.health-detail-back:hover { background: var(--clr-surface-2); color: var(--clr-text); }
+
+.health-detail-title {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex:        1;
+  min-width:   0;
+}
+.health-detail-name {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+.health-detail-meta {
+  font-size: 0.76rem;
+  color:     var(--clr-text-2);
+  margin-top: 1px;
+}
+
+/* Edit issue button */
+.health-detail-edit-btn {
+  display:       inline-block;
+  font-size:     0.78rem;
+  font-weight:   600;
+  padding:       5px 12px;
+  border-radius: 7px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  margin-bottom: 14px;
+  transition:    background var(--transition), color var(--transition);
+}
+.health-detail-edit-btn:hover { background: var(--clr-surface-2); color: var(--clr-text); }
+
+/* Edit form inside detail */
+.health-detail-edit {
+  background:    var(--clr-surface-2);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       12px 14px;
+  margin-bottom: 14px;
+}
+
+/* Detail category pills (same visual style as health-form-cat) */
+.health-detail-cat {
+  font-size:     0.78rem;
+  font-weight:   600;
+  padding:       4px 10px;
+  border-radius: 20px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.health-detail-cat:hover:not(.health-detail-cat--active) {
+  background: var(--clr-surface);
+  color:      var(--clr-text);
+}
+.health-detail-cat--active {
+  background:   var(--cat-color, var(--clr-accent));
+  color:        #fff;
+  border-color: var(--cat-color, var(--clr-accent));
+}
+
+/* Detail sections (chart, log history) */
+.health-detail-section { margin-bottom: 18px; }
+
+/* Severity chart */
+.health-chart-scroll {
+  overflow-x:  auto;
+  overflow-y:  hidden;
+  padding:     4px 0 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.health-chart-svg {
+  display:      block;
+  min-width:    100%;
+}
+
+/* Log history rows */
+.health-detail-logs {
+  display:        flex;
+  flex-direction: column;
+  gap:            8px;
+}
+.health-detail-log-row {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       10px 12px;
+}
+.health-detail-log-top {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 4px;
+}
+.health-detail-log-date {
+  font-size:   0.82rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  flex:        1;
+}
+
+/* ── Smart symptom grouping ──────────────────────────────────────────────── */
+.health-symp-group-label {
+  font-size:      0.7rem;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color:          var(--clr-text-2);
+  margin:         8px 0 5px;
+}
+.health-symp-group-label:first-child { margin-top: 0; }
+
+/* "From last time" pills get a subtle accent tint when unselected */
+.health-symp-btn--prev:not(.health-symp-btn--active) {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+  background:   var(--clr-accent-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tab navigation — 3-tab layout (Today / Reports / Library)
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Keep #screen-app scrolling as before; tabs just toggle visibility.
+   align-items: stretch so tabs fill full width (not center-collapsed). */
+#screen-app {
+  align-items: stretch;
+  padding:     0;
+}
+
+/* Hidden tabs take up no space */
+.tab-view {
+  display: none;
+}
+
+/* Active tab: flex column (same as .app-main) */
+.tab-view--active {
+  display:        flex;
+  flex-direction: column;
+}
+
+/* Today tab inherits .app-main layout; bottom padding clears the bottom nav */
+#tab-today {
+  padding-bottom: max(80px, calc(65px + env(safe-area-inset-bottom)));
+}
+
+/* Library tab padding */
+#tab-library {
+  padding:        16px;
+  padding-bottom: max(80px, calc(65px + env(safe-area-inset-bottom)));
+}
+
+/* Reports tab: no top/side padding — period wrap and content handle their own */
+#tab-reports {
+  padding:        0;
+  padding-bottom: max(80px, calc(65px + env(safe-area-inset-bottom)));
+}
+
+#reports-content {
+  padding: 8px 16px 0;
+}
+
+/* ── Bottom navigation ───────────────────────────────────────────────────── */
+.bottom-nav {
+  position:   fixed;
+  bottom:     0;
+  left:       0;
+  right:      0;
+  z-index:    50;
+  display:    flex;
+  align-items: stretch;
+  background: var(--clr-surface);
+  border-top: 1px solid var(--clr-border);
+  /* Safe-area bottom (iPhone home bar) */
+  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(60px + env(safe-area-inset-bottom));
+}
+
+.bottom-nav-btn {
+  flex:            1;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             3px;
+  background:      transparent;
+  border:          none;
+  color:           var(--clr-text-2);
+  font-size:       11px;
+  font-weight:     500;
+  padding:         6px 4px;
+  transition:      color var(--transition);
+}
+
+.bottom-nav-btn--active {
+  color: var(--clr-accent);
+}
+
+.bottom-nav-btn svg {
+  width:  22px;
+  height: 22px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Reports tab
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Period selector: sticky wrapper (top set by JS = app-header height) */
+#rpt-period-wrap {
+  position:   sticky;
+  top:        0;
+  z-index:    9;
+  background: var(--clr-bg);
+  padding:    12px 16px 8px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.report-period-bar {
+  display:    flex;
+  flex-direction: column;
+  gap:        8px;
+}
+
+.rpt-period-btns {
+  display: flex;
+  gap:     6px;
+}
+
+.rpt-period-btn {
+  flex:        1;
+  padding:     7px 0;
+  border-radius: 8px;
+  font-size:   0.83rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  background:  var(--clr-surface);
+  border:      1px solid var(--clr-border);
+  transition:  all var(--transition);
+}
+
+.rpt-period-btn--active {
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+  background:   var(--clr-accent-dim);
+}
+
+/* Custom date range picker */
+.rpt-custom-picker {
+  display:     flex;
+  align-items: center;
+  flex-wrap:   wrap;
+  gap:         8px;
+  padding-top: 4px;
+}
+
+.rpt-custom-label {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   0.82rem;
+  color:       var(--clr-text-2);
+  font-weight: 500;
+}
+
+.rpt-custom-label input[type="date"] {
+  padding:       5px 8px;
+  border-radius: 7px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-size:     0.82rem;
+  font-family:   inherit;
+}
+
+.rpt-custom-apply {
+  padding:       5px 14px;
+  border-radius: 7px;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-size:     0.82rem;
+  font-weight:   600;
+  border:        none;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.rpt-custom-apply:active {
+  background: var(--clr-accent-h);
+}
+
+/* Section cards */
+.report-section {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 16px;
+  overflow:      hidden;
+  margin:        0 16px 14px;
+}
+
+.report-section-header {
+  padding:        14px 16px 12px;
+  border-bottom:  1px solid var(--clr-border);
+}
+
+.report-section-title {
+  font-size:   0.95rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+
+.report-section-body {
+  padding: 12px 16px 16px;
+}
+
+/* Section label */
+.rpt-section-label {
+  font-size:    0.78rem;
+  color:        var(--clr-text-2);
+  margin-bottom: 6px;
+}
+
+/* ── Heatmap ─────────────────────────────────────────────────────────────── */
+.rpt-heatmap {
+  display:        flex;
+  flex-wrap:      wrap;
+  gap:            3px;
+  margin-bottom:  14px;
+}
+
+.rpt-heatmap-cell {
+  width:         13px;
+  height:        13px;
+  border-radius: 3px;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+}
+
+.rpt-heatmap-cell--full    { background: var(--clr-accent); border-color: var(--clr-accent); }
+.rpt-heatmap-cell--partial { background: #8bc34a;           border-color: #8bc34a; }
+
+/* ── Habit completion bars ───────────────────────────────────────────────── */
+.rpt-habit-bars { display: flex; flex-direction: column; }
+
+.rpt-habit-row {
+  display:      flex;
+  align-items:  center;
+  gap:          8px;
+  padding:      7px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.rpt-habit-row:last-child { border-bottom: none; }
+
+.rpt-habit-name {
+  font-size:     0.88rem;
+  font-weight:   600;
+  flex:          0 0 96px;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.rpt-bar-wrap {
+  flex:          1;
+  height:        8px;
+  border-radius: 4px;
+  background:    var(--clr-surface-2);
+  overflow:      hidden;
+}
+
+.rpt-bar-fill {
+  height:        100%;
+  border-radius: 4px;
+  background:    var(--clr-accent);
+  transition:    width 0.4s ease;
+}
+
+.rpt-pct-label {
+  font-size:   0.8rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  min-width:   34px;
+  text-align:  right;
+}
+
+.rpt-streak-label {
+  font-size: 0.75rem;
+  color:     var(--clr-text-2);
+  min-width: 52px;
+  text-align: right;
+}
+
+/* ── Stats grid (reading summary) ────────────────────────────────────────── */
+.rpt-stats-grid {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   8px;
+  margin-bottom:         12px;
+}
+
+.rpt-stat {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            2px;
+  padding:        10px 6px;
+  background:     var(--clr-surface-2);
+  border-radius:  10px;
+}
+
+.rpt-stat-value {
+  font-size:   1.15rem;
+  font-weight: 700;
+  color:       var(--clr-accent);
+}
+
+.rpt-stat-label {
+  font-size:  0.72rem;
+  color:      var(--clr-text-2);
+  text-align: center;
+}
+
+/* ── Chart containers ────────────────────────────────────────────────────── */
+.rpt-chart-wrap {
+  width:    100%;
+  height:   160px;
+  position: relative;
+  margin:   8px 0;
+}
+.rpt-chart-wrap canvas {
+  width:  100% !important;
+  height: 100% !important;
+}
+
+/* ── Health issues ───────────────────────────────────────────────────────── */
+.rpt-health-issue {
+  padding:       12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.rpt-health-issue:last-child { border-bottom: none; }
+
+.rpt-issue-name {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+
+.rpt-issue-meta {
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  margin:      3px 0 4px;
+}
+
+.rpt-issue-cat {
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+  border-radius: 4px;
+  padding:       1px 5px;
+  font-size:     0.72rem;
+  font-weight:   600;
+}
+
+/* ── Moderation stats ────────────────────────────────────────────────────── */
+.rpt-mod-stats { margin-top: 6px; }
+
+.rpt-mod-stat-row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         6px 0;
+  font-size:       0.85rem;
+  border-bottom:   1px solid var(--clr-border);
+}
+.rpt-mod-stat-row:last-child { border-bottom: none; }
+
+.rpt-mod-name { font-weight: 600; color: var(--clr-text); }
+.rpt-mod-val  { color: var(--clr-text-2); }
+
+/* ── Medications adherence ───────────────────────────────────────────────── */
+.rpt-med-row {
+  padding:       8px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.rpt-med-row:last-child { border-bottom: none; }
+
+.rpt-med-name {
+  font-size:     0.88rem;
+  font-weight:   600;
+  margin-bottom: 6px;
+}
+
+.rpt-med-dose {
+  font-weight: 400;
+  font-size:   0.82rem;
+  color:       var(--clr-text-2);
+}
+
+.rpt-med-adherence {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+
+.rpt-adhere-pct {
+  font-size:   0.82rem;
+  font-weight: 600;
+  min-width:   36px;
+}
+
+.rpt-adhere-detail {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+
+/* ── Reading book list ───────────────────────────────────────────────────── */
+.rpt-books-in-period { margin-top: 8px; }
+
+.rpt-book-progress {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       8px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.rpt-book-progress:last-child { border-bottom: none; }
+
+.rpt-book-cover {
+  width:         28px;
+  height:        40px;
+  object-fit:    cover;
+  border-radius: 3px;
+  flex-shrink:   0;
+}
+
+.rpt-book-info { flex: 1; }
+
+.rpt-book-title {
+  font-size:   0.88rem;
+  font-weight: 600;
+}
+
+.rpt-book-time {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.rpt-empty {
+  text-align: center;
+  padding:    18px 16px;
+  color:      var(--clr-text-2);
+  font-size:  0.88rem;
+}
+
+/* ── Library tab: full-height panel without inline toggle ─────────────────── */
+#tab-library-content {
+  padding-bottom: 8px;
+}
+
+#tab-library-content .book-lib-header {
+  position:   sticky;
+  top:        0;
+  z-index:    5;
+  background: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+}
+
+/* ── Mood & Energy ───────────────────────────────────────────────────────────── */
+.mood-grid {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  padding:        10px 16px 6px;
+}
+
+.mood-row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.mood-row__label {
+  font-size:   0.82rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  width:       44px;
+  flex-shrink: 0;
+}
+
+.mood-btns {
+  display:     flex;
+  gap:         7px;
+  flex:        1;
+}
+
+.mood-btn {
+  width:            36px;
+  height:           36px;
+  border-radius:    50%;
+  border:           2px solid var(--mood-clr);
+  background:       transparent;
+  color:            var(--mood-clr);
+  font-size:        0.82rem;
+  font-weight:      700;
+  cursor:           pointer;
+  flex-shrink:      0;
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  transition:       background var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mood-btn--active {
+  background: var(--mood-clr);
+  color:      #fff;
+}
+
+.mood-btn:active { opacity: 0.75; }
+
+.mood-row__value {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  min-width:  60px;
+  font-style: italic;
+}
+
+/* ── Daily Note ──────────────────────────────────────────────────────────────── */
+.note-wrap {
+  padding: 6px 16px 12px;
+}
+
+.daily-note-area {
+  width:       100%;
+  min-height:  80px;
+  padding:     10px 12px;
+  border:      1px solid var(--clr-border);
+  border-radius: 10px;
+  background:  var(--clr-surface-2);
+  color:       var(--clr-text);
+  font-size:   0.9rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize:      vertical;
+  box-sizing:  border-box;
+  transition:  border-color var(--transition);
+}
+
+.daily-note-area:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.daily-note-area::placeholder {
+  color: var(--clr-text-2);
+}
+
+/* ── Weather chip (inside the date bar) ─────────────────────────────────────── */
+.weather-strip-inline {
+  display:     flex;
+  align-items: center;
+  gap:         3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.weather-strip-inline[hidden] { display: none; }
+
+.weather-emoji {
+  font-size:   1.1rem;
+  line-height: 1;
+}
+
+.weather-temp {
+  font-size:   0.8rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+
+.weather-fetching {
+  font-size: 0.8rem;
+  color:     var(--clr-text-2);
+}
+
+/* ── Section collapse / expand ──────────────────────────────────────────────── */
+.section-header {
+  cursor:      pointer;
+  user-select: none;
+}
+
+.section-chevron {
+  transition:  transform 0.2s ease;
+  flex-shrink: 0;
+  color:       var(--clr-text-2);
+}
+
+.tracker-section--collapsed .section-chevron {
+  transform: rotate(-90deg);
+}
+
+.tracker-section--collapsed > *:not(.section-header) {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Settings tab
+═══════════════════════════════════════════════════════════════════════════ */
+
+#tab-settings {
+  padding-bottom: max(80px, calc(65px + env(safe-area-inset-bottom)));
+}
+
+/* Settings tab header */
+.stg-tab-header {
+  padding:       16px 16px 10px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.stg-tab-title {
+  font-size:   1.1rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+
+/* Settings content area */
+#settings-content {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────────── */
+.stg-card {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 16px;
+  overflow:      hidden;
+}
+
+.stg-card-header {
+  padding:       12px 16px 10px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.stg-card-title {
+  font-size:   0.88rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+}
+
+/* ── List (habits, substances) ───────────────────────────────────────────── */
+.stg-list {
+  padding: 2px 0;
+}
+
+.stg-item-row {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       9px 16px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.stg-item-row:last-child {
+  border-bottom: none;
+}
+
+.stg-item-name {
+  flex:        1;
+  font-size:   0.9rem;
+  color:       var(--clr-text);
+  font-weight: 500;
+}
+
+.stg-item-info {
+  flex:           1;
+  display:        flex;
+  flex-direction: column;
+  gap:            1px;
+}
+
+.stg-item-meta {
+  font-size: 0.75rem;
+  color:     var(--clr-text-2);
+}
+
+.stg-row-actions {
+  display:     flex;
+  gap:         3px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Icon buttons (up/down/delete) ───────────────────────────────────────── */
+.stg-icon-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           30px;
+  height:          30px;
+  border-radius:   8px;
+  border:          none;
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  flex-shrink:     0;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.stg-icon-btn:hover:not(:disabled) {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.stg-icon-btn:disabled {
+  opacity: 0.28;
+  cursor:  default;
+}
+
+.stg-icon-btn--danger:hover:not(:disabled) {
+  background: var(--clr-error-bg);
+  color:      var(--clr-error);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .stg-icon-btn--danger:hover:not(:disabled) { background: #3b1a1a; }
+}
+:root[data-theme="dark"] .stg-icon-btn--danger:hover:not(:disabled) { background: #3b1a1a; }
+
+/* ── Add row ─────────────────────────────────────────────────────────────── */
+.stg-add-row {
+  display:    flex;
+  gap:        8px;
+  padding:    10px 16px;
+  border-top: 1px solid var(--clr-border);
+  flex-wrap:  wrap;
+}
+
+.stg-text-input {
+  flex:          1;
+  min-width:     80px;
+  padding:       7px 10px;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.88rem;
+  font-family:   inherit;
+  transition:    border-color var(--transition);
+}
+
+.stg-text-input:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.stg-text-input::placeholder {
+  color: var(--clr-text-2);
+}
+
+/* Shorter unit field in substance add row */
+.stg-text-input--short {
+  flex: 0 0 100px;
+  min-width: 70px;
+}
+
+.stg-add-btn {
+  padding:       7px 14px;
+  border-radius: 8px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-size:     0.85rem;
+  font-weight:   600;
+  font-family:   inherit;
+  cursor:        pointer;
+  white-space:   nowrap;
+  flex-shrink:   0;
+  transition:    background var(--transition);
+}
+
+.stg-add-btn:hover {
+  background: var(--clr-accent-h);
+}
+
+/* ── Category tags ───────────────────────────────────────────────────────── */
+.stg-tags {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       7px;
+  padding:   12px 16px 10px;
+  min-height: 48px;
+}
+
+.stg-tag {
+  display:      inline-flex;
+  align-items:  center;
+  gap:          4px;
+  padding:      4px 9px 4px 11px;
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);
+  border:       1.5px solid var(--clr-accent);
+  border-radius: 999px;
+  font-size:    0.82rem;
+  font-weight:  600;
+}
+
+.stg-tag-remove {
+  font-size:    1rem;
+  line-height:  1;
+  color:        var(--clr-accent);
+  padding:      0 1px;
+  cursor:       pointer;
+  background:   transparent;
+  border:       none;
+  transition:   color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stg-tag-remove:hover {
+  color: var(--clr-error);
+}
+
+/* ── Preference rows (theme / temperature) ───────────────────────────────── */
+.stg-pref-row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  padding:         12px 16px;
+  border-bottom:   1px solid var(--clr-border);
+}
+
+.stg-pref-row:last-child {
+  border-bottom: none;
+}
+
+.stg-pref-label {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  flex-shrink: 0;
+}
+
+.stg-toggle-group {
+  display: flex;
+  gap:     4px;
+}
+
+.stg-toggle-btn {
+  padding:       5px 11px;
+  border-radius: 7px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.82rem;
+  font-weight:   600;
+  font-family:   inherit;
+  cursor:        pointer;
+  transition:    all var(--transition);
+  white-space:   nowrap;
+}
+
+.stg-toggle-btn:hover:not(.stg-toggle-btn--active) {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.stg-toggle-btn--active {
+  background:   var(--clr-accent-dim);
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+}
+
+/* ── Action rows (PIN / sign-out) ────────────────────────────────────────── */
+.stg-action-row {
+  display:       flex;
+  align-items:   center;
+  gap:           12px;
+  padding:       12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.stg-action-row:last-child {
+  border-bottom: none;
+}
+
+.stg-action-info {
+  flex: 1;
+}
+
+.stg-action-title {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+
+.stg-action-desc {
+  font-size:  0.76rem;
+  color:      var(--clr-text-2);
+  margin-top: 2px;
+}
+
+.stg-action-btn {
+  padding:       7px 14px;
+  border-radius: 8px;
+  border:        1.5px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  font-weight:   600;
+  font-family:   inherit;
+  cursor:        pointer;
+  white-space:   nowrap;
+  flex-shrink:   0;
+  transition:    background var(--transition), color var(--transition),
+                 border-color var(--transition);
+}
+
+.stg-action-btn:hover {
+  background: var(--clr-surface-2);
+}
+
+.stg-action-btn--danger {
+  color:        var(--clr-error);
+  border-color: var(--clr-error);
+}
+
+.stg-action-btn--danger:hover {
+  background: var(--clr-error-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .stg-action-btn--danger:hover { background: #3b1a1a; }
+}
+:root[data-theme="dark"] .stg-action-btn--danger:hover { background: #3b1a1a; }
+
+/* ── Empty state inside cards ────────────────────────────────────────────── */
+.stg-empty {
+  padding:    10px 16px;
+  font-size:  0.85rem;
+  color:      var(--clr-text-2);
+  font-style: italic;
+}
