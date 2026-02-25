@@ -34,6 +34,7 @@ const Habits = (() => {
     document.getElementById('habit-progress-text').textContent = `${done} / ${total}`;
     document.getElementById('habit-progress-fill').style.width =
       total > 0 ? `${Math.round((done / total) * 100)}%` : '0%';
+    updateRingBar(done, total);
 
     // ── Habit list ────────────────────────────────────────────────────────
     const list = document.getElementById('habit-list');
@@ -76,6 +77,30 @@ const Habits = (() => {
         list.appendChild(makeRow(name, day.habits[name] === true));
       }
     });
+  }
+
+  // ── Progress ring ─────────────────────────────────────────────────────────
+
+  function updateRingBar(done, total) {
+    const bar = document.getElementById('today-ring-bar');
+    if (!bar) return;
+
+    if (total === 0) {
+      bar.hidden = true;
+      return;
+    }
+
+    bar.hidden = false;
+
+    const countEl = document.getElementById('ring-count');
+    if (countEl) countEl.textContent = `${done}/${total}`;
+
+    const arc = document.getElementById('ring-progress-arc');
+    if (!arc) return;
+
+    const circumference = 188.5;
+    const pct = total > 0 ? done / total : 0;
+    arc.style.strokeDashoffset = circumference * (1 - pct);
   }
 
   // ── Row builder ──────────────────────────────────────────────────────────
