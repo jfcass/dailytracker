@@ -522,7 +522,8 @@ const Books = (() => {
     let html = `<div class="book-lib-header">
       <h3 class="book-lib-title">My Books</h3>
       <button class="book-lib-done-btn" onclick="App.switchTab('today')">← Today</button>
-    </div>`;
+    </div>
+    <div id="book-daily"></div>`;
 
     if (addingBook || editingBookId) {
       const isEditing = !!editingBookId;
@@ -672,11 +673,16 @@ const Books = (() => {
     const books    = getBooks();
     const sessions = getSessions(currentDate);
     const bookList = Object.values(books);
+    const isToday  = currentDate === Data.today();
 
     if (activeBookId && !books[activeBookId]) activeBookId = null;
     if (!activeBookId) activeBookId = getLastUsedBookId();
 
-    const readingBooks = bookList.filter(b => b.status !== 'finished');
+    // On past dates: only show books that were actually read that day
+    const readingBooks = isToday
+      ? bookList.filter(b => b.status !== 'finished')
+      : bookList.filter(b => sessions.some(s => s.book_id === b.id));
+
     const isLogging    = fFormBookId !== null || editingSession !== null;
     const isTimerOn    = !!timerInterval;
 
@@ -684,9 +690,12 @@ const Books = (() => {
 
     // ── Book selector ──
     if (readingBooks.length === 0) {
-      html += `<p class="book-empty-daily">
-        No books in progress. Open <strong>My Books</strong> to add one.
-      </p>`;
+      if (isToday) {
+        html += `<p class="book-empty-daily">
+          No books in progress. Open <strong>My Books</strong> to add one.
+        </p>`;
+      }
+      // Past date with no sessions: show nothing
     } else {
       if (!activeBookId || !readingBooks.find(b => b.id === activeBookId)) {
         activeBookId = readingBooks[0].id;
@@ -754,7 +763,7 @@ const Books = (() => {
         html += `<button class="book-history-toggle" onclick="Books._toggleSessionHistory()">${label}</button>`;
       }
 
-      if (sessionHistoryOpen || hasEditingSession) {
+      if (sessionHistoryOpen || hasEditingSession || !isToday) {
         html += `<div class="book-sessions-list">`;
         sessions.forEach(s => {
           const b         = books[s.book_id];
@@ -803,8 +812,8 @@ const Books = (() => {
     // ── Action buttons ──
     if (!isLogging && !isTimerOn && readingBooks.length > 0) {
       html += `<div class="book-action-area">
-        <button class="book-start-timer-btn" onclick="Books._startTimer()">⏱ Start Timer</button>
-        <button class="book-log-manual-btn"  onclick="Books._startLogSession()">Log Session</button>
+        ${isToday ? `<button class="book-start-timer-btn" onclick="Books._startTimer()">⏱ Start Timer</button>` : ''}
+        <button class="book-log-manual-btn" onclick="Books._startLogSession()">Log Session</button>
       </div>`;
     }
 
