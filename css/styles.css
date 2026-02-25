@@ -3992,17 +3992,13 @@ button {
   display:          flex;
   align-items:      center;
   justify-content:  center;
-  transition:       background var(--transition), color var(--transition),
-                    border-radius var(--transition), padding var(--transition);
+  transition:       background var(--transition), color var(--transition);
   -webkit-tap-highlight-color: transparent;
 }
 
 .mood-btn--active {
-  background:    var(--mood-clr);
-  color:         #fff;
-  border-radius: 18px;
-  padding:       0 10px;
-  width:         auto;
+  background: var(--mood-clr);
+  color:      #fff;
 }
 
 .mood-btn:active { opacity: 0.75; }
