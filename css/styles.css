@@ -4430,3 +4430,56 @@ button {
   color:      var(--clr-text-2);
   font-style: italic;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Today progress ring  (#today-ring-bar)
+═══════════════════════════════════════════════════════════════════════════ */
+.today-ring-bar {
+  display:        flex;
+  align-items:    center;
+  gap:            16px;
+  background:     var(--clr-surface);
+  border:         1px solid var(--clr-border);
+  border-radius:  14px;
+  padding:        14px 20px;
+}
+
+.ring-svg {
+  flex-shrink: 0;
+  /* Rotate so progress starts from top (12 o'clock) */
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill:         none;
+  stroke:       var(--clr-border);
+  stroke-width: 6;
+}
+
+.ring-progress {
+  fill:              none;
+  stroke:            var(--clr-accent);
+  stroke-width:      6;
+  stroke-linecap:    round;
+  stroke-dasharray:  188.5;
+  stroke-dashoffset: 188.5;  /* starts at 0% */
+  transition:        stroke-dashoffset 0.4s ease;
+}
+
+.ring-text {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.ring-count {
+  font-size:   1.5rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  line-height: 1;
+}
+
+.ring-label {
+  font-size:  0.85rem;
+  color:      var(--clr-text-2);
+}
