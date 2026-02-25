@@ -216,14 +216,14 @@ button {
 
 /* ── Auth note ────────────────────────────────────────────────────────── */
 .auth-note {
-  font-size: 0.77rem;
+  font-size: 0.85rem;
   color: var(--clr-text-2);
   line-height: 1.4;
 }
 
 /* ── Error message ────────────────────────────────────────────────────── */
 .error-msg {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--clr-error);
   background: var(--clr-error-bg);
   border-radius: 8px;
@@ -379,7 +379,7 @@ button {
 
 /* ── Ghost / text button ──────────────────────────────────────────────── */
 .btn-ghost {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--clr-text-2);
   padding: 10px 16px;
   border-radius: 8px;
@@ -559,7 +559,7 @@ button {
 }
 
 .section-progress__text {
-  font-size:   0.78rem;
+  font-size:   0.85rem;
   font-weight: 600;
   color:       var(--clr-text-2);
   white-space: nowrap;
@@ -715,7 +715,7 @@ button {
 
 /* ── Streak badge ── */
 .habit-streak {
-  font-size:   0.78rem;
+  font-size:   0.85rem;
   color:       var(--clr-text-2);
   white-space: nowrap;
   line-height: 1;
@@ -723,7 +723,7 @@ button {
 
 /* Single-day streak: just the number, muted */
 .habit-streak--one {
-  font-size:   0.72rem;
+  font-size:   0.82rem;
   color:       var(--clr-border);
   font-weight: 500;
 }
@@ -732,7 +732,7 @@ button {
 .save-status {
   display:     flex;
   align-items: center;
-  font-size:   0.72rem;
+  font-size:   0.82rem;
   padding:     5px 16px 7px;
   min-height:  26px;
   color:       transparent;
@@ -791,7 +791,7 @@ button {
   border-radius:   50%;
   background:      var(--clr-accent-dim);
   color:           var(--clr-accent);
-  font-size:       0.76rem;
+  font-size:       0.85rem;
   font-weight:     700;
   display:         flex;
   align-items:     center;
@@ -865,7 +865,7 @@ button {
   gap:         5px;
   padding:     6px 13px;
   border-radius: 20px;
-  font-size:   0.82rem;
+  font-size:   0.85rem;
   font-weight: 600;
   color:       var(--clr-accent);
   border:      1.5px solid currentColor;
@@ -886,7 +886,7 @@ button {
 
 /* Optional note line — indented to align with substance name */
 .mod-note {
-  font-size:   0.78rem;
+  font-size:   0.85rem;
   color:       var(--clr-text-2);
   padding:     0 16px 12px 54px;   /* 16px left-pad + 28px badge + 10px gap = 54px */
   line-height: 1.4;
@@ -907,7 +907,7 @@ button {
 /* Destructive "Clear" button inside form header */
 .mod-clear-btn {
   margin-left: auto;
-  font-size:   0.78rem;
+  font-size:   0.85rem;
   font-weight: 500;
   color:       var(--clr-error);
   padding:     4px 8px;
@@ -3947,7 +3947,7 @@ button {
 }
 
 .mood-row__label {
-  font-size:   0.82rem;
+  font-size:   0.85rem;
   font-weight: 600;
   color:       var(--clr-text-2);
   width:       44px;
@@ -3967,7 +3967,7 @@ button {
   border:           2px solid var(--mood-clr);
   background:       transparent;
   color:            var(--mood-clr);
-  font-size:        0.82rem;
+  font-size:        0.85rem;
   font-weight:      700;
   cursor:           pointer;
   flex-shrink:      0;
@@ -3986,7 +3986,7 @@ button {
 .mood-btn:active { opacity: 0.75; }
 
 .mood-row__value {
-  font-size:  0.78rem;
+  font-size:  0.85rem;
   color:      var(--clr-text-2);
   min-width:  60px;
   font-style: italic;
