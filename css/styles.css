@@ -192,6 +192,7 @@ button {
   justify-content: center;
   transition: background var(--transition), box-shadow var(--transition);
   margin-top: 6px;
+  min-height: 44px;
 }
 
 .btn-google:hover, .btn-google:focus-visible {
@@ -347,6 +348,7 @@ button {
   font-size: 1.5rem;
   font-weight: 500;
   letter-spacing: 0;
+  min-height: 44px;
 
   transition: background var(--transition), transform 0.1s ease,
               box-shadow var(--transition);
@@ -612,6 +614,8 @@ button {
   color:           var(--clr-text-2);
   transition:      background var(--transition), color var(--transition);
   flex-shrink:     0;
+  min-width:       44px;
+  min-height:      44px;
 }
 
 .date-nav__btn:hover:not(:disabled),
@@ -3962,7 +3966,7 @@ button {
 
 .mood-btn {
   width:            36px;
-  height:           36px;
+  min-height:       44px;
   border-radius:    50%;
   border:           2px solid var(--mood-clr);
   background:       transparent;
