@@ -141,7 +141,11 @@ button {
 .center-card {
   width: 100%;
   max-width: 360px;
-  background: var(--clr-surface);
+  background: linear-gradient(
+    to bottom,
+    var(--clr-accent-dim) 0%,
+    var(--clr-surface) 180px
+  );
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   padding: 40px 32px 36px;
@@ -363,6 +367,7 @@ button {
 .pin-key:active {
   transform: scale(0.88);
   background: var(--clr-key-bg-h);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .18);
 }
 
 .pin-key--phantom {
