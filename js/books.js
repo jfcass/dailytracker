@@ -747,9 +747,10 @@ const Books = (() => {
     if (sessions.length > 0) {
       const hasEditingSession = sessions.some(s => s.id === editingSession);
       if (!hasEditingSession) {
+        const dateLabel = currentDate === Data.today() ? "today's" : currentDate;
         const label = sessionHistoryOpen
-          ? `▲ Hide today's log (${sessions.length})`
-          : `▼ Show today's log (${sessions.length})`;
+          ? `▲ Hide ${dateLabel} log (${sessions.length})`
+          : `▼ Show ${dateLabel} log (${sessions.length})`;
         html += `<button class="book-history-toggle" onclick="Books._toggleSessionHistory()">${label}</button>`;
       }
 

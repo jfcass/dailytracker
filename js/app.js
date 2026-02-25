@@ -83,6 +83,7 @@ const App = (() => {
       Moderation.setDate(date);
       Symptoms.setDate(date);
       Medications.setDate(date);
+      if (typeof Books !== 'undefined') Books.setDate(date);
     });
 
     Weather.init();
