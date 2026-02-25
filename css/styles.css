@@ -314,6 +314,15 @@ button {
   transform: scale(1.15);
 }
 
+/* Bounce pop on habit check */
+@keyframes habit-pop {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.28); }
+  60%  { transform: scale(0.9); }
+  80%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
 /* Shake animation for wrong PIN */
 @keyframes pin-shake {
   0%, 100% { transform: translateX(0); }
@@ -705,7 +714,7 @@ button {
   background:   var(--clr-accent);
   border-color: var(--clr-accent);
   color:        #fff;
-  transform:    scale(1.08);
+  animation:    habit-pop 0.35s ease both;
 }
 
 /* ── Name ── */
