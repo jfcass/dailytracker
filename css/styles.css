@@ -16,8 +16,8 @@
   --clr-text-2:     #5a6e5a;
 
   /* Accent — green */
-  --clr-accent:     #3a8f40;
-  --clr-accent-h:   #2d7233;     /* hover / pressed */
+  --clr-accent:     #3d9142;
+  --clr-accent-h:   #317336;     /* hover / pressed */
   --clr-accent-dim: #e6f4e7;
 
   /* Feedback */
@@ -46,7 +46,7 @@
     --clr-text:       #e2ebe2;
     --clr-text-2:     #7a967a;
 
-    --clr-accent:     #4caf50;
+    --clr-accent:     #52b356;
     --clr-accent-h:   #66bb6a;
     --clr-accent-dim: #1a2e1b;
 
@@ -71,7 +71,7 @@
   --clr-text:       #e2ebe2;
   --clr-text-2:     #7a967a;
 
-  --clr-accent:     #4caf50;
+  --clr-accent:     #52b356;
   --clr-accent-h:   #66bb6a;
   --clr-accent-dim: #1a2e1b;
 
