@@ -2479,7 +2479,8 @@ button {
   display:    flex;
   flex-wrap:  wrap;
   gap:        6px;
-  margin-top: 8px;
+  margin-top: 0;
+  flex-basis: 100%;
 }
 .book-card-actions button {
   font-size:     0.75rem;
@@ -2764,6 +2765,17 @@ button {
   pointer-events: none;
 }
 
+/* Search error message */
+.book-search-error {
+  margin:    6px 0 4px;
+  padding:   8px 10px;
+  font-size: 0.82rem;
+  color:     var(--clr-error);
+  background: color-mix(in srgb, var(--clr-error) 8%, transparent);
+  border:    1px solid color-mix(in srgb, var(--clr-error) 25%, transparent);
+  border-radius: 6px;
+}
+
 /* Search result list */
 .book-search-results {
   display:        flex;
@@ -2843,6 +2855,7 @@ button {
 
 .book-card {
   display:   flex;
+  flex-wrap: wrap;
   gap:       10px;
   align-items: flex-start;
 }

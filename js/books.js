@@ -44,6 +44,7 @@ const Books = (() => {
   let fbSearchQuery    = '';
   let fbSearchResults  = [];
   let fbSearching      = false;
+  let fbSearchError    = '';
   let fbSearchDebounce = null;
 
   let saveTimer = null;
@@ -156,15 +157,18 @@ const Books = (() => {
   async function searchGoogleBooks(query) {
     if (!query.trim()) {
       fbSearchResults = [];
+      fbSearchError   = '';
       fbSearching     = false;
       updateSearchDOM();
       return;
     }
     try {
-      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&printType=books`;
+      const key = CONFIG.BOOKS_API_KEY ? `&key=${encodeURIComponent(CONFIG.BOOKS_API_KEY)}` : '';
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&printType=books${key}`;
       const res  = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
+      fbSearchError   = '';
       fbSearchResults = (json.items ?? []).map(item => {
         const info = item.volumeInfo ?? {};
         // Google returns http:// thumbnails — upgrade to https
@@ -183,6 +187,13 @@ const Books = (() => {
     } catch (err) {
       console.error('Google Books search failed:', err);
       fbSearchResults = [];
+      if (err.message.includes('429')) {
+        fbSearchError = CONFIG.BOOKS_API_KEY
+          ? 'Rate limit reached — try again in a moment.'
+          : 'Rate limit reached. Add a Books API key in config.js to fix this.';
+      } else {
+        fbSearchError = 'Search unavailable — check your connection.';
+      }
     }
     fbSearching = false;
     updateSearchDOM();
@@ -197,7 +208,8 @@ const Books = (() => {
       updateSearchDOM();
       return;
     }
-    fbSearching = true;
+    fbSearchError = '';
+    fbSearching   = true;
     updateSearchDOM();   // show spinner without re-rendering the whole form
     fbSearchDebounce = setTimeout(() => searchGoogleBooks(query), 500);
   }
@@ -210,7 +222,12 @@ const Books = (() => {
       spinner.hidden      = !fbSearching;
     }
     const slot = document.querySelector('.book-search-results-slot');
-    if (slot) slot.innerHTML = buildSearchResults();
+    if (!slot) return;
+    if (fbSearchError && !fbSearching) {
+      slot.innerHTML = `<p class="book-search-error">${escHtml(fbSearchError)}</p>`;
+    } else {
+      slot.innerHTML = buildSearchResults();
+    }
   }
 
   function selectSearchResult(idx) {

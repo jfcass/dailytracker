@@ -6,4 +6,8 @@ const CONFIG = Object.freeze({
   PIN_SALT:       'ht-v1-',          // prefix for SHA-256 hashing
   DRIVE_API:      'https://www.googleapis.com/drive/v3',
   DRIVE_UPLOAD:   'https://www.googleapis.com/upload/drive/v3',
+  // Google Books API key — prevents rate-limit (429) errors on book search.
+  // Get one free at: Google Cloud Console → APIs & Services → Credentials → Create API Key
+  // (Enable "Books API" in the same project first.)
+  BOOKS_API_KEY:  'AIzaSyC_W1zuUVRMDgXrbbMSuwDkABjTZsLxamY',
 });
