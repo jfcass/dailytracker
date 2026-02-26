@@ -680,6 +680,48 @@ const Reports = (() => {
     return rptSection('Medications', medIcon(), rows);
   }
 
+  // ── Gratitudes section ───────────────────────────────────────────────────────
+
+  function buildGratitudeStreak(dates) {
+    // Current streak: consecutive days from most recent backwards with ≥1 gratitude
+    let streak = 0;
+    for (let i = dates.length - 1; i >= 0; i--) {
+      const day     = Data.getData().days?.[dates[i]];
+      const entries = (day?.gratitudes ?? []).filter(g => g.trim());
+      if (entries.length > 0) { streak++; } else { break; }
+    }
+    // Total days with gratitudes in the period
+    const totalDays = dates.filter(d => {
+      const day = Data.getData().days?.[d];
+      return (day?.gratitudes ?? []).filter(g => g.trim()).length > 0;
+    }).length;
+    return { streak, totalDays };
+  }
+
+  function buildGratitudesSection(dates) {
+    const { streak, totalDays } = buildGratitudeStreak(dates);
+    return `<div class="rpt-section">
+      <h3 class="rpt-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             width="16" height="16" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        Gratitudes
+      </h3>
+      <div class="rpt-stat-row">
+        <div class="rpt-stat-card">
+          <div class="rpt-stat-value">${streak}</div>
+          <div class="rpt-stat-label">day streak</div>
+        </div>
+        <div class="rpt-stat-card">
+          <div class="rpt-stat-value">${totalDays}</div>
+          <div class="rpt-stat-label">days logged this period</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   // ── Reading section ───────────────────────────────────────────────────────────
 
   function buildReadingSection(dates) {
@@ -844,7 +886,8 @@ const Reports = (() => {
       + buildModerationSection(dates)
       + buildBowelSection(dates)
       + buildMedicationsSection(dates)
-      + buildReadingSection(dates);
+      + buildReadingSection(dates)
+      + buildGratitudesSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {
