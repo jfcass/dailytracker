@@ -203,6 +203,7 @@ const Data = (() => {
         reading:           [],
         gym:               { muscle_groups: [] },
         bowel:             [],
+        gratitudes:        [],
         note:              '',
       };
     }
