@@ -47,15 +47,16 @@
     --clr-text:       #e2ebe2;
     --clr-text-2:     #7a967a;
 
-    --clr-accent:     #52b356;
-    --clr-accent-h:   #66bb6a;
-    --clr-accent-dim: #1a2e1b;
+    --clr-accent:        #22D4B8;
+    --clr-accent-h:      #1fbfa9;
+    --clr-accent-dim:    #0d2e2a;
+    --gradient-brand:    linear-gradient(135deg, #1ABEA5 0%, #F4A800 100%);
 
     --clr-error:      #ef5350;
     --clr-error-bg:   #2c1515;
 
-    --clr-key-bg:     #202820;
-    --clr-key-bg-h:   #2a362a;
+    --clr-key-bg:     #0f2826;
+    --clr-key-bg-h:   #163d39;
     --clr-key-text:   #e2ebe2;
 
     --shadow-card:    0 2px 20px rgba(0, 0, 0, .35);
@@ -72,15 +73,16 @@
   --clr-text:       #e2ebe2;
   --clr-text-2:     #7a967a;
 
-  --clr-accent:     #52b356;
-  --clr-accent-h:   #66bb6a;
-  --clr-accent-dim: #1a2e1b;
+  --clr-accent:        #22D4B8;
+  --clr-accent-h:      #1fbfa9;
+  --clr-accent-dim:    #0d2e2a;
+  --gradient-brand:    linear-gradient(135deg, #1ABEA5 0%, #F4A800 100%);
 
   --clr-error:      #ef5350;
   --clr-error-bg:   #2c1515;
 
-  --clr-key-bg:     #202820;
-  --clr-key-bg-h:   #2a362a;
+  --clr-key-bg:     #0f2826;
+  --clr-key-bg-h:   #163d39;
   --clr-key-text:   #e2ebe2;
 
   --shadow-card:    0 2px 20px rgba(0, 0, 0, .35);
