@@ -66,7 +66,7 @@ const App = (() => {
 
     // Render the selected tab
     if (name === 'reports')  Reports.render();
-    if (name === 'library')  Books.renderLibraryTab();
+    if (name === 'library')  Books.render();
     if (name === 'settings') Settings.render();
   }
 

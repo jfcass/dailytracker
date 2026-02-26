@@ -3979,8 +3979,8 @@ button {
 }
 
 .mood-btn {
-  width:            36px;
-  min-height:       44px;
+  width:            44px;
+  height:           44px;
   border-radius:    50%;
   border:           2px solid var(--mood-clr);
   background:       transparent;
