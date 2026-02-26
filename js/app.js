@@ -83,6 +83,7 @@ const App = (() => {
       Moderation.setDate(date);
       Symptoms.setDate(date);
       Bowel.setDate(date);
+      Gratitudes.setDate(date);
       if (typeof Books !== 'undefined') Books.setDate(date);
     });
 
@@ -93,6 +94,7 @@ const App = (() => {
     Moderation.init();
     Symptoms.init();
     Bowel.init();
+    Gratitudes.init();
     Books.init();
     Reports.init();
     Settings.init();
