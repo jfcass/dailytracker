@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Green background with rounded corners (maskable safe zone) -->
+  <rect width="192" height="192" rx="38" fill="#3d9142"/>
+  <!-- White pulse/activity icon, centred -->
+  <polyline
+    points="22,96 54,96 72,52 108,140 126,96 158,96 170,96"
+    fill="none" stroke="white" stroke-width="12"
+    stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

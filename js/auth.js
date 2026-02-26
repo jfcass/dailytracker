@@ -61,12 +61,15 @@ const Auth = (() => {
         // Subtract 60 s as a buffer before real expiry
         tokenExpiry  = Date.now() + response.expires_in * 1000 - 60_000;
         localStorage.setItem('ht_authed', 'true');
+        fetchAndStoreEmail(accessToken);   // fire-and-forget; skip account picker next time
         resolve(accessToken);
       };
 
-      // prompt: ''  →  no account chooser shown if user already consented
-      // prompt: unset  →  default Google behavior (may show chooser)
-      tokenClient.requestAccessToken(silent ? { prompt: '' } : {});
+      // hint → pre-selects stored account so user never sees the account-list picker
+      const hint   = localStorage.getItem('ht_email') || '';
+      const config = silent ? { prompt: '' } : {};
+      if (hint) config.hint = hint;
+      tokenClient.requestAccessToken(config);
     });
   }
 
@@ -85,6 +88,14 @@ const Auth = (() => {
     }
   }
 
+  /** Fetch account email from tokeninfo and store for future hint use. */
+  function fetchAndStoreEmail(token) {
+    fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`)
+      .then(r => r.json())
+      .then(info => { if (info.email) localStorage.setItem('ht_email', info.email); })
+      .catch(() => {});
+  }
+
   function signOut() {
     if (accessToken) {
       google.accounts.oauth2.revoke(accessToken, () => {});
@@ -92,6 +103,7 @@ const Auth = (() => {
     accessToken = null;
     tokenExpiry = 0;
     localStorage.removeItem('ht_authed');
+    localStorage.removeItem('ht_email');
   }
 
   // ── Public API ───────────────────────────────────────────────────────────────
