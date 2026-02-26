@@ -110,7 +110,7 @@ const Bowel = (() => {
                       data-quality="${val}" style="--q-clr: ${color}">
                 ${escHtml(label)}
               </button>`;
-    }).join('');
+    }).reverse().join('');
 
     wrap.innerHTML = `
       <div class="bwl-form">
