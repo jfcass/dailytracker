@@ -95,7 +95,7 @@ const Moderation = (() => {
       <div class="mod-display">
         <div class="mod-sub-info">
           <span class="mod-badge" data-sub-id="${escHtml(sub.id)}" aria-hidden="true">
-            ${escHtml(sub.name.charAt(0).toUpperCase())}
+            ${subEmoji(sub)}
           </span>
           <span class="mod-sub-name">${escHtml(sub.name)}</span>
         </div>
@@ -122,7 +122,7 @@ const Moderation = (() => {
       <div class="mod-form">
         <div class="mod-form-header">
           <span class="mod-badge" data-sub-id="${escHtml(sub.id)}" aria-hidden="true">
-            ${escHtml(sub.name.charAt(0).toUpperCase())}
+            ${subEmoji(sub)}
           </span>
           <span class="mod-sub-name">${escHtml(sub.name)}</span>
           ${clearHtml}
@@ -315,6 +315,26 @@ const Moderation = (() => {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  }
+
+  function subEmoji(sub) {
+    const byId = {
+      alcohol:  '🍷',
+      cannabis: '🌿',
+      caffeine: '☕',
+      coffee:   '☕',
+      tobacco:  '🚬',
+      nicotine: '🚬',
+      sugar:    '🍬',
+    };
+    if (byId[sub.id]) return byId[sub.id];
+    const n = sub.name.toLowerCase();
+    if (n.includes('alcohol') || n.includes('drink') || n.includes('wine') || n.includes('beer')) return '🍷';
+    if (n.includes('cannabis') || n.includes('weed') || n.includes('marijuana'))                  return '🌿';
+    if (n.includes('coffee') || n.includes('caffeine') || n.includes('tea'))                      return '☕';
+    if (n.includes('tobacco') || n.includes('cigarette') || n.includes('nicotine'))               return '🚬';
+    if (n.includes('sugar') || n.includes('sweet'))                                               return '🍬';
+    return sub.name.charAt(0).toUpperCase();
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
