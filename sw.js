@@ -1,6 +1,5 @@
-const CACHE = 'daily-tracker-v1';
+const CACHE = 'daily-tracker-v2';
 const SHELL = [
-  './',
   './index.html',
   './css/styles.css',
   './js/config.js', './js/auth.js', './js/data.js',
@@ -11,13 +10,20 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e =>
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)))
+  e.waitUntil(
+    caches.open(CACHE)
+      // allSettled: a single 404 won't abort the SW install
+      .then(c => Promise.allSettled(SHELL.map(url => c.add(url))))
+      .then(() => self.skipWaiting())
+  )
 );
 
 self.addEventListener('activate', e =>
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ))
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => clients.claim())
+  )
 );
 
 self.addEventListener('fetch', e => {
