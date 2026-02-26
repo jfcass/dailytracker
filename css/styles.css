@@ -3592,6 +3592,7 @@ button {
   background: var(--gradient-brand);
   border-radius: 0 0 3px 3px;
 }
+
 .bottom-nav-btn svg {
   width:  22px;
   height: 22px;
