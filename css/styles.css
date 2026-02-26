@@ -313,7 +313,7 @@ button {
 }
 
 .pin-dot--filled {
-  background: var(--clr-accent);
+  background: var(--gradient-brand);
   transform: scale(1.15);
 }
 
@@ -596,7 +596,7 @@ button {
 
 .progress-bar__fill {
   height:        100%;
-  background:    var(--clr-accent);
+  background:    var(--gradient-brand);
   border-radius: 3px;
   width:         0%;
   transition:    width 0.35s ease;
@@ -714,8 +714,8 @@ button {
 
 /* Pop animation on check */
 .habit-row--checked .habit-check {
-  background:   var(--clr-accent);
-  border-color: var(--clr-accent);
+  background:   var(--gradient-brand);
+  border-color: transparent;
   color:        #fff;
   animation:    habit-pop 0.35s ease both;
 }
@@ -2490,7 +2490,7 @@ button {
 }
 .book-card-progress-fill {
   height:        100%;
-  background:    var(--clr-accent);
+  background:    var(--gradient-brand);
   border-radius: 999px;
   transition:    width 0.3s ease;
 }
@@ -2640,7 +2640,7 @@ button {
 }
 .book-sel-progress-fill {
   height:        100%;
-  background:    var(--clr-accent);
+  background:    var(--gradient-brand);
   border-radius: 999px;
   transition:    width 0.3s ease;
 }
@@ -3757,7 +3757,7 @@ button {
 .rpt-bar-fill {
   height:        100%;
   border-radius: 4px;
-  background:    var(--clr-accent);
+  background:    var(--gradient-brand);
   transition:    width 0.4s ease;
 }
 
