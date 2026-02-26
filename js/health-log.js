@@ -43,15 +43,15 @@ const HealthLog = (() => {
   const SEV_LABELS = ['', 'Mild', 'Low', 'Moderate', 'High', 'Severe'];
 
   function getIssues() {
-    return Object.values(Data.getData().ongoing_issues ?? {});
+    return Object.values(Data.getData().issues ?? {});
   }
 
   function getSymptomsForIssue(issueId) {
     const days = Data.getData().days ?? {};
     const results = [];
     Object.entries(days).forEach(([date, day]) => {
-      (day.symptoms ?? []).forEach(s => {
-        if (s.issue_id === issueId) results.push({ ...s, date });
+      (day.issue_logs ?? []).forEach(l => {
+        if (l.issue_id === issueId) results.push({ ...l, date });
       });
     });
     results.sort((a, b) => b.date.localeCompare(a.date));
@@ -149,13 +149,13 @@ const HealthLog = (() => {
       : `Since ${fmtDate(issue.start_date)}`;
     return `<div class="hl-issue-row" onclick="HealthLog._openDetail('${issue.id}')">
       <span class="hl-cat-badge">${escHtml(issue.category)}</span>
-      <span class="hl-issue-title">${escHtml(issue.title)}</span>
+      <span class="hl-issue-title">${escHtml(issue.name)}</span>
       <span class="hl-issue-meta">${dateRange}<br>${count} entr${count === 1 ? 'y' : 'ies'}</span>
     </div>`;
   }
 
   function renderDetail(issueId) {
-    const issue = (Data.getData().ongoing_issues ?? {})[issueId];
+    const issue = (Data.getData().issues ?? {})[issueId];
     if (!issue) { detailId = null; return renderList(); }
 
     const symptoms   = getSymptomsForIssue(issueId);
@@ -168,23 +168,20 @@ const HealthLog = (() => {
       <button class="hl-detail-back" onclick="HealthLog._back()">← Back to Health Log</button>
       <div class="hl-detail-header">
         <p class="hl-detail-sub">${escHtml(issue.category)}</p>
-        <h2 class="hl-detail-title">${escHtml(issue.title)}</h2>
+        <h2 class="hl-detail-title">${escHtml(issue.name)}</h2>
         <p class="hl-detail-sub">${dateRange} · ${symptoms.length} symptom entr${symptoms.length === 1 ? 'y' : 'ies'}</p>
-        ${issue.notes ? `<p class="hl-detail-sub" style="margin-top:6px">${escHtml(issue.notes)}</p>` : ''}
       </div>`;
 
     if (showEditForm) {
       html += `<div class="hl-edit-form">
-        <div><label class="hl-edit-label">Title</label>
-          <input id="hl-edit-title" class="hl-edit-input" type="text" value="${escHtml(issue.title)}"></div>
+        <div><label class="hl-edit-label">Name</label>
+          <input id="hl-edit-title" class="hl-edit-input" type="text" value="${escHtml(issue.name)}"></div>
         <div><label class="hl-edit-label">Category</label>
           <select id="hl-edit-cat" class="hl-edit-select">
             ${categories.map(c => `<option value="${escHtml(c)}"${c === issue.category ? ' selected' : ''}>${escHtml(c)}</option>`).join('')}
           </select></div>
         <div><label class="hl-edit-label">Start Date</label>
           <input id="hl-edit-start" class="hl-edit-input" type="date" value="${escHtml(issue.start_date ?? '')}"></div>
-        <div><label class="hl-edit-label">Notes</label>
-          <input id="hl-edit-notes" class="hl-edit-input" type="text" value="${escHtml(issue.notes ?? '')}"></div>
         <div class="hl-edit-actions">
           <button class="hl-edit-save-btn" onclick="HealthLog._saveEdit('${issueId}')">Save</button>
           <button class="hl-edit-cancel-btn" onclick="HealthLog._cancelEdit()">Cancel</button>
@@ -214,17 +211,18 @@ const HealthLog = (() => {
       const historyRows = symptoms.map(s => {
         const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
         const label     = s.date === today() ? 'Today' : fmtDate(s.date);
-        const timeStr   = s.time ? ` · ${s.time}` : '';
+        const chips     = (s.symptoms ?? [])
+          .map(sym => `<span class="health-symp-chip">${escHtml(sym)}</span>`).join('');
         return `
           <div class="health-detail-log-row">
             <div class="health-detail-log-top">
-              <span class="health-detail-log-date">${label}${timeStr}</span>
+              <span class="health-detail-log-date">${label}</span>
               <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
                 ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
               </span>
             </div>
-            ${s.category ? `<div class="health-symp-chips"><span class="health-symp-chip">${escHtml(s.category)}</span></div>` : ''}
-            ${s.description ? `<p class="health-log-note">${escHtml(s.description)}</p>` : ''}
+            ${chips ? `<div class="health-symp-chips">${chips}</div>` : ''}
+            ${s.note ? `<p class="health-log-note">${escHtml(s.note)}</p>` : ''}
           </div>`;
       }).join('');
 
@@ -255,7 +253,7 @@ const HealthLog = (() => {
   async function _confirmResolve(issueId) {
     const dateInput = document.getElementById('hl-resolve-date');
     const endDate   = dateInput?.value ?? today();
-    const issue     = (Data.getData().ongoing_issues ?? {})[issueId];
+    const issue     = (Data.getData().issues ?? {})[issueId];
     if (!issue) return;
     issue.end_date  = endDate;
     issue.resolved  = true;
@@ -265,7 +263,7 @@ const HealthLog = (() => {
   }
 
   async function _reopen(issueId) {
-    const issue = (Data.getData().ongoing_issues ?? {})[issueId];
+    const issue = (Data.getData().issues ?? {})[issueId];
     if (!issue) return;
     issue.end_date = null;
     issue.resolved = false;
@@ -274,24 +272,22 @@ const HealthLog = (() => {
   }
 
   async function _saveEdit(issueId) {
-    const issue    = (Data.getData().ongoing_issues ?? {})[issueId];
+    const issue    = (Data.getData().issues ?? {})[issueId];
     if (!issue) return;
-    const title    = document.getElementById('hl-edit-title')?.value.trim();
+    const name     = document.getElementById('hl-edit-title')?.value.trim();
     const category = document.getElementById('hl-edit-cat')?.value;
     const start    = document.getElementById('hl-edit-start')?.value;
-    const notes    = document.getElementById('hl-edit-notes')?.value.trim();
-    if (title)    issue.title      = title;
+    if (name)     issue.name       = name;
     if (category) issue.category   = category;
     if (start)    issue.start_date = start;
-    issue.notes  = notes ?? '';
     showEditForm = false;
     await Data.save();
     render();
   }
 
   async function _deleteIssue(issueId) {
-    if (!confirm('Delete this issue? Its symptom entries will remain but will no longer be linked.')) return;
-    delete (Data.getData().ongoing_issues ?? {})[issueId];
+    if (!confirm('Delete this issue? Its log entries will remain but will no longer be linked.')) return;
+    delete (Data.getData().issues ?? {})[issueId];
     detailId = null;
     await Data.save();
     render();
