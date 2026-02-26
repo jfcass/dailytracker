@@ -68,6 +68,7 @@ const App = (() => {
     if (name === 'reports')  Reports.render();
     if (name === 'library')  Books.render();
     if (name === 'settings') Settings.render();
+    if (name === 'health-log') HealthLog.render();
   }
 
   // ── Post-PIN: show main app ──────────────────────────────────────────────────
@@ -98,6 +99,7 @@ const App = (() => {
     Books.init();
     Reports.init();
     Settings.init();
+    HealthLog.init();
 
     applyCollapsedState();
   }
