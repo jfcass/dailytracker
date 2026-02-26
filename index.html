@@ -29,11 +29,15 @@
     <div class="center-card">
 
       <div class="app-logo" aria-hidden="true">
-        <!-- Pulse/activity icon -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             width="52" height="52">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        <svg viewBox="0 0 24 24" fill="none" width="56" height="56"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="logo-grad-auth" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#1ABEA5"/>
+              <stop offset="100%" stop-color="#F4A800"/>
+            </linearGradient>
+          </defs>
+          <polyline stroke="url(#logo-grad-auth)" points="20 6 9 17 4 12"/>
         </svg>
       </div>
 
@@ -137,10 +141,15 @@
 
     <header class="app-header">
       <div class="app-header__logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
-             width="22" height="22">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        <svg viewBox="0 0 24 24" fill="none" width="22" height="22"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <linearGradient id="logo-grad-header" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#1ABEA5"/>
+              <stop offset="100%" stop-color="#F4A800"/>
+            </linearGradient>
+          </defs>
+          <polyline stroke="url(#logo-grad-header)" points="20 6 9 17 4 12"/>
         </svg>
       </div>
       <span class="app-header__title">Daily Tracker</span>
