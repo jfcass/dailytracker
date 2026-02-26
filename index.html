@@ -412,6 +412,31 @@
 
       </section>
 
+      <!-- ── Section: Gratitudes ───────────────────────────────────── -->
+      <section id="section-gratitudes" class="tracker-section" aria-label="Gratitudes">
+
+        <div class="section-header" onclick="App.toggleSection('section-gratitudes')">
+          <h2 class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 width="16" height="16" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            Gratitudes
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </h2>
+        </div>
+
+        <div id="grat-list" class="grat-list"></div>
+
+        <div id="grat-save-status" class="save-status" aria-live="polite"></div>
+
+      </section>
+
       <!-- ── Section: Daily Note ───────────────────────────────────────── -->
       <section id="section-note" class="tracker-section" aria-label="Daily Note">
 
@@ -530,6 +555,7 @@
   <script src="js/moderation.js"></script>
   <script src="js/symptoms.js"></script>
   <script src="js/bowel.js"></script>
+  <script src="js/gratitudes.js"></script>
   <script src="js/medications.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="js/books.js"></script>
