@@ -15,18 +15,19 @@
   --clr-text:       #1a211a;
   --clr-text-2:     #5a6e5a;
 
-  /* Accent — green */
-  --clr-accent:     #3d9142;
-  --clr-accent-h:   #317336;     /* hover / pressed */
-  --clr-accent-dim: #e6f4e7;
+  /* Accent — teal (from app icon) */
+  --clr-accent:        #1ABEA5;
+  --clr-accent-h:      #17a691;   /* hover / pressed */
+  --clr-accent-dim:    #e0f7f4;
+  --gradient-brand:    linear-gradient(135deg, #1ABEA5 0%, #F4A800 100%);
 
   /* Feedback */
   --clr-error:      #c62828;
   --clr-error-bg:   #fdecea;
 
   /* PIN key */
-  --clr-key-bg:     #eef2ee;
-  --clr-key-bg-h:   #dce8dc;
+  --clr-key-bg:     #e5f5f3;
+  --clr-key-bg-h:   #c8ece8;
   --clr-key-text:   #1a211a;
 
   /* Misc */
