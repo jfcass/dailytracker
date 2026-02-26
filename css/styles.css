@@ -2682,7 +2682,8 @@ button {
 }
 .book-session-body    { flex: 1; min-width: 0; }
 .book-session-summary { font-size: 0.85rem; color: var(--clr-text); }
-.book-session-notes   { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 3px; }
+.book-session-notes     { font-size: 0.78rem; color: var(--clr-text-2); margin-top: 3px; }
+.book-session-logged-at { font-size: 0.72rem; color: var(--clr-text-2); margin-top: 3px; opacity: 0.75; }
 .book-session-book-tag {
   display:          inline-block;
   font-size:        0.72rem;

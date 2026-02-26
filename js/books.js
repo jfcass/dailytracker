@@ -74,6 +74,15 @@ const Books = (() => {
     });
   }
 
+  function fmtLoggedAt(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+  }
+
   function scheduleSave() {
     setSaveStatus('saving');
     clearTimeout(saveTimer);
@@ -345,11 +354,12 @@ const Books = (() => {
       }
     } else {
       day.reading.push({
-        id:       crypto.randomUUID(),
-        book_id:  fFormBookId,
+        id:        crypto.randomUUID(),
+        book_id:   fFormBookId,
         minutes,
-        page_end: pageEnd,
-        notes:    fNotes.trim(),
+        page_end:  pageEnd,
+        notes:     fNotes.trim(),
+        logged_at: new Date().toISOString(),
       });
     }
     editingSession = null;
@@ -783,6 +793,7 @@ const Books = (() => {
                   ${showTitle   ? `<span class="book-session-book-tag">${escHtml(b.title)}</span>` : ''}
                 </div>
                 ${s.notes ? `<div class="book-session-notes">${escHtml(s.notes)}</div>` : ''}
+                ${s.logged_at ? `<div class="book-session-logged-at">Logged ${fmtLoggedAt(s.logged_at)}</div>` : ''}
               </div>
               <div class="book-session-actions">
                 <button class="book-sess-edit-btn" onclick="Books._startEditSession('${s.id}')">Edit</button>
