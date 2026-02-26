@@ -250,8 +250,10 @@ button {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--clr-border);
-  border-top-color: var(--clr-accent);
+  background: conic-gradient(from 0deg, #1ABEA5 0%, #F4A800 70%, transparent 70%);
+  -webkit-mask: radial-gradient(farthest-side, transparent 84%, white 85%);
+  mask: radial-gradient(farthest-side, transparent 84%, white 85%);
+
   border-radius: 50%;
   animation: spin 0.85s linear infinite;
 }
@@ -769,7 +771,6 @@ button {
 /* ═══════════════════════════════════════════════════════════════════════════
    Moderation Tracker section
 ═══════════════════════════════════════════════════════════════════════════ */
-
 
 /* ── Substance row container ── */
 .mod-list {}   /* rows handle their own padding */
@@ -3578,8 +3579,19 @@ button {
 
 .bottom-nav-btn--active {
   color: var(--clr-accent);
+  position: relative;
 }
 
+.bottom-nav-btn--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2.5px;
+  background: var(--gradient-brand);
+  border-radius: 0 0 3px 3px;
+}
 .bottom-nav-btn svg {
   width:  22px;
   height: 22px;
