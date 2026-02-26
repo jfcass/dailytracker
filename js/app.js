@@ -82,6 +82,7 @@ const App = (() => {
       Habits.setDate(date);
       Moderation.setDate(date);
       Symptoms.setDate(date);
+      Bowel.setDate(date);
       if (typeof Books !== 'undefined') Books.setDate(date);
     });
 
@@ -91,6 +92,7 @@ const App = (() => {
     Habits.init();
     Moderation.init();
     Symptoms.init();
+    Bowel.init();
     Books.init();
     Reports.init();
     Settings.init();

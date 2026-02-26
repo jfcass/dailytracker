@@ -4027,6 +4027,215 @@ button {
   font-style: italic;
 }
 
+/* ── Digestion / Bowel Tracker ──────────────────────────────────────────────── */
+
+.bwl-list {
+  padding: 4px 0 8px;
+}
+
+.bwl-row {
+  border-bottom: 1px solid var(--clr-border);
+  padding: 8px 16px;
+}
+
+.bwl-row:last-of-type {
+  border-bottom: none;
+}
+
+.bwl-display {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.bwl-quality-chip {
+  display:       inline-flex;
+  align-items:   center;
+  padding:       3px 10px;
+  border-radius: 12px;
+  background:    var(--q-clr);
+  color:         #fff;
+  font-size:     0.78rem;
+  font-weight:   700;
+  white-space:   nowrap;
+  flex-shrink:   0;
+}
+
+.bwl-meta {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex:        1;
+  min-width:   0;
+}
+
+.bwl-time {
+  font-size:   0.8rem;
+  color:       var(--clr-text-2);
+  flex-shrink: 0;
+}
+
+.bwl-note {
+  font-size:     0.85rem;
+  color:         var(--clr-text-2);
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.bwl-row-actions {
+  display:    flex;
+  gap:        6px;
+  flex-shrink: 0;
+}
+
+.bwl-edit-btn,
+.bwl-del-btn {
+  padding:       3px 8px;
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.75rem;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.bwl-edit-btn:hover,
+.bwl-del-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.bwl-add-btn {
+  display:       block;
+  margin:        8px 16px 4px;
+  padding:       6px 14px;
+  border:        1px dashed var(--clr-accent);
+  border-radius: 8px;
+  background:    transparent;
+  color:         var(--clr-accent);
+  font-size:     0.85rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.bwl-add-btn:hover {
+  background: var(--clr-accent-dim);
+}
+
+/* ── Bowel form ── */
+
+.bwl-form {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  padding:        4px 0 2px;
+}
+
+.bwl-form-quality-row {
+  display:   flex;
+  gap:       6px;
+  flex-wrap: wrap;
+}
+
+.bwl-quality-btn {
+  flex:          1;
+  min-width:     50px;
+  padding:       6px 4px;
+  border-radius: 16px;
+  border:        2px solid var(--q-clr);
+  background:    transparent;
+  color:         var(--q-clr);
+  font-size:     0.78rem;
+  font-weight:   700;
+  cursor:        pointer;
+  white-space:   nowrap;
+  transition:    background var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bwl-quality-btn--active {
+  background: var(--q-clr);
+  color:      #fff;
+}
+
+.bwl-quality-btn:active {
+  opacity: 0.75;
+}
+
+.bwl-form-fields {
+  display: flex;
+  gap:     8px;
+}
+
+.bwl-time-input {
+  width:         110px;
+  flex-shrink:   0;
+  padding:       6px 8px;
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  font-family:   inherit;
+}
+
+.bwl-notes-input {
+  flex:          1;
+  padding:       6px 10px;
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  font-family:   inherit;
+}
+
+.bwl-time-input:focus,
+.bwl-notes-input:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+
+.bwl-time-input::placeholder,
+.bwl-notes-input::placeholder {
+  color: var(--clr-text-2);
+}
+
+.bwl-form-actions {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+}
+
+.bwl-cancel-btn {
+  padding:       7px 14px;
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.85rem;
+  cursor:        pointer;
+}
+
+.bwl-save-btn {
+  padding:       7px 18px;
+  border:        none;
+  border-radius: 8px;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-size:     0.85rem;
+  font-weight:   600;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+
+.bwl-save-btn:hover {
+  background: var(--clr-accent-h);
+}
+
 /* ── Daily Note ──────────────────────────────────────────────────────────────── */
 .note-wrap {
   padding: 6px 16px 12px;
