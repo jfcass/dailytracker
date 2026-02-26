@@ -302,27 +302,18 @@
 
       </section>
 
-      <!-- ── Section: Moderation Tracker (Phase 3) ───────────────────── -->
-      <section id="section-moderation" class="tracker-section" aria-label="Moderation Tracker">
+      <!-- ── Section: Digestion ──────────────────────────────────────── -->
+      <section id="section-bowel" class="tracker-section" aria-label="Digestion">
 
-        <!-- Header: title left, 7-day dots right -->
-        <div class="section-header" onclick="App.toggleSection('section-moderation')">
+        <div class="section-header" onclick="App.toggleSection('section-bowel')">
           <h2 class="section-title">
-            <!-- Sliders icon — represents "control / moderation" -->
+            <!-- Droplet icon -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  width="16" height="16" aria-hidden="true">
-              <line x1="4"  y1="21" x2="4"  y2="14"/>
-              <line x1="4"  y1="10" x2="4"  y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="12"/>
-              <line x1="12" y1="8"  x2="12" y2="3"/>
-              <line x1="20" y1="21" x2="20" y2="16"/>
-              <line x1="20" y1="12" x2="20" y2="3"/>
-              <line x1="1"  y1="14" x2="7"  y2="14"/>
-              <line x1="9"  y1="8"  x2="15" y2="8"/>
-              <line x1="17" y1="16" x2="23" y2="16"/>
+              <path d="M12 2C6 8 4 12.5 4 15a8 8 0 0 0 16 0c0-2.5-2-7-8-13z"/>
             </svg>
-            Moderation
+            Digestion
             <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                  width="14" height="14" aria-hidden="true">
@@ -331,11 +322,9 @@
           </h2>
         </div>
 
-        <!-- Dynamic substance rows — populated by moderation.js -->
-        <div id="mod-list" class="mod-list" role="list" aria-label="Substances"></div>
+        <div id="bowel-list" class="bwl-list" role="list" aria-label="Bowel movements"></div>
 
-        <!-- Inline save status -->
-        <div id="mod-save-status" class="save-status" aria-live="polite"></div>
+        <div id="bowel-save-status" class="save-status" aria-live="polite"></div>
 
       </section>
 
@@ -386,18 +375,27 @@
 
       </section>
 
-      <!-- ── Section: Digestion ──────────────────────────────────────── -->
-      <section id="section-bowel" class="tracker-section" aria-label="Digestion">
+      <!-- ── Section: Moderation Tracker (Phase 3) ───────────────────── -->
+      <section id="section-moderation" class="tracker-section" aria-label="Moderation Tracker">
 
-        <div class="section-header" onclick="App.toggleSection('section-bowel')">
+        <!-- Header: title left, 7-day dots right -->
+        <div class="section-header" onclick="App.toggleSection('section-moderation')">
           <h2 class="section-title">
-            <!-- Droplet icon -->
+            <!-- Sliders icon — represents "control / moderation" -->
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  width="16" height="16" aria-hidden="true">
-              <path d="M12 2C6 8 4 12.5 4 15a8 8 0 0 0 16 0c0-2.5-2-7-8-13z"/>
+              <line x1="4"  y1="21" x2="4"  y2="14"/>
+              <line x1="4"  y1="10" x2="4"  y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/>
+              <line x1="12" y1="8"  x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/>
+              <line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1"  y1="14" x2="7"  y2="14"/>
+              <line x1="9"  y1="8"  x2="15" y2="8"/>
+              <line x1="17" y1="16" x2="23" y2="16"/>
             </svg>
-            Digestion
+            Moderation
             <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                  width="14" height="14" aria-hidden="true">
@@ -406,9 +404,11 @@
           </h2>
         </div>
 
-        <div id="bowel-list" class="bwl-list" role="list" aria-label="Bowel movements"></div>
+        <!-- Dynamic substance rows — populated by moderation.js -->
+        <div id="mod-list" class="mod-list" role="list" aria-label="Substances"></div>
 
-        <div id="bowel-save-status" class="save-status" aria-live="polite"></div>
+        <!-- Inline save status -->
+        <div id="mod-save-status" class="save-status" aria-live="polite"></div>
 
       </section>
 

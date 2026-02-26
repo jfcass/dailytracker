@@ -50,6 +50,9 @@ const Books = (() => {
 
   let saveTimer = null;
 
+  // Finished-books grid: which cover is expanded
+  let expandedFinishedId = null;
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function escHtml(str) {
@@ -663,9 +666,56 @@ const Books = (() => {
       return g;
     };
 
+    const renderFinishedGroup = (list) => {
+      if (!list.length) return '';
+      let g = `<div class="book-group"><p class="book-group-title">Finished</p>`;
+      g += `<div class="book-finished-grid">`;
+      list.forEach(b => {
+        const isActive = expandedFinishedId === b.id;
+        g += `<div class="book-finished-thumb${isActive ? ' book-finished-thumb--active' : ''}"
+                   onclick="Books._toggleFinishedBook('${b.id}')">`;
+        if (b.cover_url) {
+          g += `<img src="${escHtml(b.cover_url)}" alt="${escHtml(b.title)}" loading="lazy">`;
+        } else {
+          g += `<span class="book-finished-thumb-label">${escHtml(b.title)}</span>`;
+        }
+        g += `</div>`;
+      });
+      g += `</div>`;
+
+      if (expandedFinishedId) {
+        const b = list.find(x => x.id === expandedFinishedId);
+        if (b) {
+          const stats    = getBookStats(b.id);
+          const dateInfo = [fmtShortDate(b.start_date), fmtShortDate(b.finish_date)]
+            .filter(Boolean).join(' → ');
+          g += `<div class="book-finished-detail">
+            <div class="book-finished-detail-header">
+              ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" class="book-finished-detail-cover" alt="">` : ''}
+              <div>
+                <div class="book-finished-detail-title">${escHtml(b.title)}</div>
+                ${b.author ? `<div class="book-finished-detail-author">${escHtml(b.author)}</div>` : ''}
+              </div>
+            </div>
+            <div class="book-finished-detail-meta">
+              ${dateInfo}${b.total_pages ? ` · ${b.total_pages} pages` : ''}<br>
+              ${stats.totalMinutes ? fmtTime(stats.totalMinutes) + ' read' : 'No reading sessions logged'}
+            </div>
+            <div class="book-finished-detail-actions">
+              <button onclick="Books._startEditBook('${b.id}')">Edit</button>
+              <button class="book-finished-detail-del-btn" onclick="Books._deleteBook('${b.id}')">Delete</button>
+            </div>
+          </div>`;
+        }
+      }
+
+      g += '</div>';
+      return g;
+    };
+
     html += renderGroup('Currently Reading', reading);
     html += renderGroup('Paused', paused);
-    html += renderGroup('Finished', finished);
+    html += renderFinishedGroup(finished);
 
     if (!bookList.length && !addingBook) {
       html += `<p class="book-empty">No books yet. Add your first book above!</p>`;
@@ -964,6 +1014,11 @@ const Books = (() => {
     render();
   }
 
+  function _toggleFinishedBook(id) {
+    expandedFinishedId = (expandedFinishedId === id) ? null : id;
+    renderLibraryTab();
+  }
+
   // ── Public API ────────────────────────────────────────────────────────────────
 
   return {
@@ -976,5 +1031,6 @@ const Books = (() => {
     _toggleSessionHistory,
     _fbSearch, _fbSelectResult, _fbClearCover,
     _fField, _fbField,
+    _toggleFinishedBook,
   };
 })();
