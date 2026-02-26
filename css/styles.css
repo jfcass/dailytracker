@@ -4805,3 +4805,41 @@ button {
   font-size:  0.85rem;
   color:      var(--clr-text-2);
 }
+
+/* ── Gratitudes section ──────────────────────────────────────────────────── */
+.grat-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  padding:        0 0 4px;
+}
+.grat-item {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+.grat-bullet {
+  color:       var(--clr-accent);
+  font-size:   1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top:  1px;
+}
+.grat-input {
+  flex:          1;
+  background:    transparent;
+  border:        none;
+  border-bottom: 1px solid var(--clr-border);
+  color:         var(--clr-text);
+  font-family:   inherit;
+  font-size:     0.9rem;
+  padding:       4px 2px;
+  outline:       none;
+  transition:    border-color var(--transition);
+}
+.grat-input:focus {
+  border-bottom-color: var(--clr-accent);
+}
+.grat-input::placeholder {
+  color: var(--clr-text-2);
+}
