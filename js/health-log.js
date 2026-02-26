@@ -32,7 +32,14 @@ const HealthLog = (() => {
 
   function today() { return Data.today(); }
 
-  const SEV_COLORS = ['', '#4caf50', '#8bc34a', '#ffc107', '#ff5722', '#f44336'];
+  const SEV_STYLES = [
+    null,
+    ['#e8f5e9', '#2e7d32'],
+    ['#f1f8e9', '#558b2f'],
+    ['#fff8e1', '#f57f17'],
+    ['#fbe9e7', '#bf360c'],
+    ['#ffebee', '#c62828'],
+  ];
   const SEV_LABELS = ['', 'Mild', 'Low', 'Moderate', 'High', 'Severe'];
 
   function getIssues() {
@@ -53,6 +60,53 @@ const HealthLog = (() => {
 
   function countSymptoms(issueId) {
     return getSymptomsForIssue(issueId).length;
+  }
+
+  function buildSeverityChart(symptoms) {
+    if (!symptoms.length) return '';
+    // symptoms is newest-first; chart shows oldest→newest, capped at 60
+    const data   = symptoms.slice().reverse().slice(-60);
+    const barW   = 28;
+    const barGap = 5;
+    const chartH = 80;
+    const labelH = 22;
+    const padX   = 6;
+    const totalW = padX * 2 + data.length * (barW + barGap) - barGap;
+    const svgH   = chartH + labelH;
+
+    let bars   = '';
+    let labels = '';
+
+    data.forEach((s, i) => {
+      const x       = padX + i * (barW + barGap);
+      const sev     = s.severity;
+      const [, clr] = SEV_STYLES[sev] ?? SEV_STYLES[3];
+      const barH    = Math.max(6, Math.round((sev / 5) * chartH));
+      const y       = chartH - barH;
+      const numY    = Math.max(y - 3, 10);
+
+      bars += `
+        <rect x="${x}" y="${y}" width="${barW}" height="${barH}"
+              rx="4" fill="${clr}" opacity="0.85"/>
+        <text x="${x + barW / 2}" y="${numY}"
+              text-anchor="middle" font-size="11" font-weight="700"
+              fill="${clr}">${sev}</text>`;
+
+      labels += `
+        <text x="${x + barW / 2}" y="${chartH + 16}"
+              text-anchor="middle" font-size="9"
+              fill="var(--clr-text-2)">${fmtDate(s.date)}</text>`;
+    });
+
+    return `
+      <div class="health-chart-scroll">
+        <svg class="health-chart-svg"
+             viewBox="0 0 ${totalW} ${svgH}"
+             width="${totalW}" height="${svgH}"
+             xmlns="http://www.w3.org/2000/svg">
+          ${bars}${labels}
+        </svg>
+      </div>`;
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────────────────────
@@ -153,23 +207,36 @@ const HealthLog = (() => {
       </div>`;
     }
 
-    html += `<p class="hl-history-heading">Symptom History</p>`;
     if (!symptoms.length) {
-      html += `<p class="hl-no-history">No symptoms logged against this issue yet.</p>`;
+      html += `<p class="hl-history-heading">Symptom History</p>
+               <p class="hl-no-history">No symptoms logged against this issue yet.</p>`;
     } else {
-      html += symptoms.map(s => {
-        const color   = SEV_COLORS[s.severity] ?? '#ccc';
-        const label   = SEV_LABELS[s.severity] ?? '';
-        const timeStr = s.time ? ` · ${s.time}` : '';
-        return `<div class="hl-symptom-row">
-          <div class="hl-sev-dot" style="background:${color}"></div>
-          <div class="hl-symptom-body">
-            <div class="hl-symptom-date">${fmtDate(s.date)}${timeStr}</div>
-            ${s.description ? `<div class="hl-symptom-desc">${escHtml(s.description)}</div>` : ''}
-            <div class="hl-symptom-sev-label">Severity ${s.severity} — ${label}</div>
-          </div>
-        </div>`;
+      const historyRows = symptoms.map(s => {
+        const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+        const label     = s.date === today() ? 'Today' : fmtDate(s.date);
+        const timeStr   = s.time ? ` · ${s.time}` : '';
+        return `
+          <div class="health-detail-log-row">
+            <div class="health-detail-log-top">
+              <span class="health-detail-log-date">${label}${timeStr}</span>
+              <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
+                ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
+              </span>
+            </div>
+            ${s.category ? `<div class="health-symp-chips"><span class="health-symp-chip">${escHtml(s.category)}</span></div>` : ''}
+            ${s.description ? `<p class="health-log-note">${escHtml(s.description)}</p>` : ''}
+          </div>`;
       }).join('');
+
+      html += `
+        <div class="health-detail-section">
+          <p class="health-section-label">Severity over time</p>
+          ${buildSeverityChart(symptoms)}
+        </div>
+        <div class="health-detail-section">
+          <p class="health-section-label">Log history</p>
+          <div class="health-detail-logs">${historyRows}</div>
+        </div>`;
     }
 
     html += `</div>`;
