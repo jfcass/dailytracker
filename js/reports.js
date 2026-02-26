@@ -322,6 +322,242 @@ const Reports = (() => {
     });
   }
 
+  // ── Mood & Energy section ─────────────────────────────────────────────────────
+
+  function buildMoodSection(dates) {
+    const daysData = Data.getData().days ?? {};
+
+    const points = dates.flatMap(date => {
+      const m = daysData[date]?.mood;
+      if (!m || (m.mood == null && m.energy == null)) return [];
+      return [{ date, mood: m.mood ?? null, energy: m.energy ?? null }];
+    });
+
+    if (!points.length) {
+      return rptSection('Mood & Energy', moodIcon(), `<p class="rpt-empty">No mood or energy logged in this period.</p>`);
+    }
+
+    const moodVals   = points.map(p => p.mood).filter(v => v != null);
+    const energyVals = points.map(p => p.energy).filter(v => v != null);
+    const avgMood    = moodVals.length   ? (moodVals.reduce((a, b) => a + b, 0) / moodVals.length).toFixed(1)   : '—';
+    const avgEnergy  = energyVals.length ? (energyVals.reduce((a, b) => a + b, 0) / energyVals.length).toFixed(1) : '—';
+    const LABELS     = { 1: 'Very low', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' };
+    const moodLbl    = moodVals.length   ? (LABELS[Math.round(parseFloat(avgMood))]   ?? '') : '';
+    const energyLbl  = energyVals.length ? (LABELS[Math.round(parseFloat(avgEnergy))] ?? '') : '';
+
+    const statsGrid = `<div class="rpt-stats-grid">
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${avgMood}</span>
+        <span class="rpt-stat-label">Avg mood${moodLbl ? ` · ${moodLbl}` : ''}</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${avgEnergy}</span>
+        <span class="rpt-stat-label">Avg energy${energyLbl ? ` · ${energyLbl}` : ''}</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${points.length}</span>
+        <span class="rpt-stat-label">Days logged</span>
+      </div>
+    </div>`;
+
+    return rptSection('Mood & Energy', moodIcon(),
+      statsGrid + `<div class="rpt-chart-wrap"><canvas id="rpt-mood-chart"></canvas></div>`);
+  }
+
+  function renderMoodChart(dates) {
+    if (!document.getElementById('rpt-mood-chart')) return;
+    const daysData = Data.getData().days ?? {};
+
+    const points = dates.flatMap(date => {
+      const m = daysData[date]?.mood;
+      if (!m || (m.mood == null && m.energy == null)) return [];
+      return [{ date, mood: m.mood ?? null, energy: m.energy ?? null }];
+    });
+    if (!points.length) return;
+
+    let display = points;
+    if (points.length > 45) {
+      const step = Math.ceil(points.length / 45);
+      display = points.filter((_, i) => i % step === 0 || i === points.length - 1);
+    }
+
+    const textClr  = cssVar('--clr-text-2');
+    const gridClr  = cssVar('--clr-border');
+    const moodTick = { 1: 'Very low', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Great' };
+
+    createChart('rpt-mood-chart', {
+      type: 'line',
+      data: {
+        labels: display.map(p => p.date.slice(5).replace('-', '/')),
+        datasets: [
+          {
+            label:              'Mood',
+            data:               display.map(p => p.mood),
+            borderColor:        '#1ABEA5',
+            backgroundColor:    'rgba(26,190,165,0.10)',
+            pointBackgroundColor: '#1ABEA5',
+            pointRadius:        3,
+            tension:            0.3,
+            fill:               false,
+            spanGaps:           true,
+          },
+          {
+            label:              'Energy',
+            data:               display.map(p => p.energy),
+            borderColor:        '#F4A800',
+            backgroundColor:    'rgba(244,168,0,0.10)',
+            pointBackgroundColor: '#F4A800',
+            pointRadius:        3,
+            tension:            0.3,
+            fill:               false,
+            spanGaps:           true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: textClr, boxWidth: 12, font: { size: 11 } } },
+        },
+        scales: {
+          y: {
+            min: 1, max: 5,
+            ticks: { stepSize: 1, color: textClr, callback: v => moodTick[v] ?? '' },
+            grid:  { color: gridClr },
+          },
+          x: {
+            ticks: { color: textClr, maxTicksLimit: 8 },
+            grid:  { display: false },
+          },
+        },
+      },
+    });
+  }
+
+  // ── Digestion (bowel) section ─────────────────────────────────────────────────
+
+  function buildBowelSection(dates) {
+    const daysData       = Data.getData().days ?? {};
+    const QUALITY_LABELS = ['', 'Hard', 'Firm', 'Normal', 'Soft', 'Watery'];
+
+    let totalMovements = 0, daysWithMovements = 0;
+    const qualityCounts = [0, 0, 0, 0, 0, 0];
+
+    dates.forEach(date => {
+      const entries = daysData[date]?.bowel ?? [];
+      if (entries.length) { daysWithMovements++; totalMovements += entries.length; }
+      entries.forEach(e => { if (e.quality >= 1 && e.quality <= 5) qualityCounts[e.quality]++; });
+    });
+
+    if (!totalMovements) {
+      return rptSection('Digestion', bowelIcon(), `<p class="rpt-empty">No bowel movements logged in this period.</p>`);
+    }
+
+    const avgPerDay       = (totalMovements / daysWithMovements).toFixed(1);
+    const maxCount        = Math.max(...qualityCounts.slice(1));
+    const mostCommonIdx   = qualityCounts.indexOf(maxCount);
+    const mostCommonLabel = QUALITY_LABELS[mostCommonIdx] ?? '—';
+
+    const statsGrid = `<div class="rpt-stats-grid">
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${totalMovements}</span>
+        <span class="rpt-stat-label">Total logged</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${avgPerDay}</span>
+        <span class="rpt-stat-label">Avg per day</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${mostCommonLabel}</span>
+        <span class="rpt-stat-label">Most common</span>
+      </div>
+    </div>`;
+
+    const showFreq = dates.length >= 7;
+    const body = statsGrid
+      + `<p class="rpt-section-label">Quality distribution</p>`
+      + `<div class="rpt-chart-wrap rpt-chart-wrap--short"><canvas id="rpt-bowel-dist-chart"></canvas></div>`
+      + (showFreq
+        ? `<p class="rpt-section-label">Frequency per week</p><div class="rpt-chart-wrap rpt-chart-wrap--short"><canvas id="rpt-bowel-freq-chart"></canvas></div>`
+        : '');
+
+    return rptSection('Digestion', bowelIcon(), body);
+  }
+
+  function renderBowelCharts(dates) {
+    const daysData       = Data.getData().days ?? {};
+    const QUALITY_LABELS = ['', 'Hard', 'Firm', 'Normal', 'Soft', 'Watery'];
+    const QUALITY_COLORS = ['', '#8B6240', '#C09040', '#1ABEA5', '#E89020', '#E05030'];
+    const textClr        = cssVar('--clr-text-2');
+    const gridClr        = cssVar('--clr-border');
+
+    // Distribution chart (Watery→Hard to match log form order)
+    if (document.getElementById('rpt-bowel-dist-chart')) {
+      const qualityCounts = [0, 0, 0, 0, 0, 0];
+      dates.forEach(date =>
+        (daysData[date]?.bowel ?? []).forEach(e => {
+          if (e.quality >= 1 && e.quality <= 5) qualityCounts[e.quality]++;
+        })
+      );
+      const order  = [5, 4, 3, 2, 1];
+      createChart('rpt-bowel-dist-chart', {
+        type: 'bar',
+        data: {
+          labels:   order.map(v => QUALITY_LABELS[v]),
+          datasets: [{
+            data:            order.map(v => qualityCounts[v]),
+            backgroundColor: order.map(v => QUALITY_COLORS[v]),
+            borderRadius:    4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: textClr }, grid: { color: gridClr } },
+            x: { ticks: { color: textClr }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    // Weekly frequency chart
+    if (document.getElementById('rpt-bowel-freq-chart')) {
+      const weekMap = new Map();
+      dates.forEach(date => {
+        const wk = weekStart(date);
+        if (!weekMap.has(wk)) {
+          const d = new Date(wk);
+          weekMap.set(wk, { label: `${d.getMonth() + 1}/${d.getDate()}`, count: 0 });
+        }
+        weekMap.get(wk).count += (daysData[date]?.bowel ?? []).length;
+      });
+      const sorted = [...weekMap.entries()].sort(([a], [b]) => a < b ? -1 : 1);
+      createChart('rpt-bowel-freq-chart', {
+        type: 'bar',
+        data: {
+          labels:   sorted.map(([, w]) => w.label),
+          datasets: [{
+            data:            sorted.map(([, w]) => w.count),
+            backgroundColor: 'rgba(26,190,165,0.78)',
+            borderRadius:    4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: textClr }, grid: { color: gridClr } },
+            x: { ticks: { color: textClr }, grid: { display: false } },
+          },
+        },
+      });
+    }
+  }
+
   // ── Moderation section ────────────────────────────────────────────────────────
 
   function buildModerationSection(dates) {
@@ -586,6 +822,12 @@ const Reports = (() => {
   function bookIcon() {
     return svgIcon('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>');
   }
+  function moodIcon() {
+    return svgIcon('<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>');
+  }
+  function bowelIcon() {
+    return svgIcon('<path d="M12 2C6 8 4 12.5 4 15a8 8 0 0 0 16 0c0-2.5-2-7-8-13z"/>');
+  }
 
   // ── Main render ───────────────────────────────────────────────────────────────
 
@@ -597,15 +839,19 @@ const Reports = (() => {
     const dates = getDatesInPeriod();
 
     el.innerHTML = buildHabitsSection(dates)
+      + buildMoodSection(dates)
       + buildHealthSection(dates)
       + buildModerationSection(dates)
+      + buildBowelSection(dates)
       + buildMedicationsSection(dates)
       + buildReadingSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {
+      renderMoodChart(dates);
       renderHealthCharts(dates);
       renderModerationChart(dates);
+      renderBowelCharts(dates);
       renderReadingChart(dates);
     });
   }

@@ -3830,6 +3830,9 @@ button {
   width:  100% !important;
   height: 100% !important;
 }
+.rpt-chart-wrap--short {
+  height: 120px;
+}
 
 /* ── Health issues ───────────────────────────────────────────────────────── */
 .rpt-health-issue {
