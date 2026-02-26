@@ -28,6 +28,7 @@ const Books = (() => {
   let fMinutes    = '';
   let fPageEnd    = '';
   let fNotes      = '';
+  let fDate       = '';
   let fFormBookId = null;
 
   // Session history toggle
@@ -328,12 +329,15 @@ const Books = (() => {
     fMinutes       = String(s.minutes  ?? '');
     fPageEnd       = String(s.page_end ?? '');
     fNotes         = s.notes ?? '';
+    fDate          = s.logged_at
+      ? new Date(s.logged_at).toISOString().slice(0, 10)
+      : currentDate;
     render();
   }
 
   function cancelSession() {
     editingSession = null;
-    fMinutes = fPageEnd = fNotes = '';
+    fMinutes = fPageEnd = fNotes = fDate = '';
     fFormBookId = null;
     render();
   }
@@ -351,6 +355,11 @@ const Books = (() => {
         s.page_end = pageEnd;
         s.notes    = fNotes.trim();
         delete s.pages;
+        if (fDate) {
+          // Preserve any existing time component; otherwise default to noon
+          const existingTime = s.logged_at ? s.logged_at.slice(11) : '12:00:00.000Z';
+          s.logged_at = fDate + 'T' + existingTime;
+        }
       }
     } else {
       day.reading.push({
@@ -873,8 +882,18 @@ const Books = (() => {
         <input class="book-form-input" type="text" aria-label="Notes"
                placeholder="Optional notes…" value="${escHtml(fNotes)}"
                oninput="Books._fField('fNotes', this.value)">
-      </div>
-      <div class="book-form-actions">
+      </div>`;
+
+    if (editId) {
+      html += `<div class="book-form-field">
+        <span class="book-form-label">Date</span>
+        <input class="book-form-input book-narrow-input" type="date" aria-label="Session date"
+               value="${escHtml(fDate)}"
+               oninput="Books._fField('fDate', this.value)">
+      </div>`;
+    }
+
+    html += `<div class="book-form-actions">
         <button class="book-form-cancel-btn" onclick="Books._cancelSession()">Cancel</button>
         <button class="book-form-save-btn"   onclick="Books._saveSession()">Save Session</button>
       </div>
@@ -910,6 +929,7 @@ const Books = (() => {
     if (field === 'fMinutes')    fMinutes    = val;
     if (field === 'fPageEnd')    fPageEnd    = val;
     if (field === 'fNotes')      fNotes      = val;
+    if (field === 'fDate')       fDate       = val;
     if (field === 'fFormBookId') fFormBookId = val;
   }
 
@@ -939,7 +959,7 @@ const Books = (() => {
     showLibrary        = false;
     editingSession     = null;
     sessionHistoryOpen = false;
-    fMinutes = fPageEnd = fNotes = '';
+    fMinutes = fPageEnd = fNotes = fDate = '';
     fFormBookId = null;
     render();
   }
