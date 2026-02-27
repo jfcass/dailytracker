@@ -51,6 +51,7 @@ const Gratitudes = (() => {
           oninput="Gratitudes._onInput(this)"
           onkeydown="Gratitudes._onKeydown(event, ${idx})"
         >${escHtml(val)}</textarea>
+        ${val.trim() !== '' ? `<button class="grat-delete-btn" aria-label="Remove entry" onclick="Gratitudes._onDelete(${idx})">×</button>` : ''}
       </div>
     `).join('');
 
@@ -108,6 +109,13 @@ const Gratitudes = (() => {
     }
   }
 
+  function _onDelete(idx) {
+    const entries = [...getEntries()];
+    entries.splice(idx, 1);
+    save(entries);
+    render();
+  }
+
   function save(entries) {
     // Strip trailing empty strings, keep at least []
     const cleaned = entries.filter((v, i) => v.trim() !== '' || i < entries.length - 1)
@@ -144,5 +152,5 @@ const Gratitudes = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  return { init, setDate, _onInput, _onKeydown };
+  return { init, setDate, _onInput, _onKeydown, _onDelete };
 })();

@@ -23,6 +23,8 @@ const Books = (() => {
   // Timer
   let timerStart    = null;
   let timerInterval = null;
+  let timerPaused   = false;
+  let timerPausedMs = 0;    // accumulated ms before the current running segment
 
   // Session form fields
   let fMinutes    = '';
@@ -282,30 +284,55 @@ const Books = (() => {
   // ── Timer ────────────────────────────────────────────────────────────────────
 
   function startTimer() {
-    if (timerInterval) return;
+    if (timerInterval || timerPaused) return;
     timerStart    = Date.now();
+    timerPausedMs = 0;
+    timerPaused   = false;
     timerInterval = setInterval(updateTimerDisplay, 1000);
     autoCheckReadingHabit();
     render();
   }
 
-  function stopTimer() {
+  function pauseTimer() {
     if (!timerInterval) return;
     clearInterval(timerInterval);
-    timerInterval = null;
-    const elapsed = Math.round((Date.now() - timerStart) / 60000);
-    timerStart    = null;
-    fFormBookId   = activeBookId;
-    fMinutes      = String(Math.max(1, elapsed));
-    fPageEnd      = '';
-    fNotes        = '';
+    timerInterval  = null;
+    timerPausedMs += Date.now() - timerStart;
+    timerStart     = null;
+    timerPaused    = true;
+    render();
+  }
+
+  function resumeTimer() {
+    if (!timerPaused || timerInterval) return;
+    timerStart    = Date.now();
+    timerPaused   = false;
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+    render();
+  }
+
+  function stopTimer() {
+    if (!timerInterval && !timerPaused) return;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    const totalMs  = timerPausedMs + (timerStart ? Date.now() - timerStart : 0);
+    const elapsed  = Math.round(totalMs / 60000);
+    timerStart     = null;
+    timerPaused    = false;
+    timerPausedMs  = 0;
+    fFormBookId    = activeBookId;
+    fMinutes       = String(Math.max(1, elapsed));
+    fPageEnd       = '';
+    fNotes         = '';
     editingSession = null;
     render();
   }
 
   function updateTimerDisplay() {
-    if (!timerStart) return;
-    const secs = Math.floor((Date.now() - timerStart) / 1000);
+    const totalMs = timerPausedMs + (timerStart ? Date.now() - timerStart : 0);
+    const secs = Math.floor(totalMs / 1000);
     const hh   = String(Math.floor(secs / 3600)).padStart(2, '0');
     const mm   = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
     const ss   = String(secs % 60).padStart(2, '0');
@@ -753,7 +780,7 @@ const Books = (() => {
       : bookList.filter(b => sessions.some(s => s.book_id === b.id));
 
     const isLogging    = fFormBookId !== null || editingSession !== null;
-    const isTimerOn    = !!timerInterval;
+    const isTimerOn    = !!timerInterval || timerPaused;
 
     let html = '';
 
@@ -872,9 +899,12 @@ const Books = (() => {
 
     // ── Timer bar ──
     if (isTimerOn) {
-      html += `<div class="book-timer-running">
-        <span class="book-timer-icon">⏱</span>
+      html += `<div class="book-timer-running${timerPaused ? ' book-timer-running--paused' : ''}">
+        <span class="book-timer-icon">${timerPaused ? '⏸' : '⏱'}</span>
         <span class="book-timer-display">00:00:00</span>
+        ${timerPaused
+          ? `<button class="book-timer-pause-btn" onclick="Books._resumeTimer()">▶ Resume</button>`
+          : `<button class="book-timer-pause-btn" onclick="Books._pauseTimer()">⏸ Pause</button>`}
         <button class="book-timer-stop-btn" onclick="Books._stopTimer()">Stop &amp; Log</button>
       </div>`;
     }
@@ -1004,7 +1034,7 @@ const Books = (() => {
   }
 
   function setDate(date) {
-    if (timerInterval) stopTimer();
+    if (timerInterval || timerPaused) stopTimer();
     currentDate        = date;
     showLibrary        = false;
     editingSession     = null;
@@ -1026,7 +1056,7 @@ const Books = (() => {
     _setActiveBook, _closeLibrary,
     _startAddBook, _cancelBookEdit, _saveBook, _startEditBook, _deleteBook,
     _markFinished, _togglePause,
-    _startTimer, _stopTimer,
+    _startTimer, _pauseTimer, _resumeTimer, _stopTimer,
     _startLogSession, _startEditSession, _cancelSession, _saveSession, _deleteSession,
     _toggleSessionHistory,
     _fbSearch, _fbSelectResult, _fbClearCover,

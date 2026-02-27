@@ -2866,6 +2866,26 @@ button {
 }
 .book-timer-stop-btn:hover { opacity: 0.88; }
 
+.book-timer-pause-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 12px;
+  border-radius: 6px;
+  border:        1.5px solid var(--clr-border);
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+.book-timer-pause-btn:hover { background: var(--clr-surface-2); }
+
+.book-timer-running--paused {
+  opacity: 0.75;
+}
+.book-timer-running--paused .book-timer-display {
+  color: var(--clr-text-2);
+}
+
 /* ── Book search ─────────────────────────────────────────────────────────── */
 
 .book-search-wrap {
@@ -4850,6 +4870,23 @@ button {
 }
 .grat-input::placeholder {
   color: var(--clr-text-2);
+}
+.grat-delete-btn {
+  background:  transparent;
+  border:      none;
+  color:       var(--clr-text-2);
+  font-size:   1.1rem;
+  line-height: 1;
+  padding:     0 2px;
+  cursor:      pointer;
+  flex-shrink: 0;
+  margin-top:  4px;
+  opacity:     0.45;
+  transition:  color var(--transition), opacity var(--transition);
+}
+.grat-delete-btn:hover {
+  color:   var(--clr-error);
+  opacity: 1;
 }
 
 /* ── App header gear button ──────────────────────────────────────────────── */
