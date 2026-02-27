@@ -101,10 +101,11 @@ const Weather = (() => {
   }
 
   async function apiFetch(lat, lon) {
-    // Always fetch in Celsius — store both units so we can display either
+    // Fetch daily high — temperature_2m_max is the forecast high for the day.
+    // timezone=auto derives the correct calendar day from coordinates.
     const url = `https://api.open-meteo.com/v1/forecast`
       + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
-      + `&current=temperature_2m,weather_code&forecast_days=1`;
+      + `&daily=temperature_2m_max,weather_code_max&timezone=auto&forecast_days=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`open-meteo ${res.status}`);
     return res.json();
@@ -115,12 +116,13 @@ const Weather = (() => {
     try {
       const pos  = await geolocate();
       const json = await apiFetch(pos.coords.latitude, pos.coords.longitude);
-      const c    = json.current.temperature_2m;
+      // daily arrays have one entry per day; [0] is today
+      const c    = json.daily.temperature_2m_max[0];
 
       const w = {
         temp_c: Math.round(c * 10) / 10,
         temp_f: Math.round((c * 9 / 5 + 32) * 10) / 10,
-        code:   json.current.weather_code,
+        code:   json.daily.weather_code_max[0],
       };
 
       // Persist to today's day record (best-effort — don't block UI on save)
@@ -143,12 +145,14 @@ const Weather = (() => {
     const today = Data.today();
     const saved = Data.getData().days?.[dateStr]?.weather ?? null;
 
-    if (saved) {
-      // Saved weather exists for this date — show it
-      render(saved);
-    } else if (dateStr === today) {
-      // Today but not yet fetched — go get it
+    if (dateStr === today) {
+      // Always fetch today's high (free API, fast, daily max is stable all day)
+      // Show any cached value immediately so there's no blank flash
+      if (saved) render(saved);
       fetchAndSave(today);
+    } else if (saved) {
+      // Past date — show whatever was saved on that day
+      render(saved);
     } else {
       // Past date with no saved weather — hide the strip
       render(null);
