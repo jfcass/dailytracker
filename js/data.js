@@ -18,7 +18,7 @@ const Data = (() => {
         { id: 'cannabis', name: 'Cannabis', default_unit: 'sessions' },
         { id: 'coffee',   name: 'Coffee',   default_unit: 'cups'     },
       ],
-      symptom_categories: ['Eyes', 'Body Pain', 'GI', 'Headaches', 'Other'],
+      symptom_categories: ['Headache', 'Fever', 'Fatigue', 'Nausea', 'Diarrhea', 'Other'],
       theme: 'system',
       weather_unit: 'auto',
     },
