@@ -61,8 +61,10 @@ const Symptoms = (() => {
   let issueDetailId     = null; // if set, show detail for this issue
   let issuePanelNewForm = false;
   let fIssName          = '';
-  let fIssCat           = '';
   let fIssRemind        = false;
+
+  // Cross-date edit (from issue detail)
+  let pendingEditFromDetail = null;
 
   // Issue edit state
   let editingIssueId  = null;
@@ -104,15 +106,15 @@ const Symptoms = (() => {
     return result;
   }
 
-  function getUnlinkedSymptoms(category) {
+  function getUnlinkedSymptoms() {
     const allDays = Data.getData().days ?? {};
     const result  = [];
     Object.keys(allDays).sort().reverse().forEach(date => {
       (allDays[date].symptoms ?? []).forEach(s => {
-        if (!s.issue_id && s.category === category) result.push({ date, symptom: s });
+        if (!s.issue_id) result.push({ date, symptom: s });
       });
     });
-    return result;
+    return result.slice(0, 20); // cap at 20 to avoid overwhelming the list
   }
 
   function getTodaySymptomForIssue(issueId, dateStr) {
@@ -446,7 +448,7 @@ const Symptoms = (() => {
     managingIssues    = !managingIssues;
     issueDetailId     = null;
     issuePanelNewForm = false;
-    fIssName = ''; fIssCat = ''; fIssRemind = false;
+    fIssName = ''; fIssRemind = false;
     const btn = document.getElementById('symp-issues-btn');
     if (btn) btn.setAttribute('aria-expanded', String(managingIssues));
     renderIssuePanel();
@@ -500,7 +502,7 @@ const Symptoms = (() => {
             </div>
           </div>`;
       }
-      const color = catColor(issue.category);
+      const color = catColor(issue.name);
       const remindChecked = issue.remind_daily ? ' checked' : '';
       return `
         <div class="symp-issue-row">
@@ -508,7 +510,6 @@ const Symptoms = (() => {
           <div class="symp-issue-row-meta">
             <button class="symp-issue-row-name"
                     onclick="Symptoms._openIssueDetail('${issue.id}')">${escHtml(issue.name)}</button>
-            <span class="symp-issue-row-cat">${escHtml(issue.category)}</span>
           </div>
           <label class="symp-remind-toggle" title="Remind daily">
             <input type="checkbox"${remindChecked}
@@ -525,7 +526,6 @@ const Symptoms = (() => {
 
     let newForm = '';
     if (issuePanelNewForm) {
-      const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
       newForm = `
         <div class="health-form symp-new-issue-form">
           <div class="health-form-top">
@@ -538,10 +538,6 @@ const Symptoms = (() => {
                    aria-label="Issue name" placeholder="e.g. Recurring headaches" maxlength="100"
                    value="${escHtml(fIssName)}"
                    oninput="Symptoms._setIssName(this.value)">
-          </div>
-          <div class="health-form-field">
-            <span class="health-form-label">Category</span>
-            <div class="health-form-cats">${buildIssCatPills(cats, fIssCat)}</div>
           </div>
           <label class="health-ongoing-row">
             <input type="checkbox" class="health-ongoing-check"
@@ -592,9 +588,9 @@ const Symptoms = (() => {
     const issue = getIssues()[issueId];
     if (!issue) return '<p class="section-empty">Issue not found.</p>';
 
-    const color   = catColor(issue.category);
+    const color   = catColor(issue.name);
     const allSymp = getSymptomsByIssue(issueId);
-    const unlinked = getUnlinkedSymptoms(issue.category);
+    const unlinked = getUnlinkedSymptoms();
 
     // Stats
     const total   = allSymp.length;
@@ -604,20 +600,41 @@ const Symptoms = (() => {
     const firstSeen = total > 0 ? fmtDate(allSymp[0].date) : '—';
     const lastSeen  = total > 0 ? fmtDate(allSymp[allSymp.length - 1].date) : '—';
 
-    // History rows
-    const histRows = allSymp.slice().reverse().map(({ date, symptom: s }) => {
-      const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
-      const label     = date === currentDate ? 'Today' : fmtDate(date);
-      const timePart  = s.time ? ` · ${s.time}` : '';
+    // History rows — grouped by date, most recent first
+    const byDate = new Map();
+    allSymp.slice().reverse().forEach(({ date, symptom: s }) => {
+      if (!byDate.has(date)) byDate.set(date, []);
+      byDate.get(date).push(s);
+    });
+
+    const histRows = [...byDate.entries()].map(([date, syms]) => {
+      const label = date === currentDate ? 'Today' : fmtDate(date);
+      const chips = syms.map(s => {
+        const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+        const color     = catColor(s.category);
+        const tip       = s.description ? escHtml(truncate(s.description, 60)) : '';
+        return `
+          <div class="symp-hist-chip">
+            <button class="symp-hist-chip-body"
+                    title="${tip}"
+                    onclick="Symptoms._startEditFromDetail('${s.id}','${date}')">
+              <span class="health-issue-dot" style="background:${color}"></span>
+              <span class="symp-hist-chip-cat">${escHtml(s.category)}</span>
+              <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">
+                ${s.severity}
+              </span>
+              ${s.time ? `<span class="symp-hist-chip-time">${escHtml(s.time)}</span>` : ''}
+            </button>
+            <button class="symp-hist-chip-del"
+                    title="Delete this entry"
+                    onclick="Symptoms._deleteSymptomByDate('${s.id}','${date}')">×</button>
+          </div>`;
+      }).join('');
+
       return `
-        <div class="health-detail-log-row">
-          <div class="health-detail-log-top">
-            <span class="health-detail-log-date">${label}${timePart}</span>
-            <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-              ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
-            </span>
-          </div>
-          ${s.description ? `<p class="health-log-note">${escHtml(s.description)}</p>` : ''}
+        <div class="symp-hist-day">
+          <span class="symp-hist-day-label">${label}</span>
+          <div class="symp-hist-chips">${chips}</div>
         </div>`;
     }).join('');
 
@@ -644,7 +661,7 @@ const Symptoms = (() => {
             <span class="health-issue-dot" style="background:${color}"></span>
             <div>
               <div class="health-detail-name">${escHtml(issue.name)}</div>
-              <div class="health-detail-meta">${escHtml(issue.category)}${issue.start_date ? ` · Since ${fmtDate(issue.start_date)}` : ''}</div>
+              ${issue.start_date ? `<div class="health-detail-meta">Since ${fmtDate(issue.start_date)}</div>` : ''}
             </div>
           </div>
           ${!issue.resolved
@@ -810,6 +827,20 @@ const Symptoms = (() => {
     render();
   }
 
+  function deleteSymptomByDate(symptomId, date) {
+    const day = Data.getDay(date);
+    if (!day.symptoms) return;
+    day.symptoms = day.symptoms.filter(s => s.id !== symptomId);
+    scheduleSave();
+    render();
+    renderIssuePanel();
+  }
+
+  function startEditFromDetail(symptomId, date) {
+    pendingEditFromDetail = symptomId;
+    DateNav.setDate(date); // fires onChange → Symptoms.setDate(date) → startEdit(symptomId)
+  }
+
   // Link a symptom to an issue from a quick inline form
   let pendingLinkSymptomId = null;
 
@@ -866,11 +897,9 @@ const Symptoms = (() => {
   // ── Issue CRUD ────────────────────────────────────────────────────────────
 
   function startNewIssue() {
-    const cats       = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
     issuePanelNewForm = true;
-    fIssName         = '';
-    fIssCat          = cats[0] ?? 'Other';
-    fIssRemind       = false;
+    fIssName          = '';
+    fIssRemind        = false;
     renderIssuePanel();
     requestAnimationFrame(() => {
       const inp = document.getElementById('symp-new-issue-name');
@@ -895,7 +924,6 @@ const Symptoms = (() => {
     issues[issueId] = {
       id:           issueId,
       name,
-      category:     fIssCat,
       remind_daily: fIssRemind,
       start_date:   currentDate,
       end_date:     null,
@@ -1007,6 +1035,8 @@ const Symptoms = (() => {
   function _openIssueDetail(id)          { openIssueDetail(id); }
   function _closeIssueDetail()           { closeIssueDetail(); }
   function _closeIssuePanel()            { closeIssuePanel(); }
+  function _startEditFromDetail(id, dt)  { startEditFromDetail(id, dt); }
+  function _deleteSymptomByDate(id, dt)  { deleteSymptomByDate(id, dt); }
   function _startIssEdit(id)             { startIssEdit(id); }
   function _cancelIssEdit()              { cancelIssEdit(); }
   function _saveIssEdit(id)              { saveIssEdit(id); }
@@ -1037,14 +1067,6 @@ const Symptoms = (() => {
   function _setTime(v)       { fTime = v; }
   function _setIssueLink(v)  { fIssueId = v || null; }
   function _setIssName(v)    { fIssName = v; }
-  function _setIssCat(v) {
-    fIssCat = v;
-    document.querySelectorAll('.symp-new-issue-form .health-form-cat').forEach(b => {
-      const on = b.dataset.cat === v;
-      b.classList.toggle('health-form-cat--active', on);
-      b.setAttribute('aria-pressed', String(on));
-    });
-  }
   function _setIssRemind(v)  { fIssRemind = !!v; }
 
   // ── Category manager ──────────────────────────────────────────────────────
@@ -1180,9 +1202,6 @@ const Symptoms = (() => {
           if (s.category === oldName) s.category = newName;
         });
       });
-      Object.values(Data.getData().issues ?? {}).forEach(issue => {
-        if (issue.category === oldName) issue.category = newName;
-      });
       if (fCat === oldName) fCat = newName;
       scheduleSave();
     }
@@ -1215,14 +1234,22 @@ const Symptoms = (() => {
   // ── Date sync ─────────────────────────────────────────────────────────────
 
   function setDate(date) {
+    const pendingEdit    = pendingEditFromDetail;
     formMode             = null;
     formSymptomId        = null;
     managingCategories   = false;
+    managingIssues       = false;
+    issueDetailId        = null;
     editingCatIdx        = -1;
     pendingLinkSymptomId = null;
     editingIssueId       = null;
+    pendingEditFromDetail = null;
     currentDate          = date;
-    render();
+    if (pendingEdit) {
+      startEdit(pendingEdit);
+    } else {
+      render();
+    }
   }
 
   // ── Debounced save ────────────────────────────────────────────────────────
@@ -1288,9 +1315,10 @@ const Symptoms = (() => {
     _toggleRemindDaily, _resolveIssue, _assignToIssue,
     _startNewIssue, _cancelNewIssue, _saveNewIssue,
     _openIssueDetail, _closeIssueDetail, _closeIssuePanel,
+    _startEditFromDetail, _deleteSymptomByDate,
     _startIssEdit, _cancelIssEdit, _saveIssEdit, _deleteIssue,
     _setIssEditName, _setIssEditRemind, _setIssEditNotes,
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
-    _setIssName, _setIssCat, _setIssRemind,
+    _setIssName, _setIssRemind,
   };
 })();

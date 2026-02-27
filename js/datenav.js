@@ -91,5 +91,5 @@ const DateNav = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
-  return { init, getDate };
+  return { init, getDate, setDate };
 })();
