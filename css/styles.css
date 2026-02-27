@@ -5230,6 +5230,144 @@ button {
   font-style: italic;
 }
 
+/* ── Health Log: shared section chrome ───────────────────────────────────── */
+
+.hl-section-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   12px;
+}
+.hl-section-title {
+  font-size:   0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:       var(--clr-text-2);
+}
+.hl-section-add-btn {
+  font-size:     0.8rem;
+  font-weight:   600;
+  padding:       4px 10px;
+  border-radius: 6px;
+  border:        1px solid var(--clr-accent);
+  background:    transparent;
+  color:         var(--clr-accent);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+.hl-section-add-btn:hover { background: var(--clr-accent-dim); }
+
+.hl-bp-section,
+.hl-dig-section,
+.hl-issues-section {
+  padding:       16px 16px 20px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.hl-issues-section { border-bottom: none; padding-bottom: 32px; }
+
+/* ── Health Log: Blood Pressure ──────────────────────────────────────────── */
+
+.hl-bp-form {
+  display:       flex;
+  flex-direction: column;
+  gap:           10px;
+  background:    var(--clr-surface-2);
+  border-radius: 10px;
+  padding:       14px;
+  margin-bottom: 12px;
+}
+.hl-bp-form-row {
+  display: flex;
+  gap:     10px;
+  flex-wrap: wrap;
+}
+.hl-bp-form-field {
+  flex: 1;
+  min-width: 100px;
+}
+.hl-bp-list {}
+.hl-bp-entry {
+  display:     flex;
+  flex-wrap:   wrap;
+  gap:         8px;
+  align-items: center;
+  padding:     8px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.hl-bp-entry:last-child { border-bottom: none; }
+.hl-bp-date  { font-size: 0.82rem; color: var(--clr-text-2); white-space: nowrap; }
+.hl-bp-time  { font-size: 0.8rem;  color: var(--clr-text-2); white-space: nowrap; }
+.hl-bp-reading {
+  font-weight:           700;
+  font-size:             1rem;
+  font-variant-numeric:  tabular-nums;
+  color:                 var(--clr-text);
+}
+.hl-bp-pulse { font-size: 0.82rem; color: var(--clr-text-2); }
+.hl-bp-notes { font-size: 0.82rem; color: var(--clr-text-2); flex: 1; }
+.hl-bp-ctx-badge {
+  font-size:     0.72rem;
+  font-weight:   600;
+  padding:       2px 8px;
+  border-radius: 20px;
+  color:         var(--ctx-clr);
+  border:        1px solid var(--ctx-clr);
+  white-space:   nowrap;
+}
+.hl-bp-actions {
+  display:   flex;
+  gap:       6px;
+  margin-left: auto;
+}
+.hl-bp-edit-btn,
+.hl-bp-del-btn {
+  font-size:     0.75rem;
+  padding:       2px 8px;
+  border-radius: 5px;
+  border:        1px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.hl-bp-edit-btn:hover { color: var(--clr-text);  background: var(--clr-surface-2); border-color: var(--clr-text-2); }
+.hl-bp-del-btn:hover  { color: var(--clr-error); border-color: var(--clr-error); }
+
+/* ── Health Log: Digestion ───────────────────────────────────────────────── */
+
+.hl-dig-summary {
+  font-size:     0.82rem;
+  color:         var(--clr-text-2);
+  margin-bottom: 10px;
+}
+.hl-dig-list {
+  max-height:  185px;
+  overflow-y:  auto;
+  scrollbar-width: thin;
+}
+.hl-dig-entry {
+  display:     flex;
+  flex-wrap:   wrap;
+  gap:         8px;
+  align-items: center;
+  padding:     6px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.hl-dig-entry:last-child { border-bottom: none; }
+.hl-dig-date  { font-size: 0.82rem; color: var(--clr-text-2); white-space: nowrap; }
+.hl-dig-time  { font-size: 0.8rem;  color: var(--clr-text-2); white-space: nowrap; }
+.hl-dig-notes { font-size: 0.82rem; color: var(--clr-text-2); flex: 1; }
+.hl-dig-quality-chip {
+  font-size:     0.75rem;
+  font-weight:   600;
+  padding:       2px 10px;
+  border-radius: 20px;
+  background:    color-mix(in srgb, var(--q-clr) 15%, transparent);
+  color:         var(--q-clr);
+  white-space:   nowrap;
+}
+
 /* ── Symptom redesign: issues toggle button ──────────────────────────────── */
 
 .symp-issues-toggle-btn {

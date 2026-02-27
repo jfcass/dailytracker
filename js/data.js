@@ -22,10 +22,11 @@ const Data = (() => {
       theme: 'system',
       weather_unit: 'auto',
     },
-    days:        {},
-    issues:      {},
-    medications: {},
-    books:       {},
+    days:           {},
+    issues:         {},
+    medications:    {},
+    books:          {},
+    blood_pressure: [],
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
