@@ -1,23 +1,17 @@
 /**
- * symptoms.js — Health section
+ * symptoms.js — Symptom tracking (symptoms-first model)
  *
- * Issue-based health tracking:
- *   - Log a new issue (name, category, symptoms, severity, optional note, ongoing?)
- *   - Ongoing issues appear every day with a check-in prompt
- *   - Each check-in logs today's symptoms (fresh), severity, note
- *   - Issues can be resolved at any time
- *   - Click an ongoing issue to view full history + severity chart
- *   - Categories are configurable via the gear button
+ * Symptoms are primary daily entries; issues are optional grouping labels.
+ *   - Log a symptom quickly with category, severity, description, time
+ *   - Optionally link to a chronic issue
+ *   - Issues with remind_daily:true appear as daily prompts
+ *   - Link/unlink works both from the symptom and from the issue detail view
+ *   - Issue detail shows history, stats, severity chart, and "find related" unlinked symptoms
+ *   - Categories configurable via the gear button
  */
 const Symptoms = (() => {
 
   // ── Constants ─────────────────────────────────────────────────────────────
-
-  const COMMON_SYMPTOMS = [
-    'Headache',    'Fatigue',     'Nausea',              'Fever',       'Chills',
-    'Cough',       'Congestion',  'Runny nose',          'Sneezing',    'Post-nasal drip',
-    'Sore throat', 'Body aches',  'Shortness of breath', 'Diarrhea',    'Vomiting',
-  ];
 
   const CAT_COLORS = {
     'Eyes':       '#3b82f6',
@@ -48,31 +42,37 @@ const Symptoms = (() => {
   let currentDate = null;
   let saveTimer   = null;
 
-  // Form modes: null | 'new' | 'checkin' | 'edit'
-  let formMode    = null;
-  let formIssueId = null;
-  let formLogId   = null;
+  // Form modes: null | 'add' | 'edit'
+  let formMode       = null;
+  let formSymptomId  = null; // symptom being edited
 
-  // Form fields (shared across modes)
-  let fName     = '';
-  let fCat      = '';
-  let fSymptoms = [];
-  let fSev      = 3;
-  let fNote     = '';
-  let fOngoing  = false;
+  // Add/edit form fields
+  let fCat         = '';
+  let fSev         = 3;
+  let fDesc        = '';
+  let fTime        = '';
+  let fIssueId     = null; // selected issue to link (or null)
 
-  // Detail view state
-  let detailIssueId = null;
-  let detailEditing = false;
-  let fEditName     = '';
-  let fEditCat      = '';
+  // Issue management panel
+  let managingIssues    = false;
+  let issueDetailId     = null; // if set, show detail for this issue
+  let issuePanelNewForm = false;
+  let fIssName          = '';
+  let fIssCat           = '';
+  let fIssRemind        = false;
 
   // Category manager state
   let managingCategories = false;
   let editingCatIdx      = -1;
   let fCatEditName       = '';
 
-  // ── Data accessors ────────────────────────────────────────────────────────
+  // ── Data helpers ──────────────────────────────────────────────────────────
+
+  function getSymptoms(dateStr) {
+    const day = Data.getDay(dateStr);
+    if (!day.symptoms) day.symptoms = [];
+    return day.symptoms;
+  }
 
   function getIssues() {
     const d = Data.getData();
@@ -80,42 +80,44 @@ const Symptoms = (() => {
     return d.issues;
   }
 
-  function getLogs(dateStr) {
-    const day = Data.getDay(dateStr);
-    if (!day.issue_logs) day.issue_logs = [];
-    return day.issue_logs;
+  function getActiveIssues() {
+    return Object.values(getIssues()).filter(i => !i.resolved);
   }
 
-  function getLastSeverity(issueId) {
-    const days = Object.keys(Data.getData().days ?? {}).sort().reverse();
-    for (const d of days) {
-      const log = (Data.getData().days[d].issue_logs ?? []).find(l => l.issue_id === issueId);
-      if (log?.severity) return log.severity;
-    }
-    return null;
-  }
-
-  // All logged entries for an issue, sorted chronologically
-  function getAllLogsForIssue(issueId) {
+  function getSymptomsByIssue(issueId) {
     const allDays = Data.getData().days ?? {};
     const result  = [];
     Object.keys(allDays).sort().forEach(date => {
-      const log = (allDays[date].issue_logs ?? []).find(l => l.issue_id === issueId);
-      if (log) result.push({ date, log });
+      (allDays[date].symptoms ?? []).forEach(s => {
+        if (s.issue_id === issueId) result.push({ date, symptom: s });
+      });
     });
     return result;
   }
 
-  // Symptoms from the most recent past log for this issue (for ordering hint)
-  function getPrevSymptoms(issueId) {
+  function getUnlinkedSymptoms(category) {
     const allDays = Data.getData().days ?? {};
-    const sorted  = Object.keys(allDays).sort().reverse();
-    for (const d of sorted) {
-      if (d >= currentDate) continue;
-      const log = (allDays[d].issue_logs ?? []).find(l => l.issue_id === issueId);
-      if (log?.symptoms?.length) return log.symptoms;
+    const result  = [];
+    Object.keys(allDays).sort().reverse().forEach(date => {
+      (allDays[date].symptoms ?? []).forEach(s => {
+        if (!s.issue_id && s.category === category) result.push({ date, symptom: s });
+      });
+    });
+    return result;
+  }
+
+  function getTodaySymptomForIssue(issueId, dateStr) {
+    return getSymptoms(dateStr).find(s => s.issue_id === issueId) ?? null;
+  }
+
+  function getLastSeverity(issueId) {
+    const allDays = Data.getData().days ?? {};
+    const dates   = Object.keys(allDays).sort().reverse();
+    for (const d of dates) {
+      const found = (allDays[d].symptoms ?? []).find(s => s.issue_id === issueId);
+      if (found?.severity) return found.severity;
     }
-    return [];
+    return null;
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
@@ -123,27 +125,30 @@ const Symptoms = (() => {
   function init() {
     currentDate = DateNav.getDate();
     document.getElementById('symp-cat-toggle').addEventListener('click', toggleCatManager);
+    document.getElementById('symp-issues-btn').addEventListener('click', toggleIssuePanel);
     render();
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   function render() {
-    const issues        = getIssues();
-    const logs          = getLogs(currentDate);
-    const activeOngoing = Object.values(issues).filter(i => i.ongoing && !i.resolved);
+    const symptoms     = getSymptoms(currentDate);
+    const issues       = getIssues();
+    const remindIssues = getActiveIssues().filter(i => i.remind_daily);
 
     const badge = document.getElementById('symp-today-badge');
     if (badge) {
-      if (activeOngoing.length > 0 && logs.length === 0) {
-        badge.textContent = `${activeOngoing.length} ongoing`;
-      } else if (logs.length > 0) {
-        badge.textContent = `${logs.length} logged`;
+      const unlogged = remindIssues.filter(i => !getTodaySymptomForIssue(i.id, currentDate));
+      if (unlogged.length > 0) {
+        badge.textContent = `${unlogged.length} pending`;
+      } else if (symptoms.length > 0) {
+        badge.textContent = `${symptoms.length} logged`;
       } else {
         badge.textContent = '';
       }
     }
 
+    renderIssuePanel();
     renderCatPanel();
     renderContent();
   }
@@ -152,81 +157,54 @@ const Symptoms = (() => {
     const el = document.getElementById('symp-entries');
     if (!el) return;
 
-    // ── Detail view ──
-    if (detailIssueId) {
-      const issue = getIssues()[detailIssueId];
-      el.innerHTML = issue
-        ? buildDetailView(issue)
-        : '<p class="section-empty">Issue not found.</p>';
-      if (detailEditing) {
-        requestAnimationFrame(() => {
-          const inp = el.querySelector('.health-detail-edit .health-text-input');
-          if (inp) inp.focus();
-        });
-      }
-      return;
-    }
-
+    const symptoms     = getSymptoms(currentDate);
     const issues       = getIssues();
-    const logs         = getLogs(currentDate);
-    const activeOngoing = Object.values(issues)
-      .filter(i => i.ongoing && !i.resolved)
-      .sort((a, b) => a.start_date.localeCompare(b.start_date));
-
-    const todayOneLogs = logs.filter(l => {
-      const iss = issues[l.issue_id];
-      return iss && !iss.ongoing;
-    });
+    const remindIssues = getActiveIssues()
+      .filter(i => i.remind_daily)
+      .sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''));
 
     let html = '';
 
-    // ── Ongoing issues ──
-    if (activeOngoing.length > 0) {
-      html += `<div class="health-section"><p class="health-section-label">Ongoing</p>`;
-      activeOngoing.forEach(issue => {
-        const todayLog = logs.find(l => l.issue_id === issue.id);
-        if (formMode === 'checkin' && formIssueId === issue.id) {
-          html += buildCheckInForm(issue);
-        } else if (formMode === 'edit' && formIssueId === issue.id) {
-          html += buildEditForm(todayLog, issue);
-        } else {
-          html += buildOngoingCard(issue, todayLog);
-        }
+    // ── Remind-daily prompts ──
+    if (remindIssues.length > 0) {
+      html += `<div class="health-section">`;
+      html += `<p class="health-section-label">Daily Check-ins</p>`;
+      remindIssues.forEach(issue => {
+        const todaySymp = getTodaySymptomForIssue(issue.id, currentDate);
+        html += buildPromptCard(issue, todaySymp);
       });
       html += `</div>`;
     }
 
-    // ── New issue form ──
-    if (formMode === 'new') {
-      html += buildNewIssueForm();
+    // ── Add symptom form ──
+    if (formMode === 'add') {
+      html += buildAddForm();
     }
 
-    // ── Today's one-off logs ──
-    if (todayOneLogs.length > 0) {
-      html += `<div class="health-section">`;
-      if (activeOngoing.length > 0 || formMode === 'new') {
-        html += `<p class="health-section-label">Today's Issues</p>`;
-      }
-      todayOneLogs.forEach(log => {
-        const iss = issues[log.issue_id];
-        if (!iss) return;
-        if (formMode === 'edit' && formLogId === log.id) {
-          html += buildEditForm(log, iss);
+    // ── Today's symptoms list ──
+    if (symptoms.length > 0) {
+      const label = remindIssues.length > 0 || formMode === 'add' ? `<p class="health-section-label">Today's Symptoms</p>` : '';
+      html += `<div class="health-section">${label}`;
+      symptoms.forEach(s => {
+        if (formMode === 'edit' && formSymptomId === s.id) {
+          html += buildEditForm(s);
+        } else if (pendingLinkSymptomId === s.id) {
+          html += buildLinkForm(s);
         } else {
-          html += buildLogCard(log, iss);
+          html += buildSymptomCard(s);
         }
       });
       html += `</div>`;
     }
 
     // ── Empty state ──
-    if (activeOngoing.length === 0 && todayOneLogs.length === 0 && formMode === null) {
+    if (remindIssues.length === 0 && symptoms.length === 0 && formMode === null && !pendingLinkSymptomId) {
       html += `<p class="section-empty">Nothing logged yet today.</p>`;
     }
 
     // ── Add button ──
-    if (formMode === null) {
-      html += `<button class="health-add-btn" onclick="Symptoms._startNew()">+ Log New Issue</button>`;
+    if (formMode === null && !pendingLinkSymptomId) {
+      html += `<button class="health-add-btn" onclick="Symptoms._startAdd()">+ Add Symptom</button>`;
     }
 
     el.innerHTML = html;
@@ -234,204 +212,428 @@ const Symptoms = (() => {
 
   // ── Card builders ─────────────────────────────────────────────────────────
 
-  function buildOngoingCard(issue, todayLog) {
+  function buildPromptCard(issue, todaySymptom) {
     const color = catColor(issue.category);
+    const lastSev = getLastSeverity(issue.id);
 
-    if (todayLog) {
-      const [bg, clr] = SEV_STYLES[todayLog.severity] ?? SEV_STYLES[3];
-      const chips = (todayLog.symptoms ?? [])
-        .map(s => `<span class="health-symp-chip">${escHtml(s)}</span>`).join('');
+    if (todaySymptom) {
+      const [bg, clr] = SEV_STYLES[todaySymptom.severity] ?? SEV_STYLES[3];
       return `
-        <div class="health-issue-card health-issue-card--checked">
-          <button class="health-issue-detail-trigger"
-                  onclick="Symptoms._openDetail('${issue.id}')"
-                  aria-label="View details for ${escHtml(issue.name)}">
-            <div class="health-issue-header">
-              <span class="health-issue-dot" style="background:${color}"></span>
-              <div class="health-issue-meta">
-                <span class="health-issue-name">${escHtml(issue.name)}</span>
-                <span class="health-issue-cat">${escHtml(issue.category)}</span>
-              </div>
-              <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-                ${todayLog.severity} <span class="health-sev-label">${SEV_LABELS[todayLog.severity]}</span>
-              </span>
-              <svg class="health-detail-chevron" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                   stroke-linejoin="round" width="14" height="14" aria-hidden="true">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+        <div class="symp-prompt-card symp-prompt-card--logged">
+          <div class="symp-prompt-header">
+            <span class="health-issue-dot" style="background:${color}"></span>
+            <div class="symp-prompt-meta">
+              <span class="symp-prompt-name">${escHtml(issue.name)}</span>
+              <span class="symp-prompt-cat">${escHtml(issue.category)}</span>
             </div>
-          </button>
-          ${chips ? `<div class="health-symp-chips">${chips}</div>` : ''}
-          ${todayLog.note ? `<p class="health-log-note">${escHtml(todayLog.note)}</p>` : ''}
-          <div class="health-card-actions">
-            <button class="health-edit-btn"
-                    onclick="Symptoms._startEditLog('${issue.id}','${todayLog.id}')">Edit today</button>
-            <button class="health-resolve-btn"
-                    onclick="Symptoms._resolve('${issue.id}')">Resolve</button>
+            <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
+              ${todaySymptom.severity} <span class="health-sev-label">${SEV_LABELS[todaySymptom.severity]}</span>
+            </span>
           </div>
+          ${todaySymptom.description ? `<p class="symp-prompt-desc">${escHtml(todaySymptom.description)}</p>` : ''}
         </div>`;
     }
 
-    // Not yet checked in today
-    const lastSev    = getLastSeverity(issue.id);
-    const lastBadge  = lastSev
+    const lastBadge = lastSev
       ? (() => { const [bg, clr] = SEV_STYLES[lastSev]; return `<span class="health-sev-badge health-sev-badge--last" style="--sev-bg:${bg};--sev-clr:${clr}">last: ${lastSev}</span>`; })()
       : '';
 
     return `
-      <div class="health-issue-card health-issue-card--pending">
-        <button class="health-issue-detail-trigger"
-                onclick="Symptoms._openDetail('${issue.id}')"
-                aria-label="View details for ${escHtml(issue.name)}">
-          <div class="health-issue-header">
-            <span class="health-issue-dot" style="background:${color}"></span>
-            <div class="health-issue-meta">
-              <span class="health-issue-name">${escHtml(issue.name)}</span>
-              <span class="health-issue-cat">${escHtml(issue.category)}
-                · <span class="health-issue-since">since ${fmtDate(issue.start_date)}</span>
-              </span>
-            </div>
-            ${lastBadge}
-            <svg class="health-detail-chevron" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round" width="14" height="14" aria-hidden="true">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+      <div class="symp-prompt-card symp-prompt-card--pending">
+        <div class="symp-prompt-header">
+          <span class="health-issue-dot" style="background:${color}"></span>
+          <div class="symp-prompt-meta">
+            <span class="symp-prompt-name">${escHtml(issue.name)}</span>
+            <span class="symp-prompt-cat">${escHtml(issue.category)}</span>
           </div>
-        </button>
-        <div class="health-card-actions">
-          <button class="health-checkin-btn"
-                  onclick="Symptoms._startCheckIn('${issue.id}')">Log today</button>
-          <button class="health-resolve-btn"
-                  onclick="Symptoms._resolve('${issue.id}')">Resolve</button>
+          ${lastBadge}
         </div>
+        <button class="symp-prompt-log-btn"
+                onclick="Symptoms._startAddForIssue('${issue.id}')">Log today</button>
       </div>`;
   }
 
-  function buildLogCard(log, issue) {
-    const color       = catColor(issue.category);
-    const [bg, clr]   = SEV_STYLES[log.severity] ?? SEV_STYLES[3];
-    const chips       = (log.symptoms ?? [])
-      .map(s => `<span class="health-symp-chip">${escHtml(s)}</span>`).join('');
+  function buildSymptomCard(s) {
+    const color     = catColor(s.category);
+    const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+    const issues    = getIssues();
+    const linked    = s.issue_id ? issues[s.issue_id] : null;
+    const issueBadge = linked
+      ? `<span class="symp-issue-badge" style="--badge-color:${catColor(linked.category)}">${escHtml(linked.name)}</span>`
+      : '';
+    const timeBadge  = s.time ? `<span class="symp-time-badge">${escHtml(s.time)}</span>` : '';
+
     return `
       <div class="health-issue-card">
         <div class="health-issue-header">
           <span class="health-issue-dot" style="background:${color}"></span>
           <div class="health-issue-meta">
-            <span class="health-issue-name">${escHtml(issue.name)}</span>
-            <span class="health-issue-cat">${escHtml(issue.category)}</span>
+            <span class="health-issue-name">${escHtml(s.category)}</span>
+            ${s.description ? `<span class="health-issue-cat symp-card-desc">${escHtml(truncate(s.description, 60))}</span>` : ''}
           </div>
+          ${timeBadge}
           <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-            ${log.severity} <span class="health-sev-label">${SEV_LABELS[log.severity]}</span>
+            ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
           </span>
         </div>
-        ${chips ? `<div class="health-symp-chips">${chips}</div>` : ''}
-        ${log.note ? `<p class="health-log-note">${escHtml(log.note)}</p>` : ''}
+        ${issueBadge ? `<div class="symp-issue-badge-row">${issueBadge}</div>` : ''}
         <div class="health-card-actions">
           <button class="health-edit-btn"
-                  onclick="Symptoms._startEditLog('${issue.id}','${log.id}')">Edit</button>
+                  onclick="Symptoms._startEdit('${s.id}')">Edit</button>
+          <button class="health-edit-btn"
+                  onclick="Symptoms._startLink('${s.id}')">Link</button>
           <button class="health-delete-btn"
-                  onclick="Symptoms._deleteLog('${log.id}')">Delete</button>
+                  onclick="Symptoms._deleteSymptom('${s.id}')">Delete</button>
         </div>
       </div>`;
   }
 
-  // ── Detail view ───────────────────────────────────────────────────────────
+  // ── Form builders ─────────────────────────────────────────────────────────
 
-  function buildDetailView(issue) {
-    const color = catColor(issue.category);
-    const logs  = getAllLogsForIssue(issue.id);
+  function buildCatPills(cats, current) {
+    return cats.map(cat => {
+      const color  = catColor(cat);
+      const active = cat === current ? ' health-form-cat--active' : '';
+      return `<button class="health-form-cat${active}" type="button"
+                      data-cat="${escHtml(cat)}" style="--cat-color:${color}"
+                      onclick="Symptoms._setCat('${escHtml(cat)}')"
+                      aria-pressed="${cat === current}">${escHtml(cat)}</button>`;
+    }).join('');
+  }
 
-    let editSection;
-    if (detailEditing) {
+  function buildSevButtons(current) {
+    return [1, 2, 3, 4, 5].map(n => {
+      const [bg, clr] = SEV_STYLES[n];
+      const active    = n === current ? ' health-form-sev--active' : '';
+      return `<button class="health-form-sev${active}" type="button"
+                      data-sev="${n}" style="--sev-bg:${bg};--sev-clr:${clr}"
+                      onclick="Symptoms._setSev(${n})"
+                      aria-pressed="${n === current}">${n}<span>${SEV_LABELS[n]}</span></button>`;
+    }).join('');
+  }
+
+  function buildIssueDropdown(currentIssueId) {
+    const active = getActiveIssues().sort((a, b) => a.name.localeCompare(b.name));
+    const opts   = [`<option value="">— None (unlinked) —</option>`];
+    active.forEach(i => {
+      const sel = i.id === currentIssueId ? ' selected' : '';
+      opts.push(`<option value="${escHtml(i.id)}"${sel}>${escHtml(i.name)} (${escHtml(i.category)})</option>`);
+    });
+    return `<select class="symp-issue-select" onchange="Symptoms._setIssueLink(this.value)" aria-label="Link to issue">${opts.join('')}</select>`;
+  }
+
+  function buildAddForm(prefillIssueId) {
+    const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
+    return `
+      <div class="health-form">
+        <div class="health-form-top">
+          <span class="health-form-title">Add Symptom</span>
+          <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Category</span>
+          <div class="health-form-cats">${buildCatPills(cats, fCat)}</div>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Severity</span>
+          <div class="health-form-sevs">${buildSevButtons(fSev)}</div>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Description <span class="health-opt">(optional)</span></span>
+          <textarea class="health-text-input symp-desc-input" rows="2"
+                    aria-label="Description" placeholder="What are you experiencing?"
+                    maxlength="500"
+                    oninput="Symptoms._setDesc(this.value)">${escHtml(fDesc)}</textarea>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Time <span class="health-opt">(optional)</span></span>
+          <input class="health-text-input symp-time-input" type="time" aria-label="Time"
+                 value="${escHtml(fTime)}"
+                 onchange="Symptoms._setTime(this.value)">
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Link to issue <span class="health-opt">(optional)</span></span>
+          ${buildIssueDropdown(fIssueId)}
+        </div>
+        <div class="health-form-actions">
+          <button class="health-save-btn" onclick="Symptoms._saveAdd()">Save Symptom</button>
+        </div>
+      </div>`;
+  }
+
+  function buildEditForm(s) {
+    const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
+    return `
+      <div class="health-form health-form--edit">
+        <div class="health-form-top">
+          <span class="health-form-title">Edit Symptom</span>
+          <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Category</span>
+          <div class="health-form-cats">${buildCatPills(cats, fCat)}</div>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Severity</span>
+          <div class="health-form-sevs">${buildSevButtons(fSev)}</div>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Description <span class="health-opt">(optional)</span></span>
+          <textarea class="health-text-input symp-desc-input" rows="2"
+                    aria-label="Description" placeholder="What are you experiencing?"
+                    maxlength="500"
+                    oninput="Symptoms._setDesc(this.value)">${escHtml(fDesc)}</textarea>
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Time <span class="health-opt">(optional)</span></span>
+          <input class="health-text-input symp-time-input" type="time" aria-label="Time"
+                 value="${escHtml(fTime)}"
+                 onchange="Symptoms._setTime(this.value)">
+        </div>
+        <div class="health-form-field">
+          <span class="health-form-label">Link to issue <span class="health-opt">(optional)</span></span>
+          ${buildIssueDropdown(fIssueId)}
+        </div>
+        <div class="health-form-actions">
+          <button class="health-save-btn" onclick="Symptoms._saveEdit()">Update</button>
+        </div>
+      </div>`;
+  }
+
+  // Link inline form: small dropdown shown inline in card
+  function buildLinkForm(s) {
+    return `
+      <div class="health-issue-card symp-link-form">
+        <div class="health-form-top" style="margin-bottom:8px">
+          <span class="health-form-title">Link to Issue</span>
+          <button class="health-cancel-btn" onclick="Symptoms._cancelLink('${s.id}')">Cancel</button>
+        </div>
+        ${buildIssueDropdownForLink(s.id, s.issue_id)}
+        <div class="health-form-actions" style="margin-top:8px">
+          <button class="health-save-btn" onclick="Symptoms._saveLink('${s.id}')">Save Link</button>
+        </div>
+      </div>`;
+  }
+
+  function buildIssueDropdownForLink(symptomId, currentIssueId) {
+    const active = getActiveIssues().sort((a, b) => a.name.localeCompare(b.name));
+    const opts   = [`<option value="">— None (unlinked) —</option>`];
+    active.forEach(i => {
+      const sel = i.id === currentIssueId ? ' selected' : '';
+      opts.push(`<option value="${escHtml(i.id)}"${sel}>${escHtml(i.name)} (${escHtml(i.category)})</option>`);
+    });
+    return `<select id="symp-link-select-${escHtml(symptomId)}" class="symp-issue-select" aria-label="Link to issue">${opts.join('')}</select>`;
+  }
+
+  // ── Issue management panel ────────────────────────────────────────────────
+
+  function toggleIssuePanel() {
+    managingIssues    = !managingIssues;
+    issueDetailId     = null;
+    issuePanelNewForm = false;
+    fIssName = ''; fIssCat = ''; fIssRemind = false;
+    const btn = document.getElementById('symp-issues-btn');
+    if (btn) btn.setAttribute('aria-expanded', String(managingIssues));
+    renderIssuePanel();
+  }
+
+  function renderIssuePanel() {
+    const panel = document.getElementById('symp-issues-panel');
+    if (!panel) return;
+    if (!managingIssues) { panel.hidden = true; panel.innerHTML = ''; return; }
+    panel.hidden = false;
+
+    if (issueDetailId) {
+      panel.innerHTML = buildIssueDetail(issueDetailId);
+      return;
+    }
+
+    const issues  = getIssues();
+    const active  = Object.values(issues).filter(i => !i.resolved)
+                          .sort((a, b) => a.name.localeCompare(b.name));
+    const resolved = Object.values(issues).filter(i => i.resolved)
+                           .sort((a, b) => a.name.localeCompare(b.name));
+
+    function issueRow(issue) {
+      const color = catColor(issue.category);
+      const remindChecked = issue.remind_daily ? ' checked' : '';
+      return `
+        <div class="symp-issue-row">
+          <span class="health-issue-dot" style="background:${color}"></span>
+          <div class="symp-issue-row-meta">
+            <button class="symp-issue-row-name"
+                    onclick="Symptoms._openIssueDetail('${issue.id}')">${escHtml(issue.name)}</button>
+            <span class="symp-issue-row-cat">${escHtml(issue.category)}</span>
+          </div>
+          <label class="symp-remind-toggle" title="Remind daily">
+            <input type="checkbox"${remindChecked}
+                   onchange="Symptoms._toggleRemindDaily('${issue.id}', this.checked)">
+            <span class="symp-remind-label">Daily</span>
+          </label>
+          ${!issue.resolved
+            ? `<button class="symp-resolve-btn" onclick="Symptoms._resolveIssue('${issue.id}')">Resolve</button>`
+            : `<span class="symp-resolved-tag">Resolved</span>`}
+        </div>`;
+    }
+
+    let newForm = '';
+    if (issuePanelNewForm) {
       const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
-      editSection = `
-        <div class="health-detail-edit">
+      newForm = `
+        <div class="health-form symp-new-issue-form">
+          <div class="health-form-top">
+            <span class="health-form-title">New Issue</span>
+            <button class="health-cancel-btn" onclick="Symptoms._cancelNewIssue()">Cancel</button>
+          </div>
           <div class="health-form-field">
-            <span class="health-form-label">Name</span>
-            <input class="health-text-input" type="text"
-                   value="${escHtml(fEditName)}" maxlength="100"
-                   aria-label="Issue name"
-                   oninput="Symptoms._setEditName(this.value)">
+            <span class="health-form-label">Name <span class="health-req">*</span></span>
+            <input class="health-text-input" type="text" id="symp-new-issue-name"
+                   aria-label="Issue name" placeholder="e.g. Recurring headaches" maxlength="100"
+                   value="${escHtml(fIssName)}"
+                   oninput="Symptoms._setIssName(this.value)">
           </div>
           <div class="health-form-field">
             <span class="health-form-label">Category</span>
-            <div class="health-form-cats">${buildDetailCatPills(cats, fEditCat)}</div>
+            <div class="health-form-cats">${buildIssCatPills(cats, fIssCat)}</div>
           </div>
+          <label class="health-ongoing-row">
+            <input type="checkbox" class="health-ongoing-check"
+                   ${fIssRemind ? 'checked' : ''}
+                   onchange="Symptoms._setIssRemind(this.checked)">
+            <span>Remind daily — show as check-in prompt each day</span>
+          </label>
           <div class="health-form-actions">
-            <button class="health-save-btn"
-                    onclick="Symptoms._saveIssueEdit('${issue.id}')">Save Changes</button>
-            <button class="health-resolve-form-btn"
-                    onclick="Symptoms._cancelIssueEdit()">Cancel</button>
+            <button class="health-save-btn" onclick="Symptoms._saveNewIssue()">Create Issue</button>
           </div>
         </div>`;
-    } else {
-      editSection = `
-        <button class="health-detail-edit-btn"
-                onclick="Symptoms._editIssue('${issue.id}')">Edit Issue</button>`;
     }
 
-    const historyRows = logs.slice().reverse().map(({ date, log }) => {
-      const [bg, clr] = SEV_STYLES[log.severity] ?? SEV_STYLES[3];
-      const chips     = (log.symptoms ?? [])
-        .map(s => `<span class="health-symp-chip">${escHtml(s)}</span>`).join('');
+    panel.innerHTML = `
+      <div class="symp-issues-panel-header">
+        <span>Issues</span>
+        <button class="symp-cat-done-btn" type="button" onclick="Symptoms._closeIssuePanel()">Done</button>
+      </div>
+      ${active.length > 0 ? `
+        <p class="health-section-label" style="padding:0 12px;margin:8px 0 4px">Active</p>
+        <div class="symp-issue-list">${active.map(issueRow).join('')}</div>` : ''}
+      ${resolved.length > 0 ? `
+        <p class="health-section-label" style="padding:0 12px;margin:8px 0 4px">Resolved</p>
+        <div class="symp-issue-list">${resolved.map(issueRow).join('')}</div>` : ''}
+      ${active.length === 0 && resolved.length === 0
+        ? `<p class="section-empty" style="margin:12px">No issues yet.</p>` : ''}
+      ${newForm}
+      ${!issuePanelNewForm
+        ? `<button class="health-add-btn symp-new-issue-btn" onclick="Symptoms._startNewIssue()">+ New Issue</button>`
+        : ''}
+    `;
+  }
+
+  function buildIssCatPills(cats, current) {
+    return cats.map(cat => {
+      const color  = catColor(cat);
+      const active = cat === current ? ' health-form-cat--active' : '';
+      return `<button class="health-form-cat${active}" type="button"
+                      data-cat="${escHtml(cat)}" style="--cat-color:${color}"
+                      onclick="Symptoms._setIssCat('${escHtml(cat)}')"
+                      aria-pressed="${cat === current}">${escHtml(cat)}</button>`;
+    }).join('');
+  }
+
+  // ── Issue detail view ─────────────────────────────────────────────────────
+
+  function buildIssueDetail(issueId) {
+    const issue = getIssues()[issueId];
+    if (!issue) return '<p class="section-empty">Issue not found.</p>';
+
+    const color   = catColor(issue.category);
+    const allSymp = getSymptomsByIssue(issueId);
+    const unlinked = getUnlinkedSymptoms(issue.category);
+
+    // Stats
+    const total   = allSymp.length;
+    const avgSev  = total > 0
+      ? (allSymp.reduce((s, e) => s + (e.symptom.severity ?? 0), 0) / total).toFixed(1)
+      : '—';
+    const firstSeen = total > 0 ? fmtDate(allSymp[0].date) : '—';
+    const lastSeen  = total > 0 ? fmtDate(allSymp[allSymp.length - 1].date) : '—';
+
+    // History rows
+    const histRows = allSymp.slice().reverse().map(({ date, symptom: s }) => {
+      const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
       const label     = date === currentDate ? 'Today' : fmtDate(date);
+      const timePart  = s.time ? ` · ${s.time}` : '';
       return `
         <div class="health-detail-log-row">
           <div class="health-detail-log-top">
-            <span class="health-detail-log-date">${label}</span>
+            <span class="health-detail-log-date">${label}${timePart}</span>
             <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-              ${log.severity} <span class="health-sev-label">${SEV_LABELS[log.severity]}</span>
+              ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
             </span>
           </div>
-          ${chips ? `<div class="health-symp-chips">${chips}</div>` : ''}
-          ${log.note ? `<p class="health-log-note">${escHtml(log.note)}</p>` : ''}
+          ${s.description ? `<p class="health-log-note">${escHtml(s.description)}</p>` : ''}
+        </div>`;
+    }).join('');
+
+    // Find related
+    const relatedRows = unlinked.map(({ date, symptom: s }) => {
+      const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+      const label     = date === currentDate ? 'Today' : fmtDate(date);
+      return `
+        <div class="symp-find-related-row">
+          <div class="symp-find-related-info">
+            <span class="health-detail-log-date">${label}${s.time ? ` · ${s.time}` : ''}</span>
+            <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:11px; padding:2px 6px">${s.severity}</span>
+            ${s.description ? `<span class="symp-find-related-desc">${escHtml(truncate(s.description, 50))}</span>` : ''}
+          </div>
+          <button class="symp-assign-btn" onclick="Symptoms._assignToIssue('${s.id}','${issueId}','${date}')">Assign</button>
         </div>`;
     }).join('');
 
     return `
       <div class="health-detail">
         <div class="health-detail-header">
-          <button class="health-detail-back"
-                  onclick="Symptoms._closeDetail()">← Back</button>
+          <button class="health-detail-back" onclick="Symptoms._closeIssueDetail()">← Back</button>
           <div class="health-detail-title">
             <span class="health-issue-dot" style="background:${color}"></span>
             <div>
               <div class="health-detail-name">${escHtml(issue.name)}</div>
-              <div class="health-detail-meta">${escHtml(issue.category)} · Since ${fmtDate(issue.start_date)}</div>
+              <div class="health-detail-meta">${escHtml(issue.category)}${issue.start_date ? ` · Since ${fmtDate(issue.start_date)}` : ''}</div>
             </div>
           </div>
+          ${!issue.resolved
+            ? `<button class="health-resolve-btn" onclick="Symptoms._resolveIssue('${issueId}')">Resolve</button>`
+            : `<span class="symp-resolved-tag">Resolved</span>`}
         </div>
 
-        ${editSection}
+        <div class="symp-detail-stats">
+          <div class="symp-detail-stat"><span class="symp-detail-stat-val">${total}</span><span class="symp-detail-stat-lbl">total</span></div>
+          <div class="symp-detail-stat"><span class="symp-detail-stat-val">${avgSev}</span><span class="symp-detail-stat-lbl">avg sev</span></div>
+          <div class="symp-detail-stat"><span class="symp-detail-stat-val">${firstSeen}</span><span class="symp-detail-stat-lbl">first</span></div>
+          <div class="symp-detail-stat"><span class="symp-detail-stat-val">${lastSeen}</span><span class="symp-detail-stat-lbl">last</span></div>
+        </div>
 
-        ${logs.length > 0 ? `
+        ${allSymp.length > 0 ? `
           <div class="health-detail-section">
             <p class="health-section-label">Severity over time</p>
-            ${buildSeverityChart(logs)}
+            ${buildSeverityChart(allSymp)}
           </div>
           <div class="health-detail-section">
-            <p class="health-section-label">Log history</p>
-            <div class="health-detail-logs">${historyRows}</div>
-          </div>` : '<p class="section-empty" style="margin-top:12px">No logs yet.</p>'}
+            <p class="health-section-label">History</p>
+            <div class="health-detail-logs">${histRows}</div>
+          </div>` : '<p class="section-empty" style="margin-top:12px">No symptoms logged yet.</p>'}
+
+        ${unlinked.length > 0 ? `
+          <div class="health-detail-section symp-find-related">
+            <p class="health-section-label">Unlinked ${escHtml(issue.category)} symptoms</p>
+            <p class="symp-find-related-hint">Assign past unlinked symptoms from the same category to this issue.</p>
+            <div class="symp-find-related-list">${relatedRows}</div>
+          </div>` : ''}
       </div>`;
   }
 
-  function buildDetailCatPills(cats, current) {
-    return cats.map(cat => {
-      const color  = catColor(cat);
-      const active = cat === current ? ' health-detail-cat--active' : '';
-      return `<button class="health-detail-cat${active}" type="button"
-                      data-cat="${escHtml(cat)}" style="--cat-color:${color}"
-                      onclick="Symptoms._setEditCat('${escHtml(cat)}')"
-                      aria-pressed="${cat === current}">${escHtml(cat)}</button>`;
-    }).join('');
-  }
-
-  function buildSeverityChart(logs) {
-    if (logs.length === 0) return '';
-    const data   = logs.slice(-60);
+  function buildSeverityChart(entries) {
+    if (entries.length === 0) return '';
+    const data   = entries.slice(-60);
     const barW   = 28;
     const barGap = 5;
     const chartH = 80;
@@ -440,16 +642,14 @@ const Symptoms = (() => {
     const totalW = padX * 2 + data.length * (barW + barGap) - barGap;
     const svgH   = chartH + labelH;
 
-    let bars   = '';
-    let labels = '';
-
-    data.forEach(({ date, log }, i) => {
-      const x           = padX + i * (barW + barGap);
-      const sev         = log.severity;
-      const [, clr]     = SEV_STYLES[sev];
-      const barH        = Math.max(6, Math.round((sev / 5) * chartH));
-      const y           = chartH - barH;
-      const numY        = Math.max(y - 3, 10);
+    let bars = '', labels = '';
+    data.forEach(({ date, symptom: s }, i) => {
+      const x       = padX + i * (barW + barGap);
+      const sev     = s.severity ?? 3;
+      const [, clr] = SEV_STYLES[sev] ?? SEV_STYLES[3];
+      const barH    = Math.max(6, Math.round((sev / 5) * chartH));
+      const y       = chartH - barH;
+      const numY    = Math.max(y - 3, 10);
 
       bars += `
         <rect x="${x}" y="${y}" width="${barW}" height="${barH}"
@@ -475,345 +675,110 @@ const Symptoms = (() => {
       </div>`;
   }
 
-  // ── Form builders ─────────────────────────────────────────────────────────
-
-  function buildSympPills(selected, prevSymptoms = []) {
-    const prev = prevSymptoms.filter(s => COMMON_SYMPTOMS.includes(s));
-    const rest = COMMON_SYMPTOMS.filter(s => !prev.includes(s));
-
-    function pill(s, isPrev) {
-      const active = selected.includes(s);
-      return `<button class="health-symp-btn${active ? ' health-symp-btn--active' : ''}${isPrev ? ' health-symp-btn--prev' : ''}"
-                      data-symptom="${escHtml(s)}"
-                      onclick="Symptoms._toggleSymptom('${escHtml(s)}')"
-                      aria-pressed="${active}">${escHtml(s)}</button>`;
-    }
-
-    if (prev.length === 0) {
-      return `<div class="health-symp-grid">${COMMON_SYMPTOMS.map(s => pill(s, false)).join('')}</div>`;
-    }
-
-    return `
-      <p class="health-symp-group-label">From last time</p>
-      <div class="health-symp-grid">${prev.map(s => pill(s, true)).join('')}</div>
-      <p class="health-symp-group-label">Other symptoms</p>
-      <div class="health-symp-grid">${rest.map(s => pill(s, false)).join('')}</div>`;
-  }
-
-  function buildSevButtons(current) {
-    return [1, 2, 3, 4, 5].map(n => {
-      const [bg, clr] = SEV_STYLES[n];
-      const active    = n === current ? ' health-form-sev--active' : '';
-      return `<button class="health-form-sev${active}" type="button"
-                      data-sev="${n}" style="--sev-bg:${bg};--sev-clr:${clr}"
-                      onclick="Symptoms._setSev(${n})"
-                      aria-pressed="${n === current}">${n}<span>${SEV_LABELS[n]}</span></button>`;
-    }).join('');
-  }
-
-  function buildCatPills(cats, current) {
-    return cats.map(cat => {
-      const color  = catColor(cat);
-      const active = cat === current ? ' health-form-cat--active' : '';
-      return `<button class="health-form-cat${active}" type="button"
-                      data-cat="${escHtml(cat)}" style="--cat-color:${color}"
-                      onclick="Symptoms._setCat('${escHtml(cat)}')"
-                      aria-pressed="${cat === current}">${escHtml(cat)}</button>`;
-    }).join('');
-  }
-
-  function buildNewIssueForm() {
-    const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
-    return `
-      <div class="health-form">
-        <div class="health-form-top">
-          <span class="health-form-title">New Issue</span>
-          <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Name <span class="health-req">*</span></span>
-          <input class="health-text-input" type="text" aria-label="Issue name"
-                 placeholder="e.g. Sinus congestion" maxlength="100"
-                 value="${escHtml(fName)}"
-                 oninput="Symptoms._setName(this.value)">
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Category</span>
-          <div class="health-form-cats">${buildCatPills(cats, fCat)}</div>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Symptoms <span class="health-opt">(optional)</span></span>
-          ${buildSympPills(fSymptoms)}
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Severity</span>
-          <div class="health-form-sevs">${buildSevButtons(fSev)}</div>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Note <span class="health-opt">(optional)</span></span>
-          <input class="health-text-input" type="text" aria-label="Note"
-                 placeholder="Optional note…" maxlength="300"
-                 value="${escHtml(fNote)}"
-                 oninput="Symptoms._setNote(this.value)">
-        </div>
-        <label class="health-ongoing-row">
-          <input type="checkbox" class="health-ongoing-check"
-                 ${fOngoing ? 'checked' : ''}
-                 onchange="Symptoms._setOngoing(this.checked)">
-          <span>Mark as ongoing — will appear daily until resolved</span>
-        </label>
-        <div class="health-form-actions">
-          <button class="health-save-btn" onclick="Symptoms._saveNew()">Save Issue</button>
-        </div>
-      </div>`;
-  }
-
-  function buildCheckInForm(issue) {
-    const color        = catColor(issue.category);
-    const prevSymptoms = getPrevSymptoms(issue.id);
-    return `
-      <div class="health-form health-form--checkin">
-        <div class="health-form-top">
-          <div class="health-form-issue-label">
-            <span class="health-issue-dot" style="background:${color}"></span>
-            <span>${escHtml(issue.name)}</span>
-          </div>
-          <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Symptoms today <span class="health-opt">(optional)</span></span>
-          ${buildSympPills(fSymptoms, prevSymptoms)}
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Severity</span>
-          <div class="health-form-sevs">${buildSevButtons(fSev)}</div>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Note <span class="health-opt">(optional)</span></span>
-          <input class="health-text-input" type="text" aria-label="Note"
-                 placeholder="Optional note…" maxlength="300"
-                 value="${escHtml(fNote)}"
-                 oninput="Symptoms._setNote(this.value)">
-        </div>
-        <div class="health-form-actions health-form-actions--checkin">
-          <button class="health-save-btn health-save-keep"
-                  onclick="Symptoms._saveCheckIn('${issue.id}')">Save &amp; Keep Active</button>
-          <button class="health-resolve-form-btn"
-                  onclick="Symptoms._saveAndResolve('${issue.id}')">Save &amp; Resolve</button>
-        </div>
-      </div>`;
-  }
-
-  function buildEditForm(log, issue) {
-    const color     = catColor(issue.category);
-    const isOngoing = issue.ongoing;
-    return `
-      <div class="health-form health-form--edit">
-        <div class="health-form-top">
-          <div class="health-form-issue-label">
-            <span class="health-issue-dot" style="background:${color}"></span>
-            <span>Edit: ${escHtml(issue.name)}</span>
-          </div>
-          <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Symptoms <span class="health-opt">(optional)</span></span>
-          ${buildSympPills(fSymptoms)}
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Severity</span>
-          <div class="health-form-sevs">${buildSevButtons(fSev)}</div>
-        </div>
-        <div class="health-form-field">
-          <span class="health-form-label">Note <span class="health-opt">(optional)</span></span>
-          <input class="health-text-input" type="text" aria-label="Note"
-                 placeholder="Optional note…" maxlength="300"
-                 value="${escHtml(fNote)}"
-                 oninput="Symptoms._setNote(this.value)">
-        </div>
-        <div class="health-form-actions">
-          <button class="health-save-btn"
-                  onclick="Symptoms._saveEdit('${log.id}')">Update</button>
-          ${isOngoing ? `<button class="health-resolve-form-btn"
-                  onclick="Symptoms._resolve('${issue.id}')">Resolve Issue</button>` : ''}
-        </div>
-      </div>`;
-  }
-
   // ── Form state transitions ────────────────────────────────────────────────
 
-  function startNew() {
+  function startAdd(prefillIssueId) {
     const cats  = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
-    formMode    = 'new';
-    formIssueId = null;
-    formLogId   = null;
-    fName       = '';
-    fCat        = cats[0] ?? 'Other';
-    fSymptoms   = [];
-    fSev        = 3;
-    fNote       = '';
-    fOngoing    = false;
-    render();
+    formMode      = 'add';
+    formSymptomId = null;
+    fCat          = cats[0] ?? 'Other';
+    fSev          = 3;
+    fDesc         = '';
+    fTime         = '';
+    fIssueId      = prefillIssueId ?? null;
+    renderContent();
   }
 
-  function startCheckIn(issueId) {
-    formMode    = 'checkin';
-    formIssueId = issueId;
-    formLogId   = null;
-    fSymptoms   = [];
-    fSev        = getLastSeverity(issueId) ?? 3;
-    fNote       = '';
-    render();
-  }
-
-  function startEditLog(issueId, logId) {
-    const log = getLogs(currentDate).find(l => l.id === logId);
-    if (!log) return;
-    formMode    = 'edit';
-    formIssueId = issueId;
-    formLogId   = logId;
-    fSymptoms   = [...(log.symptoms ?? [])];
-    fSev        = log.severity ?? 3;
-    fNote       = log.note ?? '';
-    render();
+  function startEdit(symptomId) {
+    const s = getSymptoms(currentDate).find(x => x.id === symptomId);
+    if (!s) return;
+    formMode      = 'edit';
+    formSymptomId = symptomId;
+    fCat          = s.category ?? '';
+    fSev          = s.severity ?? 3;
+    fDesc         = s.description ?? '';
+    fTime         = s.time ?? '';
+    fIssueId      = s.issue_id ?? null;
+    renderContent();
   }
 
   function cancel() {
-    formMode    = null;
-    formIssueId = null;
-    formLogId   = null;
-    render();
-  }
-
-  // ── Detail view transitions ───────────────────────────────────────────────
-
-  function openDetail(issueId) {
-    detailIssueId = issueId;
-    detailEditing = false;
     formMode      = null;
+    formSymptomId = null;
     renderContent();
   }
 
-  function closeDetail() {
-    detailIssueId = null;
-    detailEditing = false;
-    renderContent();
-  }
+  // ── Save / mutate ─────────────────────────────────────────────────────────
 
-  function editIssue(issueId) {
-    const issue = getIssues()[issueId];
-    if (!issue) return;
-    detailEditing = true;
-    fEditName     = issue.name;
-    fEditCat      = issue.category;
-    renderContent();
-  }
-
-  function cancelIssueEdit() {
-    detailEditing = false;
-    renderContent();
-  }
-
-  function saveIssueEdit(issueId) {
-    const name = fEditName.trim();
-    if (!name) {
-      const inp = document.querySelector('.health-detail-edit .health-text-input');
-      if (inp) inp.classList.add('input--error');
-      return;
-    }
-    const issue = getIssues()[issueId];
-    if (!issue) return;
-    issue.name     = name;
-    issue.category = fEditCat;
-    detailEditing  = false;
-    scheduleSave();
-    renderContent();
-  }
-
-  // ── Save ──────────────────────────────────────────────────────────────────
-
-  function saveNew() {
-    const name = fName.trim();
-    if (!name) {
-      document.querySelector('.health-text-input')?.classList.add('input--error');
-      return;
-    }
-    const issues  = getIssues();
-    const issueId = crypto.randomUUID();
-    issues[issueId] = {
-      id:         issueId,
-      name,
-      category:   fCat,
-      start_date: currentDate,
-      end_date:   null,
-      resolved:   false,
-      ongoing:    fOngoing,
-    };
+  function saveAdd() {
     const day = Data.getDay(currentDate);
-    if (!day.issue_logs) day.issue_logs = [];
-    day.issue_logs.push({
-      id:       crypto.randomUUID(),
-      issue_id: issueId,
-      symptoms: [...fSymptoms],
-      severity: fSev,
-      note:     fNote.trim(),
+    if (!day.symptoms) day.symptoms = [];
+    day.symptoms.push({
+      id:          crypto.randomUUID(),
+      category:    fCat,
+      severity:    fSev,
+      description: fDesc.trim(),
+      time:        fTime || null,
+      issue_id:    fIssueId || null,
     });
     formMode = null;
     scheduleSave();
     render();
   }
 
-  function saveCheckIn(issueId) {
-    const day = Data.getDay(currentDate);
-    if (!day.issue_logs) day.issue_logs = [];
-    day.issue_logs.push({
-      id:       crypto.randomUUID(),
-      issue_id: issueId,
-      symptoms: [...fSymptoms],
-      severity: fSev,
-      note:     fNote.trim(),
-    });
-    formMode    = null;
-    formIssueId = null;
-    scheduleSave();
-    render();
-  }
-
-  function saveAndResolve(issueId) {
-    const day = Data.getDay(currentDate);
-    if (!day.issue_logs) day.issue_logs = [];
-    day.issue_logs.push({
-      id:       crypto.randomUUID(),
-      issue_id: issueId,
-      symptoms: [...fSymptoms],
-      severity: fSev,
-      note:     fNote.trim(),
-    });
-    const issue = getIssues()[issueId];
-    if (issue) { issue.resolved = true; issue.end_date = currentDate; }
-    formMode    = null;
-    formIssueId = null;
-    scheduleSave();
-    render();
-  }
-
-  function saveEdit(logId) {
-    const log = getLogs(currentDate).find(l => l.id === logId);
-    if (log) {
-      log.symptoms = [...fSymptoms];
-      log.severity = fSev;
-      log.note     = fNote.trim();
+  function saveEdit() {
+    const symptoms = getSymptoms(currentDate);
+    const s        = symptoms.find(x => x.id === formSymptomId);
+    if (s) {
+      s.category    = fCat;
+      s.severity    = fSev;
+      s.description = fDesc.trim();
+      s.time        = fTime || null;
+      s.issue_id    = fIssueId || null;
     }
-    formMode  = null;
-    formLogId = null;
+    formMode      = null;
+    formSymptomId = null;
     scheduleSave();
     render();
   }
 
-  function deleteLog(logId) {
+  function deleteSymptom(symptomId) {
     const day = Data.getDay(currentDate);
-    if (!day.issue_logs) return;
-    day.issue_logs = day.issue_logs.filter(l => l.id !== logId);
+    if (!day.symptoms) return;
+    day.symptoms = day.symptoms.filter(s => s.id !== symptomId);
+    scheduleSave();
+    render();
+  }
+
+  // Link a symptom to an issue from a quick inline form
+  let pendingLinkSymptomId = null;
+
+  function startLink(symptomId) {
+    pendingLinkSymptomId = symptomId;
+    // Re-render the symptom card as a link form
+    render();
+  }
+
+  function cancelLink() {
+    pendingLinkSymptomId = null;
+    render();
+  }
+
+  function saveLink(symptomId, selectId) {
+    const el  = document.getElementById(`symp-link-select-${symptomId}`);
+    const val = el ? el.value : null;
+    const symptoms = getSymptoms(currentDate);
+    const s        = symptoms.find(x => x.id === symptomId);
+    if (s) s.issue_id = val || null;
+    pendingLinkSymptomId = null;
+    scheduleSave();
+    render();
+  }
+
+  function toggleRemindDaily(issueId, value) {
+    const issue = getIssues()[issueId];
+    if (!issue) return;
+    issue.remind_daily = !!value;
     scheduleSave();
     render();
   }
@@ -823,28 +788,107 @@ const Symptoms = (() => {
     if (!issue) return;
     issue.resolved = true;
     issue.end_date = currentDate;
-    formMode    = null;
-    formIssueId = null;
+    if (issueDetailId === issueId) issueDetailId = null;
     scheduleSave();
+    render();
+    renderIssuePanel();
+  }
+
+  // Assign an unlinked symptom (on any date) to an issue from the detail view
+  function assignToIssue(symptomId, issueId, dateStr) {
+    const day = Data.getDay(dateStr);
+    const s   = (day.symptoms ?? []).find(x => x.id === symptomId);
+    if (s) s.issue_id = issueId;
+    scheduleSave();
+    renderIssuePanel(); // re-render detail to update find-related list
+  }
+
+  // ── Issue CRUD ────────────────────────────────────────────────────────────
+
+  function startNewIssue() {
+    const cats       = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
+    issuePanelNewForm = true;
+    fIssName         = '';
+    fIssCat          = cats[0] ?? 'Other';
+    fIssRemind       = false;
+    renderIssuePanel();
+    requestAnimationFrame(() => {
+      const inp = document.getElementById('symp-new-issue-name');
+      if (inp) inp.focus();
+    });
+  }
+
+  function cancelNewIssue() {
+    issuePanelNewForm = false;
+    renderIssuePanel();
+  }
+
+  function saveNewIssue() {
+    const name = fIssName.trim();
+    if (!name) {
+      const inp = document.getElementById('symp-new-issue-name');
+      if (inp) inp.classList.add('input--error');
+      return;
+    }
+    const issues  = getIssues();
+    const issueId = crypto.randomUUID();
+    issues[issueId] = {
+      id:           issueId,
+      name,
+      category:     fIssCat,
+      remind_daily: fIssRemind,
+      start_date:   currentDate,
+      end_date:     null,
+      resolved:     false,
+      notes:        '',
+    };
+    issuePanelNewForm = false;
+    scheduleSave();
+    render();
+    renderIssuePanel();
+  }
+
+  function openIssueDetail(issueId) {
+    issueDetailId = issueId;
+    renderIssuePanel();
+  }
+
+  function closeIssueDetail() {
+    issueDetailId = null;
+    renderIssuePanel();
+  }
+
+  function closeIssuePanel() {
+    managingIssues    = false;
+    issueDetailId     = null;
+    issuePanelNewForm = false;
+    const btn = document.getElementById('symp-issues-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    renderIssuePanel();
     render();
   }
 
   // ── Inline onclick bridges ────────────────────────────────────────────────
 
-  function _startNew()              { startNew(); }
-  function _startCheckIn(id)        { startCheckIn(id); }
-  function _startEditLog(iid, lid)  { startEditLog(iid, lid); }
-  function _cancel()                { cancel(); }
-  function _saveNew()               { saveNew(); }
-  function _saveCheckIn(id)         { saveCheckIn(id); }
-  function _saveAndResolve(id)      { saveAndResolve(id); }
-  function _saveEdit(lid)           { saveEdit(lid); }
-  function _deleteLog(lid)          { deleteLog(lid); }
-  function _resolve(id)             { resolveIssue(id); }
-
-  function _setName(v)    { fName = v; }
-  function _setNote(v)    { fNote = v; }
-  function _setOngoing(v) { fOngoing = v; }
+  function _startAdd()                   { startAdd(); }
+  function _startAddForIssue(id)         { startAdd(id); }
+  function _startEdit(id)                { startEdit(id); }
+  function _cancel()                     { cancel(); }
+  function _saveAdd()                    { saveAdd(); }
+  function _saveEdit()                   { saveEdit(); }
+  function _deleteSymptom(id)            { deleteSymptom(id); }
+  function _startLink(id)                { startLink(id); }
+  function _cancelLink(id)               { cancelLink(); }
+  function _saveLink(id)                 { saveLink(id); }
+  function _toggleRemindDaily(id, v)     { toggleRemindDaily(id, v); }
+  function _resolveIssue(id)             { resolveIssue(id); }
+  function _assignToIssue(sid, iid, dt)  { assignToIssue(sid, iid, dt); }
+  function _startNewIssue()              { startNewIssue(); }
+  function _cancelNewIssue()             { cancelNewIssue(); }
+  function _saveNewIssue()               { saveNewIssue(); }
+  function _openIssueDetail(id)          { openIssueDetail(id); }
+  function _closeIssueDetail()           { closeIssueDetail(); }
+  function _closeIssuePanel()            { closeIssuePanel(); }
 
   function _setCat(v) {
     fCat = v;
@@ -864,39 +908,26 @@ const Symptoms = (() => {
     });
   }
 
-  function _toggleSymptom(s) {
-    const idx = fSymptoms.indexOf(s);
-    if (idx >= 0) fSymptoms.splice(idx, 1);
-    else          fSymptoms.push(s);
-    document.querySelectorAll('.health-symp-btn').forEach(b => {
-      const on = fSymptoms.includes(b.dataset.symptom);
-      b.classList.toggle('health-symp-btn--active', on);
-      b.setAttribute('aria-pressed', String(on));
-    });
-  }
-
-  // Detail view bridges
-  function _openDetail(id)        { openDetail(id); }
-  function _closeDetail()         { closeDetail(); }
-  function _editIssue(id)         { editIssue(id); }
-  function _cancelIssueEdit()     { cancelIssueEdit(); }
-  function _saveIssueEdit(id)     { saveIssueEdit(id); }
-  function _setEditName(v)        { fEditName = v; }
-  function _setEditCat(v) {
-    fEditCat = v;
-    document.querySelectorAll('.health-detail-cat').forEach(b => {
+  function _setDesc(v)       { fDesc = v; }
+  function _setTime(v)       { fTime = v; }
+  function _setIssueLink(v)  { fIssueId = v || null; }
+  function _setIssName(v)    { fIssName = v; }
+  function _setIssCat(v) {
+    fIssCat = v;
+    document.querySelectorAll('.symp-new-issue-form .health-form-cat').forEach(b => {
       const on = b.dataset.cat === v;
-      b.classList.toggle('health-detail-cat--active', on);
+      b.classList.toggle('health-form-cat--active', on);
       b.setAttribute('aria-pressed', String(on));
     });
   }
+  function _setIssRemind(v)  { fIssRemind = !!v; }
 
   // ── Category manager ──────────────────────────────────────────────────────
 
   function toggleCatManager() {
     managingCategories = !managingCategories;
-    editingCatIdx = -1;
-    fCatEditName  = '';
+    editingCatIdx      = -1;
+    fCatEditName       = '';
     const btn = document.getElementById('symp-cat-toggle');
     if (btn) btn.setAttribute('aria-expanded', String(managingCategories));
     renderCatPanel();
@@ -1018,14 +1049,14 @@ const Symptoms = (() => {
     const newName = fCatEditName.trim();
     if (newName && newName !== oldName) {
       cats[editingCatIdx] = newName;
-      Object.values(Data.getData().days).forEach(day => {
-        (day.issue_logs ?? []).forEach(log => {
-          const iss = Data.getData().issues?.[log.issue_id];
-          if (iss && iss.category === oldName) iss.category = newName;
+      // Rename category on all symptoms and issues
+      Object.values(Data.getData().days ?? {}).forEach(day => {
+        (day.symptoms ?? []).forEach(s => {
+          if (s.category === oldName) s.category = newName;
         });
       });
-      Object.values(Data.getData().issues ?? {}).forEach(iss => {
-        if (iss.category === oldName) iss.category = newName;
+      Object.values(Data.getData().issues ?? {}).forEach(issue => {
+        if (issue.category === oldName) issue.category = newName;
       });
       if (fCat === oldName) fCat = newName;
       scheduleSave();
@@ -1060,12 +1091,10 @@ const Symptoms = (() => {
 
   function setDate(date) {
     formMode           = null;
-    formIssueId        = null;
-    formLogId          = null;
+    formSymptomId      = null;
     managingCategories = false;
     editingCatIdx      = -1;
-    detailIssueId      = null;
-    detailEditing      = false;
+    pendingLinkSymptomId = null;
     currentDate        = date;
     render();
   }
@@ -1082,7 +1111,7 @@ const Symptoms = (() => {
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus(''), 2200);
       } catch (err) {
-        console.error('Health save failed:', err);
+        console.error('Symptoms save failed:', err);
         setSaveStatus('error');
       }
     }, 1200);
@@ -1111,6 +1140,11 @@ const Symptoms = (() => {
     return new Date(y, mo - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
+  function truncate(s, max) {
+    if (!s) return '';
+    return s.length > max ? s.slice(0, max) + '…' : s;
+  }
+
   function escHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, c =>
@@ -1122,10 +1156,13 @@ const Symptoms = (() => {
 
   return {
     init, render, setDate,
-    _startNew, _startCheckIn, _startEditLog, _cancel,
-    _saveNew, _saveCheckIn, _saveAndResolve, _saveEdit, _deleteLog, _resolve,
-    _setName, _setNote, _setOngoing, _setCat, _setSev, _toggleSymptom,
-    _openDetail, _closeDetail, _editIssue, _cancelIssueEdit, _saveIssueEdit,
-    _setEditName, _setEditCat,
+    _startAdd, _startAddForIssue, _startEdit, _cancel,
+    _saveAdd, _saveEdit, _deleteSymptom,
+    _startLink, _cancelLink, _saveLink,
+    _toggleRemindDaily, _resolveIssue, _assignToIssue,
+    _startNewIssue, _cancelNewIssue, _saveNewIssue,
+    _openIssueDetail, _closeIssueDetail, _closeIssuePanel,
+    _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
+    _setIssName, _setIssCat, _setIssRemind,
   };
 })();

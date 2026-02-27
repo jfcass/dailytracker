@@ -345,6 +345,16 @@
           <div class="section-header-right">
             <span id="symp-today-badge" class="section-badge"
                   aria-live="polite" aria-atomic="true"></span>
+            <button id="symp-issues-btn" class="symp-issues-toggle-btn" type="button"
+                    onclick="event.stopPropagation()"
+                    aria-label="Manage issues" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   width="15" height="15" aria-hidden="true">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </button>
             <button id="symp-cat-toggle" class="symp-cat-toggle-btn" type="button"
                     onclick="event.stopPropagation()"
                     aria-label="Manage categories" aria-expanded="false">
@@ -361,7 +371,10 @@
         <!-- Category manager panel — populated by symptoms.js -->
         <div id="symp-cat-panel" class="symp-cat-panel" hidden></div>
 
-        <!-- Issue list + forms — populated by symptoms.js -->
+        <!-- Issue management panel — populated by symptoms.js -->
+        <div id="symp-issues-panel" class="symp-issues-panel" hidden></div>
+
+        <!-- Symptom list + forms — populated by symptoms.js -->
         <div id="symp-entries" class="symp-entries"></div>
 
         <!-- Inline save status -->

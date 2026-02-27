@@ -22,11 +22,10 @@ const Data = (() => {
       theme: 'system',
       weather_unit: 'auto',
     },
-    days:            {},
-    ongoing_issues:  {},
-    medications:     {},
-    books:           {},
-    issues:          {},
+    days:        {},
+    issues:      {},
+    medications: {},
+    books:       {},
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
@@ -111,6 +110,76 @@ const Data = (() => {
     };
   }
 
+  function migrateSymptoms(d) {
+    // Only run once — already migrated if version is 2.0+
+    if (d.version >= '2.0') return d;
+
+    const issues = d.issues ?? {};
+
+    // 1. Migrate ongoing_issues → issues (if old format present)
+    if (d.ongoing_issues) {
+      Object.values(d.ongoing_issues).forEach(oi => {
+        if (!issues[oi.id]) {
+          issues[oi.id] = {
+            id:           oi.id,
+            name:         oi.title ?? oi.name ?? 'Unnamed Issue',
+            category:     oi.category ?? 'Other',
+            remind_daily: false,
+            start_date:   oi.start_date ?? null,
+            end_date:     oi.end_date ?? null,
+            resolved:     oi.resolved ?? false,
+            notes:        oi.notes ?? '',
+          };
+        }
+      });
+      d.issues = issues;
+      delete d.ongoing_issues;
+    }
+
+    // 2. For each issue: rename ongoing → remind_daily
+    Object.values(issues).forEach(issue => {
+      if ('ongoing' in issue) {
+        issue.remind_daily = !!issue.ongoing;
+        delete issue.ongoing;
+      } else if (!('remind_daily' in issue)) {
+        issue.remind_daily = false;
+      }
+      // Ensure name field (old issues may use title)
+      if (!issue.name && issue.title) {
+        issue.name = issue.title;
+        delete issue.title;
+      }
+    });
+
+    // 3. For each day: convert issue_logs → symptoms
+    Object.keys(d.days ?? {}).forEach(dateStr => {
+      const day = d.days[dateStr];
+      if (!day.issue_logs || day.symptoms) return; // skip if already migrated
+
+      day.symptoms = (day.issue_logs ?? []).map(log => {
+        const linkedIssue = issues[log.issue_id];
+        const category    = linkedIssue?.category ?? 'Other';
+        const sympText    = Array.isArray(log.symptoms) ? log.symptoms.join(', ') : '';
+        const note        = log.note ?? '';
+        let description   = sympText;
+        if (note) description = description ? `${description}: ${note}` : note;
+
+        return {
+          id:          log.id ?? crypto.randomUUID(),
+          issue_id:    log.issue_id ?? null,
+          category,
+          severity:    log.severity ?? 3,
+          description: description || '',
+          time:        null,
+        };
+      });
+      delete day.issue_logs;
+    });
+
+    d.version = '2.0';
+    return d;
+  }
+
   function migrateData(d) {
     const habits = d.settings?.habits ?? [];
 
@@ -142,7 +211,7 @@ const Data = (() => {
     fileId = await findFile();
     if (fileId) {
       const loaded = await readFile(fileId);
-      data = migrateData(mergeWithDefaults(loaded));
+      data = migrateSymptoms(migrateData(mergeWithDefaults(loaded)));
     } else {
       // Brand-new user — start with defaults
       data = structuredClone(SCHEMA_DEFAULTS);
@@ -194,7 +263,7 @@ const Data = (() => {
       data.days[dateStr] = {
         habits:            {},
         moderation:        {},
-        issue_logs:        [],
+        symptoms:          [],
         sleep:             null,
         mood:              null,
         food:              { notes: '', entries: [] },

@@ -5146,3 +5146,366 @@ button {
   font-size:  0.85rem;
   font-style: italic;
 }
+
+/* ── Symptom redesign: issues toggle button ──────────────────────────────── */
+
+.symp-issues-toggle-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   7px;
+  border:          none;
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  flex-shrink:     0;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.symp-issues-toggle-btn:hover,
+.symp-issues-toggle-btn[aria-expanded="true"] {
+  background: var(--clr-accent-dim);
+  color:      var(--clr-accent);
+}
+
+/* ── Issues management panel ─────────────────────────────────────────────── */
+
+.symp-issues-panel {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       12px;
+  display:       flex;
+  flex-direction: column;
+  gap:           6px;
+  margin-bottom: 10px;
+}
+
+.symp-issues-panel-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  font-size:       0.85rem;
+  font-weight:     600;
+  color:           var(--clr-text);
+}
+
+/* Issue list row */
+.symp-issue-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+}
+
+.symp-issue-row {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       8px 10px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+}
+
+.symp-issue-row-meta {
+  flex:           1;
+  min-width:      0;
+  display:        flex;
+  flex-direction: column;
+  gap:            1px;
+}
+
+.symp-issue-row-name {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-accent);
+  background:  transparent;
+  border:      none;
+  padding:     0;
+  cursor:      pointer;
+  text-align:  left;
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.symp-issue-row-name:hover {
+  text-decoration: underline;
+}
+
+.symp-issue-row-cat {
+  font-size: 0.74rem;
+  color:     var(--clr-text-2);
+}
+
+/* Remind-daily toggle */
+.symp-remind-toggle {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+  cursor:      pointer;
+  flex-shrink: 0;
+}
+
+.symp-remind-label {
+  font-size: 0.74rem;
+  color:     var(--clr-text-2);
+}
+
+.symp-resolve-btn {
+  font-size:     0.75rem;
+  font-weight:   600;
+  color:         var(--clr-text-2);
+  background:    transparent;
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  padding:       3px 8px;
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.symp-resolve-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.symp-resolved-tag {
+  font-size:  0.72rem;
+  color:      var(--clr-text-2);
+  font-style: italic;
+  flex-shrink: 0;
+}
+
+.symp-new-issue-btn {
+  margin-top: 4px;
+}
+
+/* ── Remind-daily prompt cards ───────────────────────────────────────────── */
+
+.symp-prompt-card {
+  background:    var(--clr-surface);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 12px;
+  padding:       10px 14px;
+  margin-bottom: 8px;
+}
+
+.symp-prompt-card--pending {
+  border-left: 4px solid var(--clr-border);
+  opacity:     0.9;
+}
+
+.symp-prompt-card--logged {
+  border-left: 4px solid var(--clr-accent);
+}
+
+.symp-prompt-header {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.symp-prompt-meta {
+  flex:           1;
+  min-width:      0;
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.symp-prompt-name {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.symp-prompt-cat {
+  font-size: 0.75rem;
+  color:     var(--clr-text-2);
+}
+
+.symp-prompt-desc {
+  font-size:  0.82rem;
+  color:      var(--clr-text-2);
+  margin-top: 5px;
+}
+
+.symp-prompt-log-btn {
+  font-size:     0.8rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        none;
+  border-radius: 8px;
+  padding:       5px 12px;
+  cursor:        pointer;
+  margin-top:    8px;
+  transition:    opacity var(--transition);
+  display:       inline-block;
+}
+
+.symp-prompt-log-btn:hover {
+  opacity: 0.82;
+}
+
+/* ── Symptom card extras ─────────────────────────────────────────────────── */
+
+.symp-card-desc {
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+/* Issue link badge on symptom card */
+.symp-issue-badge-row {
+  margin-top: 6px;
+}
+
+.symp-issue-badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  font-size:     0.74rem;
+  font-weight:   500;
+  color:         var(--badge-color, var(--clr-text-2));
+  background:    transparent;
+  border:        1.5px solid var(--badge-color, var(--clr-border));
+  border-radius: 999px;
+  padding:       2px 9px;
+}
+
+/* Time badge on symptom card */
+.symp-time-badge {
+  font-size:   0.74rem;
+  color:       var(--clr-text-2);
+  flex-shrink: 0;
+}
+
+/* Issue link dropdown */
+.symp-issue-select {
+  width:         100%;
+  padding:       7px 10px;
+  border:        1.5px solid var(--clr-border);
+  border-radius: 8px;
+  background:    var(--clr-surface);
+  color:         var(--clr-text);
+  font-size:     0.88rem;
+  cursor:        pointer;
+  appearance:    auto;
+}
+
+.symp-link-form {
+  background: var(--clr-surface-2) !important;
+}
+
+/* Textarea for description */
+.symp-desc-input {
+  resize:     vertical;
+  min-height: 52px;
+  width:      100%;
+  box-sizing: border-box;
+}
+
+.symp-time-input {
+  max-width: 140px;
+}
+
+/* ── Issue detail view extras ────────────────────────────────────────────── */
+
+.symp-detail-stats {
+  display:       grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:           8px;
+  padding:       10px 0;
+  border-top:    1px solid var(--clr-border);
+  border-bottom: 1px solid var(--clr-border);
+  margin:        10px 0;
+}
+
+.symp-detail-stat {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            2px;
+}
+
+.symp-detail-stat-val {
+  font-size:   0.92rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+
+.symp-detail-stat-lbl {
+  font-size:  0.7rem;
+  color:      var(--clr-text-2);
+  text-align: center;
+}
+
+/* ── Find related symptoms ───────────────────────────────────────────────── */
+
+.symp-find-related {
+  margin-top: 10px;
+}
+
+.symp-find-related-hint {
+  font-size:   0.8rem;
+  color:       var(--clr-text-2);
+  margin:      0 0 8px;
+  font-style:  italic;
+}
+
+.symp-find-related-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+}
+
+.symp-find-related-row {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       8px 10px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+}
+
+.symp-find-related-info {
+  flex:        1;
+  min-width:   0;
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex-wrap:   wrap;
+}
+
+.symp-find-related-desc {
+  font-size: 0.8rem;
+  color:     var(--clr-text-2);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.symp-assign-btn {
+  font-size:     0.75rem;
+  font-weight:   600;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        none;
+  border-radius: 6px;
+  padding:       4px 10px;
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    opacity var(--transition);
+}
+
+.symp-assign-btn:hover {
+  opacity: 0.82;
+}
