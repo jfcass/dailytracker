@@ -56,6 +56,7 @@ const Mood = (() => {
     const noteEl = document.getElementById('daily-note');
     if (noteEl && noteEl !== document.activeElement) {
       noteEl.value = getNote();
+      _autoResizeNote(noteEl);
     }
   }
 
@@ -99,12 +100,19 @@ const Mood = (() => {
     saveMood();
   }
 
+  function _autoResizeNote(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   function onNoteInput() {
+    const noteEl = document.getElementById('daily-note');
+    if (noteEl) _autoResizeNote(noteEl);
     clearTimeout(noteTimer);
     noteTimer = setTimeout(() => {
-      const noteEl = document.getElementById('daily-note');
-      if (!noteEl) return;
-      Data.getDay(currentDate).note = noteEl.value;
+      const el = document.getElementById('daily-note');
+      if (!el) return;
+      Data.getDay(currentDate).note = el.value;
       saveNote();
     }, 600);
   }

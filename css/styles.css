@@ -4339,7 +4339,7 @@ button {
 
 .daily-note-area {
   width:       100%;
-  min-height:  80px;
+  min-height:  120px;
   padding:     10px 12px;
   border:      1px solid var(--clr-border);
   border-radius: 10px;
@@ -4348,7 +4348,8 @@ button {
   font-size:   0.9rem;
   font-family: inherit;
   line-height: 1.5;
-  resize:      vertical;
+  resize:      none;
+  overflow:    hidden;
   box-sizing:  border-box;
   transition:  border-color var(--transition);
 }
