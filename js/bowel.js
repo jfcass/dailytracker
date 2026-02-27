@@ -148,7 +148,9 @@ const Bowel = (() => {
 
   function startAdd() {
     editingId = 'new';
-    fTime = fNotes = '';
+    const now = new Date();
+    fTime = now.toTimeString().slice(0, 5);   // "HH:MM"
+    fNotes = '';
     fQuality = 0;
     render();
   }
