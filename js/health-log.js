@@ -49,11 +49,33 @@ const HealthLog = (() => {
   function getSymptomsForIssue(issueId) {
     const days = Data.getData().days ?? {};
     const results = [];
+
     Object.entries(days).forEach(([date, day]) => {
+      // Modern schema: day.issue_logs — { issue_id, symptoms[], severity, note }
       (day.issue_logs ?? []).forEach(l => {
-        if (l.issue_id === issueId) results.push({ ...l, date });
+        if (l.issue_id !== issueId) return;
+        results.push({
+          date,
+          severity: l.severity,
+          chips:    l.symptoms ?? [],
+          note:     l.note ?? '',
+          time:     null,
+        });
+      });
+
+      // Legacy schema: day.symptoms — { issue_id, category, severity, description, time }
+      (day.symptoms ?? []).forEach(s => {
+        if (s.issue_id !== issueId) return;
+        results.push({
+          date,
+          severity: s.severity,
+          chips:    s.category ? [s.category] : [],
+          note:     s.description ?? '',
+          time:     s.time ?? null,
+        });
       });
     });
+
     results.sort((a, b) => b.date.localeCompare(a.date));
     return results;
   }
@@ -211,12 +233,13 @@ const HealthLog = (() => {
       const historyRows = symptoms.map(s => {
         const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
         const label     = s.date === today() ? 'Today' : fmtDate(s.date);
-        const chips     = (s.symptoms ?? [])
+        const timeStr   = s.time ? ` · ${s.time}` : '';
+        const chips     = (s.chips ?? [])
           .map(sym => `<span class="health-symp-chip">${escHtml(sym)}</span>`).join('');
         return `
           <div class="health-detail-log-row">
             <div class="health-detail-log-top">
-              <span class="health-detail-log-date">${label}</span>
+              <span class="health-detail-log-date">${label}${timeStr}</span>
               <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
                 ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
               </span>
