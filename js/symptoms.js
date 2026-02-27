@@ -14,11 +14,12 @@ const Symptoms = (() => {
   // ── Constants ─────────────────────────────────────────────────────────────
 
   const CAT_COLORS = {
-    'Eyes':       '#3b82f6',
-    'Body Pain':  '#f97316',
-    'GI':         '#f59e0b',
-    'Headaches':  '#8b5cf6',
-    'Other':      '#6b7280',
+    'Headache':  '#8b5cf6',
+    'Fever':     '#ef4444',
+    'Fatigue':   '#f97316',
+    'Nausea':    '#f59e0b',
+    'Diarrhea':  '#10b981',
+    'Other':     '#6b7280',
   };
 
   const PALETTE = [
@@ -36,6 +37,8 @@ const Symptoms = (() => {
   ];
 
   const SEV_LABELS = ['', 'Mild', 'Low', 'Moderate', 'High', 'Severe'];
+
+  const SEV_CHART_COLORS = { 1: '#4caf50', 2: '#8bc34a', 3: '#ffc107', 4: '#ff5722', 5: '#f44336' };
 
   // ── State ─────────────────────────────────────────────────────────────────
 
@@ -60,6 +63,12 @@ const Symptoms = (() => {
   let fIssName          = '';
   let fIssCat           = '';
   let fIssRemind        = false;
+
+  // Issue edit state
+  let editingIssueId  = null;
+  let fIssEditName    = '';
+  let fIssEditRemind  = false;
+  let fIssEditNotes   = '';
 
   // Category manager state
   let managingCategories = false;
@@ -231,6 +240,12 @@ const Symptoms = (() => {
             </span>
           </div>
           ${todaySymptom.description ? `<p class="symp-prompt-desc">${escHtml(todaySymptom.description)}</p>` : ''}
+          <div class="symp-prompt-logged-actions">
+            <button class="symp-prompt-view-btn"
+                    onclick="Symptoms._openIssueDetail('${issue.id}')">View</button>
+            <button class="symp-prompt-add-btn"
+                    onclick="Symptoms._startAddForIssue('${issue.id}')">+</button>
+          </div>
         </div>`;
     }
 
@@ -331,7 +346,7 @@ const Symptoms = (() => {
           <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
         </div>
         <div class="health-form-field">
-          <span class="health-form-label">Category</span>
+          <span class="health-form-label">Symptom</span>
           <div class="health-form-cats">${buildCatPills(cats, fCat)}</div>
         </div>
         <div class="health-form-field">
@@ -370,7 +385,7 @@ const Symptoms = (() => {
           <button class="health-cancel-btn" onclick="Symptoms._cancel()">Cancel</button>
         </div>
         <div class="health-form-field">
-          <span class="health-form-label">Category</span>
+          <span class="health-form-label">Symptom</span>
           <div class="health-form-cats">${buildCatPills(cats, fCat)}</div>
         </div>
         <div class="health-form-field">
@@ -455,6 +470,36 @@ const Symptoms = (() => {
                            .sort((a, b) => a.name.localeCompare(b.name));
 
     function issueRow(issue) {
+      if (editingIssueId === issue.id) {
+        return `
+          <div class="symp-issue-row symp-issue-row--editing">
+            <div class="symp-iss-edit-form">
+              <div class="health-form-field">
+                <span class="health-form-label">Name <span class="health-req">*</span></span>
+                <input class="health-text-input" type="text" id="symp-iss-edit-name-${issue.id}"
+                       value="${escHtml(fIssEditName)}" maxlength="100"
+                       oninput="Symptoms._setIssEditName(this.value)"
+                       aria-label="Issue name">
+              </div>
+              <label class="health-ongoing-row">
+                <input type="checkbox" class="health-ongoing-check"
+                       ${fIssEditRemind ? 'checked' : ''}
+                       onchange="Symptoms._setIssEditRemind(this.checked)">
+                <span>Remind daily — show as check-in prompt each day</span>
+              </label>
+              <div class="health-form-field">
+                <span class="health-form-label">Notes <span class="health-opt">(optional)</span></span>
+                <textarea class="health-text-input" rows="2"
+                          aria-label="Notes" maxlength="500"
+                          oninput="Symptoms._setIssEditNotes(this.value)">${escHtml(fIssEditNotes)}</textarea>
+              </div>
+              <div class="health-form-actions">
+                <button class="health-save-btn" onclick="Symptoms._saveIssEdit('${issue.id}')">Save</button>
+                <button class="health-cancel-btn" onclick="Symptoms._cancelIssEdit()">Cancel</button>
+              </div>
+            </div>
+          </div>`;
+      }
       const color = catColor(issue.category);
       const remindChecked = issue.remind_daily ? ' checked' : '';
       return `
@@ -473,6 +518,8 @@ const Symptoms = (() => {
           ${!issue.resolved
             ? `<button class="symp-resolve-btn" onclick="Symptoms._resolveIssue('${issue.id}')">Resolve</button>`
             : `<span class="symp-resolved-tag">Resolved</span>`}
+          <button class="symp-iss-edit-btn" onclick="Symptoms._startIssEdit('${issue.id}')">Edit</button>
+          <button class="symp-iss-del-btn"  onclick="Symptoms._deleteIssue('${issue.id}')">Delete</button>
         </div>`;
     }
 
@@ -633,35 +680,48 @@ const Symptoms = (() => {
 
   function buildSeverityChart(entries) {
     if (entries.length === 0) return '';
-    const data   = entries.slice(-60);
+
+    // Group by date
+    const byDate = new Map();
+    entries.forEach(({ date, symptom: s }) => {
+      if (!byDate.has(date)) byDate.set(date, []);
+      byDate.get(date).push(s);
+    });
+
+    // Sort dates ascending, take last 60 unique dates
+    const dates  = [...byDate.keys()].sort().slice(-60);
     const barW   = 28;
     const barGap = 5;
     const chartH = 80;
     const labelH = 22;
     const padX   = 6;
-    const totalW = padX * 2 + data.length * (barW + barGap) - barGap;
+    const totalW = padX * 2 + dates.length * (barW + barGap) - barGap;
     const svgH   = chartH + labelH;
 
     let bars = '', labels = '';
-    data.forEach(({ date, symptom: s }, i) => {
-      const x       = padX + i * (barW + barGap);
-      const sev     = s.severity ?? 3;
-      const [, clr] = SEV_STYLES[sev] ?? SEV_STYLES[3];
-      const barH    = Math.max(6, Math.round((sev / 5) * chartH));
-      const y       = chartH - barH;
-      const numY    = Math.max(y - 3, 10);
+    dates.forEach((date, i) => {
+      const syms      = byDate.get(date);
+      const x         = padX + i * (barW + barGap);
+      const avgSev    = syms.reduce((acc, s) => acc + (s.severity ?? 3), 0) / syms.length;
+      const totalBarH = Math.max(6, Math.round((avgSev / 5) * chartH));
+      const totalSev  = syms.reduce((acc, s) => acc + (s.severity ?? 3), 0);
 
-      bars += `
-        <rect x="${x}" y="${y}" width="${barW}" height="${barH}"
-              rx="4" fill="${clr}" opacity="0.85"/>
-        <text x="${x + barW / 2}" y="${numY}"
-              text-anchor="middle" font-size="11" font-weight="700"
-              fill="${clr}">${sev}</text>`;
+      // Stack segments bottom-to-top, each proportional to sev share of bar height
+      let stackY = chartH;
+      syms.forEach(s => {
+        const sev   = s.severity ?? 3;
+        const segH  = Math.max(2, Math.round((sev / totalSev) * totalBarH));
+        stackY     -= segH;
+        const color = SEV_CHART_COLORS[sev] ?? '#6b7280';
+        const tip   = `${fmtDate(date)}${s.time ? ' · ' + s.time : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${s.description ? '\n' + s.description : ''}`;
+        bars += `<rect x="${x}" y="${stackY}" width="${barW}" height="${segH}" fill="${color}" opacity="0.88"><title>${escHtml(tip)}</title></rect>`;
+      });
 
-      labels += `
-        <text x="${x + barW / 2}" y="${chartH + 16}"
-              text-anchor="middle" font-size="9"
-              fill="var(--clr-text-2)">${fmtDate(date)}</text>`;
+      // Transparent rounded overlay for hit-testing the whole bar
+      const tipAll = `${fmtDate(date)} — ${syms.length} entr${syms.length === 1 ? 'y' : 'ies'}, avg severity ${avgSev.toFixed(1)}`;
+      bars += `<rect x="${x}" y="${chartH - totalBarH}" width="${barW}" height="${totalBarH}" rx="4" fill="transparent"><title>${escHtml(tipAll)}</title></rect>`;
+
+      labels += `<text x="${x + barW / 2}" y="${chartH + 16}" text-anchor="middle" font-size="9" fill="var(--clr-text-2)">${fmtDate(date)}</text>`;
     });
 
     return `
@@ -849,7 +909,10 @@ const Symptoms = (() => {
   }
 
   function openIssueDetail(issueId) {
-    issueDetailId = issueId;
+    managingIssues = true;
+    issueDetailId  = issueId;
+    const btn = document.getElementById('symp-issues-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
     renderIssuePanel();
   }
 
@@ -866,6 +929,61 @@ const Symptoms = (() => {
     if (btn) btn.setAttribute('aria-expanded', 'false');
     renderIssuePanel();
     render();
+  }
+
+  function startIssEdit(issueId) {
+    const issue = getIssues()[issueId];
+    if (!issue) return;
+    editingIssueId = issueId;
+    fIssEditName   = issue.name ?? '';
+    fIssEditRemind = !!issue.remind_daily;
+    fIssEditNotes  = issue.notes ?? '';
+    renderIssuePanel();
+    requestAnimationFrame(() => {
+      const inp = document.getElementById(`symp-iss-edit-name-${issueId}`);
+      if (inp) inp.focus();
+    });
+  }
+
+  function cancelIssEdit() {
+    editingIssueId = null;
+    fIssEditName   = '';
+    fIssEditRemind = false;
+    fIssEditNotes  = '';
+    renderIssuePanel();
+  }
+
+  function saveIssEdit(issueId) {
+    const name = fIssEditName.trim();
+    if (!name) return;
+    const issue = getIssues()[issueId];
+    if (!issue) return;
+    issue.name         = name;
+    issue.remind_daily = fIssEditRemind;
+    issue.notes        = fIssEditNotes;
+    editingIssueId     = null;
+    fIssEditName       = '';
+    fIssEditRemind     = false;
+    fIssEditNotes      = '';
+    scheduleSave();
+    render();
+    renderIssuePanel();
+  }
+
+  function deleteIssue(issueId) {
+    if (!confirm('Delete this issue? Its symptoms will be unlinked but not deleted.')) return;
+    const issues = getIssues();
+    const d      = Data.getData();
+    Object.values(d.days ?? {}).forEach(day => {
+      (day.symptoms ?? []).forEach(s => {
+        if (s.issue_id === issueId) s.issue_id = null;
+      });
+    });
+    delete issues[issueId];
+    if (issueDetailId === issueId) issueDetailId = null;
+    scheduleSave();
+    render();
+    renderIssuePanel();
   }
 
   // ── Inline onclick bridges ────────────────────────────────────────────────
@@ -889,6 +1007,13 @@ const Symptoms = (() => {
   function _openIssueDetail(id)          { openIssueDetail(id); }
   function _closeIssueDetail()           { closeIssueDetail(); }
   function _closeIssuePanel()            { closeIssuePanel(); }
+  function _startIssEdit(id)             { startIssEdit(id); }
+  function _cancelIssEdit()              { cancelIssEdit(); }
+  function _saveIssEdit(id)              { saveIssEdit(id); }
+  function _deleteIssue(id)              { deleteIssue(id); }
+  function _setIssEditName(v)            { fIssEditName = v; }
+  function _setIssEditRemind(v)          { fIssEditRemind = !!v; }
+  function _setIssEditNotes(v)           { fIssEditNotes = v; }
 
   function _setCat(v) {
     fCat = v;
@@ -990,7 +1115,7 @@ const Symptoms = (() => {
 
     panel.innerHTML = `
       <div class="symp-cat-panel-header">
-        <span>Categories</span>
+        <span>Symptoms</span>
         <button class="symp-cat-done-btn" type="button">Done</button>
       </div>
       <ul class="symp-cat-list">${rows}</ul>
@@ -1090,12 +1215,13 @@ const Symptoms = (() => {
   // ── Date sync ─────────────────────────────────────────────────────────────
 
   function setDate(date) {
-    formMode           = null;
-    formSymptomId      = null;
-    managingCategories = false;
-    editingCatIdx      = -1;
+    formMode             = null;
+    formSymptomId        = null;
+    managingCategories   = false;
+    editingCatIdx        = -1;
     pendingLinkSymptomId = null;
-    currentDate        = date;
+    editingIssueId       = null;
+    currentDate          = date;
     render();
   }
 
@@ -1162,6 +1288,8 @@ const Symptoms = (() => {
     _toggleRemindDaily, _resolveIssue, _assignToIssue,
     _startNewIssue, _cancelNewIssue, _saveNewIssue,
     _openIssueDetail, _closeIssueDetail, _closeIssuePanel,
+    _startIssEdit, _cancelIssEdit, _saveIssEdit, _deleteIssue,
+    _setIssEditName, _setIssEditRemind, _setIssEditNotes,
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
     _setIssName, _setIssCat, _setIssRemind,
   };

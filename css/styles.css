@@ -1964,6 +1964,7 @@ button {
   flex-direction: column;
   gap:           10px;
 }
+.symp-cat-panel[hidden] { display: none !important; }
 
 /* ── Quick symptom multiselect ─────────────────────────────────────────────── */
 
@@ -5182,6 +5183,7 @@ button {
   gap:           6px;
   margin-bottom: 10px;
 }
+.symp-issues-panel[hidden] { display: none !important; }
 
 .symp-issues-panel-header {
   display:         flex;
@@ -5279,6 +5281,50 @@ button {
   flex-shrink: 0;
 }
 
+.symp-iss-edit-btn,
+.symp-iss-del-btn {
+  font-size:     0.72rem;
+  font-weight:   600;
+  background:    transparent;
+  border:        1px solid var(--clr-border);
+  border-radius: 5px;
+  padding:       2px 8px;
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.symp-iss-edit-btn {
+  color: var(--clr-text-2);
+}
+
+.symp-iss-edit-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.symp-iss-del-btn {
+  color: var(--clr-text-2);
+}
+
+.symp-iss-del-btn:hover {
+  background: #ffebee;
+  color:      var(--clr-error);
+  border-color: var(--clr-error);
+}
+
+.symp-issue-row--editing {
+  flex-direction: column;
+  align-items:    stretch;
+}
+
+.symp-iss-edit-form {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  padding:        4px 0;
+}
+
 .symp-new-issue-btn {
   margin-top: 4px;
 }
@@ -5351,6 +5397,45 @@ button {
 }
 
 .symp-prompt-log-btn:hover {
+  opacity: 0.82;
+}
+
+.symp-prompt-logged-actions {
+  display:    flex;
+  gap:        8px;
+  margin-top: 8px;
+}
+
+.symp-prompt-view-btn {
+  font-size:     0.8rem;
+  font-weight:   600;
+  color:         var(--clr-text-2);
+  background:    transparent;
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  padding:       4px 12px;
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+
+.symp-prompt-view-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
+.symp-prompt-add-btn {
+  font-size:     0.9rem;
+  font-weight:   700;
+  color:         var(--clr-accent);
+  background:    var(--clr-accent-dim);
+  border:        none;
+  border-radius: 6px;
+  padding:       4px 12px;
+  cursor:        pointer;
+  transition:    opacity var(--transition);
+}
+
+.symp-prompt-add-btn:hover {
   opacity: 0.82;
 }
 
