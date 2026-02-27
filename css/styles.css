@@ -3598,6 +3598,88 @@ button {
   flex:        1;
 }
 
+/* ── Issue detail history — grouped by day ───────────────────────────────── */
+
+.symp-hist-day {
+  display:        flex;
+  align-items:    flex-start;
+  gap:            10px;
+  padding:        6px 0;
+  border-bottom:  1px solid var(--clr-border);
+}
+
+.symp-hist-day:last-child {
+  border-bottom: none;
+}
+
+.symp-hist-day-label {
+  font-size:   0.8rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  min-width:   52px;
+  padding-top: 4px;
+  flex-shrink: 0;
+}
+
+.symp-hist-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+  flex:      1;
+}
+
+.symp-hist-chip {
+  display:       flex;
+  align-items:   center;
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  overflow:      hidden;
+  background:    var(--clr-surface);
+}
+
+.symp-hist-chip-body {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+  padding:     4px 8px;
+  background:  transparent;
+  border:      none;
+  cursor:      pointer;
+  font-size:   0.8rem;
+  color:       var(--clr-text);
+  transition:  background var(--transition);
+}
+
+.symp-hist-chip-body:hover {
+  background: var(--clr-surface-2);
+}
+
+.symp-hist-chip-cat {
+  font-weight: 500;
+}
+
+.symp-hist-chip-time {
+  font-size: 0.72rem;
+  color:     var(--clr-text-2);
+}
+
+.symp-hist-chip-del {
+  padding:     4px 7px;
+  border:      none;
+  border-left: 1px solid var(--clr-border);
+  background:  transparent;
+  color:       var(--clr-text-2);
+  cursor:      pointer;
+  font-size:   0.85rem;
+  line-height: 1;
+  transition:  background var(--transition), color var(--transition);
+}
+
+.symp-hist-chip-del:hover {
+  background: #ffebee;
+  color:      var(--clr-error);
+}
+
 /* ── Smart symptom grouping ──────────────────────────────────────────────── */
 .health-symp-group-label {
   font-size:      0.7rem;
