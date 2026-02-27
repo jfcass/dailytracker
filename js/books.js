@@ -994,6 +994,8 @@ const Books = (() => {
   function _markFinished(id)        { markFinished(id); }
   function _togglePause(id)         { togglePause(id); }
   function _startTimer()            { startTimer(); }
+  function _pauseTimer()            { pauseTimer(); }
+  function _resumeTimer()           { resumeTimer(); }
   function _stopTimer()             { stopTimer(); }
   function _startLogSession()       { startLogSession(); }
   function _startEditSession(id)    { startEditSession(id); }
