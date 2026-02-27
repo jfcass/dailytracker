@@ -4811,11 +4811,11 @@ button {
   display:        flex;
   flex-direction: column;
   gap:            6px;
-  padding:        0 0 4px;
+  padding:        0 0 4px 8px;
 }
 .grat-item {
   display:     flex;
-  align-items: center;
+  align-items: flex-start;
   gap:         8px;
 }
 .grat-bullet {
@@ -4823,7 +4823,7 @@ button {
   font-size:   1.1rem;
   line-height: 1;
   flex-shrink: 0;
-  margin-top:  1px;
+  margin-top:  5px;
 }
 .grat-input {
   flex:          1;
@@ -4833,9 +4833,16 @@ button {
   color:         var(--clr-text);
   font-family:   inherit;
   font-size:     0.9rem;
+  line-height:   1.5;
   padding:       4px 2px;
   outline:       none;
   transition:    border-color var(--transition);
+  resize:        none;
+  overflow:      hidden;
+  min-height:    1.5em;
+  box-sizing:    border-box;
+  display:       block;
+  width:         100%;
 }
 .grat-input:focus {
   border-bottom-color: var(--clr-accent);

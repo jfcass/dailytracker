@@ -43,17 +43,19 @@ const Gratitudes = (() => {
     list.innerHTML = entries.map((val, idx) => `
       <div class="grat-item">
         <span class="grat-bullet" aria-hidden="true">•</span>
-        <input
+        <textarea
           class="grat-input"
-          type="text"
+          rows="1"
           placeholder="I'm grateful for…"
-          value="${escHtml(val)}"
           data-idx="${idx}"
           oninput="Gratitudes._onInput(this)"
           onkeydown="Gratitudes._onKeydown(event, ${idx})"
-        >
+        >${escHtml(val)}</textarea>
       </div>
     `).join('');
+
+    // Auto-size any pre-filled rows
+    document.querySelectorAll('#grat-list .grat-input').forEach(_autoResize);
 
     updateSaveStatus('');
   }
@@ -73,7 +75,13 @@ const Gratitudes = (() => {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
+  function _autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   function _onInput(inputEl) {
+    _autoResize(inputEl);
     const idx     = parseInt(inputEl.dataset.idx, 10);
     const value   = inputEl.value;
     const entries = [...getEntries()];
@@ -112,8 +120,25 @@ const Gratitudes = (() => {
       await Data.save();
       updateSaveStatus('Saved');
       setTimeout(() => updateSaveStatus(''), 1500);
+
+      // Preserve which input has focus before re-render destroys the DOM
+      const active   = document.activeElement;
+      const inGrat   = active && active.closest('#grat-list');
+      const focusIdx = inGrat ? parseInt(active.dataset.idx, 10) : -1;
+
       // Re-render to sync displayed inputs with cleaned array + fresh trailing blank
       render();
+
+      // Restore focus to the same row after re-render
+      if (focusIdx >= 0) {
+        const inputs = document.querySelectorAll('#grat-list .grat-input');
+        const target = inputs[focusIdx] ?? inputs[inputs.length - 1];
+        if (target) {
+          target.focus();
+          const len = target.value.length;
+          target.setSelectionRange(len, len);
+        }
+      }
     }, 800);
   }
 
