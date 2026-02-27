@@ -42,6 +42,20 @@ const HealthLog = (() => {
   ];
   const SEV_LABELS = ['', 'Mild', 'Low', 'Moderate', 'High', 'Severe'];
 
+  const CAT_COLORS = {
+    'Headache': '#8b5cf6', 'Fever': '#ef4444', 'Fatigue': '#f97316',
+    'Nausea': '#f59e0b',   'Diarrhea': '#10b981', 'Other': '#6b7280',
+    'Eyes': '#3b82f6', 'Body Pain': '#f97316', 'GI': '#f59e0b', 'Headaches': '#8b5cf6',
+  };
+  const PALETTE = ['#3b82f6','#f97316','#f59e0b','#8b5cf6','#6b7280','#ec4899','#10b981','#ef4444','#06b6d4','#84cc16'];
+  function catColor(cat) {
+    if (!cat) return '#6b7280';
+    if (CAT_COLORS[cat]) return CAT_COLORS[cat];
+    let h = 0;
+    for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) | 0;
+    return PALETTE[Math.abs(h) % PALETTE.length];
+  }
+
   function getIssues() {
     return Object.values(Data.getData().issues ?? {});
   }
@@ -55,6 +69,8 @@ const HealthLog = (() => {
       (day.issue_logs ?? []).forEach(l => {
         if (l.issue_id !== issueId) return;
         results.push({
+          id:       null,
+          source:   'issue_logs',
           date,
           severity: l.severity,
           chips:    l.symptoms ?? [],
@@ -63,10 +79,12 @@ const HealthLog = (() => {
         });
       });
 
-      // Legacy schema: day.symptoms — { issue_id, category, severity, description, time }
+      // Legacy schema: day.symptoms — { id, issue_id, category, severity, description, time }
       (day.symptoms ?? []).forEach(s => {
         if (s.issue_id !== issueId) return;
         results.push({
+          id:       s.id ?? null,
+          source:   'symptoms',
           date,
           severity: s.severity,
           chips:    s.category ? [s.category] : [],
@@ -180,16 +198,14 @@ const HealthLog = (() => {
     const issue = (Data.getData().issues ?? {})[issueId];
     if (!issue) { detailId = null; return renderList(); }
 
-    const symptoms   = getSymptomsForIssue(issueId);
-    const dateRange  = issue.resolved
+    const symptoms  = getSymptomsForIssue(issueId);
+    const dateRange = issue.resolved
       ? `${fmtDate(issue.start_date)} → ${fmtDate(issue.end_date)}`
       : `Since ${fmtDate(issue.start_date)}`;
-    const categories = Data.getSettings().symptom_categories ?? [];
 
     let html = `<div class="hl-detail">
       <button class="hl-detail-back" onclick="HealthLog._back()">← Back to Health Log</button>
       <div class="hl-detail-header">
-        <p class="hl-detail-sub">${escHtml(issue.category)}</p>
         <h2 class="hl-detail-title">${escHtml(issue.name)}</h2>
         <p class="hl-detail-sub">${dateRange} · ${symptoms.length} symptom entr${symptoms.length === 1 ? 'y' : 'ies'}</p>
       </div>`;
@@ -198,10 +214,6 @@ const HealthLog = (() => {
       html += `<div class="hl-edit-form">
         <div><label class="hl-edit-label">Name</label>
           <input id="hl-edit-title" class="hl-edit-input" type="text" value="${escHtml(issue.name)}"></div>
-        <div><label class="hl-edit-label">Category</label>
-          <select id="hl-edit-cat" class="hl-edit-select">
-            ${categories.map(c => `<option value="${escHtml(c)}"${c === issue.category ? ' selected' : ''}>${escHtml(c)}</option>`).join('')}
-          </select></div>
         <div><label class="hl-edit-label">Start Date</label>
           <input id="hl-edit-start" class="hl-edit-input" type="date" value="${escHtml(issue.start_date ?? '')}"></div>
         <div class="hl-edit-actions">
@@ -230,22 +242,45 @@ const HealthLog = (() => {
       html += `<p class="hl-history-heading">Symptom History</p>
                <p class="hl-no-history">No symptoms logged against this issue yet.</p>`;
     } else {
-      const historyRows = symptoms.map(s => {
-        const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
-        const label     = s.date === today() ? 'Today' : fmtDate(s.date);
-        const timeStr   = s.time ? ` · ${s.time}` : '';
-        const chips     = (s.chips ?? [])
-          .map(sym => `<span class="health-symp-chip">${escHtml(sym)}</span>`).join('');
+      // Group by date (symptoms already sorted newest-first)
+      const byDate = new Map();
+      symptoms.forEach(s => {
+        if (!byDate.has(s.date)) byDate.set(s.date, []);
+        byDate.get(s.date).push(s);
+      });
+
+      const historyRows = [...byDate.entries()].map(([date, entries]) => {
+        const label = date === today() ? 'Today' : fmtDate(date);
+        const chips = entries.map(s => {
+          const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+          const cat   = s.chips[0] ?? '';
+          const color = catColor(cat);
+          const tip   = s.note ? escHtml(s.note.slice(0, 60)) : '';
+          const canEdit = s.source === 'symptoms' && s.id;
+          const editBtn = canEdit
+            ? `<button class="symp-hist-chip-body" title="${tip}"
+                       onclick="Symptoms._startEditFromDetail('${s.id}','${date}')">
+                 <span class="health-issue-dot" style="background:${color}"></span>
+                 <span class="symp-hist-chip-cat">${escHtml(cat)}</span>
+                 <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">${s.severity}</span>
+                 ${s.time ? `<span class="symp-hist-chip-time">${escHtml(s.time)}</span>` : ''}
+               </button>`
+            : `<span class="symp-hist-chip-body symp-hist-chip-body--static" title="${tip}">
+                 <span class="health-issue-dot" style="background:${color}"></span>
+                 <span class="symp-hist-chip-cat">${escHtml(cat)}</span>
+                 <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">${s.severity}</span>
+               </span>`;
+          const delBtn = canEdit
+            ? `<button class="symp-hist-chip-del" title="Delete"
+                       onclick="Symptoms._deleteSymptomByDate('${s.id}','${date}')">×</button>`
+            : '';
+          return `<div class="symp-hist-chip">${editBtn}${delBtn}</div>`;
+        }).join('');
+
         return `
-          <div class="health-detail-log-row">
-            <div class="health-detail-log-top">
-              <span class="health-detail-log-date">${label}${timeStr}</span>
-              <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-                ${s.severity} <span class="health-sev-label">${SEV_LABELS[s.severity]}</span>
-              </span>
-            </div>
-            ${chips ? `<div class="health-symp-chips">${chips}</div>` : ''}
-            ${s.note ? `<p class="health-log-note">${escHtml(s.note)}</p>` : ''}
+          <div class="symp-hist-day">
+            <span class="symp-hist-day-label">${label}</span>
+            <div class="symp-hist-chips">${chips}</div>
           </div>`;
       }).join('');
 
@@ -297,12 +332,10 @@ const HealthLog = (() => {
   async function _saveEdit(issueId) {
     const issue    = (Data.getData().issues ?? {})[issueId];
     if (!issue) return;
-    const name     = document.getElementById('hl-edit-title')?.value.trim();
-    const category = document.getElementById('hl-edit-cat')?.value;
-    const start    = document.getElementById('hl-edit-start')?.value;
-    if (name)     issue.name       = name;
-    if (category) issue.category   = category;
-    if (start)    issue.start_date = start;
+    const name  = document.getElementById('hl-edit-title')?.value.trim();
+    const start = document.getElementById('hl-edit-start')?.value;
+    if (name)  issue.name       = name;
+    if (start) issue.start_date = start;
     showEditForm = false;
     await Data.save();
     render();
