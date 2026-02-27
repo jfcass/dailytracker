@@ -105,7 +105,7 @@ const Weather = (() => {
     // timezone=auto derives the correct calendar day from coordinates.
     const url = `https://api.open-meteo.com/v1/forecast`
       + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
-      + `&daily=temperature_2m_max,weather_code_max&timezone=auto&forecast_days=1`;
+      + `&daily=temperature_2m_max,weather_code&timezone=auto&forecast_days=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`open-meteo ${res.status}`);
     return res.json();
@@ -122,7 +122,7 @@ const Weather = (() => {
       const w = {
         temp_c: Math.round(c * 10) / 10,
         temp_f: Math.round((c * 9 / 5 + 32) * 10) / 10,
-        code:   json.daily.weather_code_max[0],
+        code:   json.daily.weather_code[0],
       };
 
       // Persist to today's day record (best-effort — don't block UI on save)
