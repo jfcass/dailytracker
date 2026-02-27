@@ -63,8 +63,9 @@ const Symptoms = (() => {
   let fIssName          = '';
   let fIssRemind        = false;
 
-  // Cross-date edit (from issue detail)
-  let pendingEditFromDetail = null;
+  // Cross-date edit / cross-date issue open (from health-log)
+  let pendingEditFromDetail   = null;
+  let pendingOpenIssueDetail  = null; // issue id to open after date nav
 
   // Issue edit state
   let editingIssueId  = null;
@@ -174,6 +175,10 @@ const Symptoms = (() => {
       .filter(i => i.remind_daily)
       .sort((a, b) => (a.start_date ?? '').localeCompare(b.start_date ?? ''));
 
+    // Symptoms linked to remind-daily issues surface on their cards, not in the standalone list
+    const remindIssueIds     = new Set(remindIssues.map(i => i.id));
+    const standaloneSymptoms = symptoms.filter(s => !s.issue_id || !remindIssueIds.has(s.issue_id));
+
     let html = '';
 
     // ── Remind-daily prompts ──
@@ -181,8 +186,8 @@ const Symptoms = (() => {
       html += `<div class="health-section">`;
       html += `<p class="health-section-label">Daily Check-ins</p>`;
       remindIssues.forEach(issue => {
-        const todaySymp = getTodaySymptomForIssue(issue.id, currentDate);
-        html += buildPromptCard(issue, todaySymp);
+        const issueSymptoms = symptoms.filter(s => s.issue_id === issue.id);
+        html += buildPromptCard(issue, issueSymptoms);
       });
       html += `</div>`;
     }
@@ -192,11 +197,11 @@ const Symptoms = (() => {
       html += buildAddForm();
     }
 
-    // ── Today's symptoms list ──
-    if (symptoms.length > 0) {
+    // ── Today's symptoms list (standalone — not linked to a remind-daily issue) ──
+    if (standaloneSymptoms.length > 0) {
       const label = remindIssues.length > 0 || formMode === 'add' ? `<p class="health-section-label">Today's Symptoms</p>` : '';
       html += `<div class="health-section">${label}`;
-      symptoms.forEach(s => {
+      standaloneSymptoms.forEach(s => {
         if (formMode === 'edit' && formSymptomId === s.id) {
           html += buildEditForm(s);
         } else if (pendingLinkSymptomId === s.id) {
@@ -209,7 +214,7 @@ const Symptoms = (() => {
     }
 
     // ── Empty state ──
-    if (remindIssues.length === 0 && symptoms.length === 0 && formMode === null && !pendingLinkSymptomId) {
+    if (remindIssues.length === 0 && standaloneSymptoms.length === 0 && formMode === null && !pendingLinkSymptomId) {
       html += `<p class="section-empty">Nothing logged yet today.</p>`;
     }
 
@@ -223,25 +228,32 @@ const Symptoms = (() => {
 
   // ── Card builders ─────────────────────────────────────────────────────────
 
-  function buildPromptCard(issue, todaySymptom) {
-    const color = catColor(issue.category);
+  function buildPromptCard(issue, issueSymptoms) {
+    const color   = catColor(issue.name);
     const lastSev = getLastSeverity(issue.id);
 
-    if (todaySymptom) {
-      const [bg, clr] = SEV_STYLES[todaySymptom.severity] ?? SEV_STYLES[3];
+    if (issueSymptoms.length > 0) {
+      const chipsHtml = issueSymptoms.map(s => {
+        // When this symptom is being edited, show the edit form inline
+        if (formMode === 'edit' && formSymptomId === s.id) {
+          return buildEditForm(s);
+        }
+        const [bg, clr] = SEV_STYLES[s.severity] ?? SEV_STYLES[3];
+        const catLabel  = escHtml(s.category || '');
+        return `
+          <button class="symp-prompt-symptom-chip" onclick="Symptoms._startEdit('${s.id}')">
+            ${catLabel ? `<span class="symp-prompt-chip-cat">${catLabel}</span>` : ''}
+            <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">${s.severity}</span>
+          </button>`;
+      }).join('');
+
       return `
         <div class="symp-prompt-card symp-prompt-card--logged">
           <div class="symp-prompt-header">
             <span class="health-issue-dot" style="background:${color}"></span>
-            <div class="symp-prompt-meta">
-              <span class="symp-prompt-name">${escHtml(issue.name)}</span>
-              <span class="symp-prompt-cat">${escHtml(issue.category)}</span>
-            </div>
-            <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}">
-              ${todaySymptom.severity} <span class="health-sev-label">${SEV_LABELS[todaySymptom.severity]}</span>
-            </span>
+            <span class="symp-prompt-name">${escHtml(issue.name)}</span>
           </div>
-          ${todaySymptom.description ? `<p class="symp-prompt-desc">${escHtml(todaySymptom.description)}</p>` : ''}
+          <div class="symp-prompt-symptom-chips">${chipsHtml}</div>
           <div class="symp-prompt-logged-actions">
             <button class="symp-prompt-view-btn"
                     onclick="Symptoms._openIssueDetail('${issue.id}')">View</button>
@@ -261,7 +273,6 @@ const Symptoms = (() => {
           <span class="health-issue-dot" style="background:${color}"></span>
           <div class="symp-prompt-meta">
             <span class="symp-prompt-name">${escHtml(issue.name)}</span>
-            <span class="symp-prompt-cat">${escHtml(issue.category)}</span>
           </div>
           ${lastBadge}
         </div>
@@ -944,9 +955,16 @@ const Symptoms = (() => {
     renderIssuePanel();
   }
 
+  function openIssueFromHealthLog(issueId, date) {
+    pendingOpenIssueDetail = issueId;
+    DateNav.setDate(date);
+    App.switchTab('today');
+  }
+
   function closeIssueDetail() {
-    issueDetailId = null;
-    renderIssuePanel();
+    issueDetailId  = null;
+    managingIssues = false;
+    render();
   }
 
   function closeIssuePanel() {
@@ -1035,8 +1053,9 @@ const Symptoms = (() => {
   function _openIssueDetail(id)          { openIssueDetail(id); }
   function _closeIssueDetail()           { closeIssueDetail(); }
   function _closeIssuePanel()            { closeIssuePanel(); }
-  function _startEditFromDetail(id, dt)  { startEditFromDetail(id, dt); }
-  function _deleteSymptomByDate(id, dt)  { deleteSymptomByDate(id, dt); }
+  function _startEditFromDetail(id, dt)    { startEditFromDetail(id, dt); }
+  function _deleteSymptomByDate(id, dt)    { deleteSymptomByDate(id, dt); }
+  function _openIssueFromHealthLog(id, dt) { openIssueFromHealthLog(id, dt); }
   function _startIssEdit(id)             { startIssEdit(id); }
   function _cancelIssEdit()              { cancelIssEdit(); }
   function _saveIssEdit(id)              { saveIssEdit(id); }
@@ -1234,19 +1253,23 @@ const Symptoms = (() => {
   // ── Date sync ─────────────────────────────────────────────────────────────
 
   function setDate(date) {
-    const pendingEdit    = pendingEditFromDetail;
-    formMode             = null;
-    formSymptomId        = null;
-    managingCategories   = false;
-    managingIssues       = false;
-    issueDetailId        = null;
-    editingCatIdx        = -1;
-    pendingLinkSymptomId = null;
-    editingIssueId       = null;
-    pendingEditFromDetail = null;
-    currentDate          = date;
+    const pendingEdit      = pendingEditFromDetail;
+    const pendingIssueOpen = pendingOpenIssueDetail;
+    formMode               = null;
+    formSymptomId          = null;
+    managingCategories     = false;
+    managingIssues         = false;
+    issueDetailId          = null;
+    editingCatIdx          = -1;
+    pendingLinkSymptomId   = null;
+    editingIssueId         = null;
+    pendingEditFromDetail  = null;
+    pendingOpenIssueDetail = null;
+    currentDate            = date;
     if (pendingEdit) {
       startEdit(pendingEdit);
+    } else if (pendingIssueOpen) {
+      openIssueDetail(pendingIssueOpen);
     } else {
       render();
     }
@@ -1315,7 +1338,7 @@ const Symptoms = (() => {
     _toggleRemindDaily, _resolveIssue, _assignToIssue,
     _startNewIssue, _cancelNewIssue, _saveNewIssue,
     _openIssueDetail, _closeIssueDetail, _closeIssuePanel,
-    _startEditFromDetail, _deleteSymptomByDate,
+    _startEditFromDetail, _deleteSymptomByDate, _openIssueFromHealthLog,
     _startIssEdit, _cancelIssEdit, _saveIssEdit, _deleteIssue,
     _setIssEditName, _setIssEditRemind, _setIssEditNotes,
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,

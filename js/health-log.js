@@ -41,6 +41,7 @@ const HealthLog = (() => {
     ['#ffebee', '#c62828'],
   ];
   const SEV_LABELS = ['', 'Mild', 'Low', 'Moderate', 'High', 'Severe'];
+  const SEV_CHART_COLORS = { 1: '#4caf50', 2: '#8bc34a', 3: '#ffc107', 4: '#ff5722', 5: '#f44336' };
 
   const CAT_COLORS = {
     'Headache': '#8b5cf6', 'Fever': '#ef4444', 'Fatigue': '#f97316',
@@ -104,38 +105,50 @@ const HealthLog = (() => {
 
   function buildSeverityChart(symptoms) {
     if (!symptoms.length) return '';
-    // symptoms is newest-first; chart shows oldest→newest, capped at 60
-    const data   = symptoms.slice().reverse().slice(-60);
+
+    // Group by date (symptoms is newest-first; we want oldest→newest)
+    const byDate = new Map();
+    symptoms.slice().reverse().forEach(entry => {
+      if (!byDate.has(entry.date)) byDate.set(entry.date, []);
+      byDate.get(entry.date).push(entry);
+    });
+
+    // Take last 60 unique dates (already ascending after reverse)
+    const dates  = [...byDate.keys()].slice(-60);
     const barW   = 28;
     const barGap = 5;
     const chartH = 80;
     const labelH = 22;
     const padX   = 6;
-    const totalW = padX * 2 + data.length * (barW + barGap) - barGap;
+    const totalW = padX * 2 + dates.length * (barW + barGap) - barGap;
     const svgH   = chartH + labelH;
 
-    let bars   = '';
-    let labels = '';
+    let bars = '', labels = '';
 
-    data.forEach((s, i) => {
-      const x       = padX + i * (barW + barGap);
-      const sev     = s.severity;
-      const [, clr] = SEV_STYLES[sev] ?? SEV_STYLES[3];
-      const barH    = Math.max(6, Math.round((sev / 5) * chartH));
-      const y       = chartH - barH;
-      const numY    = Math.max(y - 3, 10);
+    dates.forEach((date, i) => {
+      const entries   = byDate.get(date);
+      const x         = padX + i * (barW + barGap);
+      const totalSev  = entries.reduce((acc, e) => acc + (e.severity ?? 3), 0);
+      const avgSev    = totalSev / entries.length;
+      const totalBarH = Math.max(6, Math.round((avgSev / 5) * chartH));
 
-      bars += `
-        <rect x="${x}" y="${y}" width="${barW}" height="${barH}"
-              rx="4" fill="${clr}" opacity="0.85"/>
-        <text x="${x + barW / 2}" y="${numY}"
-              text-anchor="middle" font-size="11" font-weight="700"
-              fill="${clr}">${sev}</text>`;
+      // Stack segments bottom-to-top, each proportional to its sev share
+      let stackY = chartH;
+      entries.forEach(e => {
+        const sev   = e.severity ?? 3;
+        const segH  = Math.max(2, Math.round((sev / totalSev) * totalBarH));
+        stackY     -= segH;
+        const color = SEV_CHART_COLORS[sev] ?? '#6b7280';
+        const cat   = e.chips[0] ?? '';
+        const tip   = `${fmtDate(date)}${e.time ? ' · ' + e.time : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${cat ? '\n' + cat : ''}${e.note ? '\n' + e.note : ''}`;
+        bars += `<rect x="${x}" y="${stackY}" width="${barW}" height="${segH}" fill="${color}" opacity="0.88"><title>${escHtml(tip)}</title></rect>`;
+      });
 
-      labels += `
-        <text x="${x + barW / 2}" y="${chartH + 16}"
-              text-anchor="middle" font-size="9"
-              fill="var(--clr-text-2)">${fmtDate(s.date)}</text>`;
+      // Transparent rounded overlay for the full bar (summary tooltip on hover)
+      const tipAll = `${fmtDate(date)} — ${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}, avg severity ${avgSev.toFixed(1)}`;
+      bars += `<rect x="${x}" y="${chartH - totalBarH}" width="${barW}" height="${totalBarH}" rx="4" fill="transparent"><title>${escHtml(tipAll)}</title></rect>`;
+
+      labels += `<text x="${x + barW / 2}" y="${chartH + 16}" text-anchor="middle" font-size="9" fill="var(--clr-text-2)">${fmtDate(date)}</text>`;
     });
 
     return `
@@ -257,6 +270,7 @@ const HealthLog = (() => {
           const color = catColor(cat);
           const tip   = s.note ? escHtml(s.note.slice(0, 60)) : '';
           const canEdit = s.source === 'symptoms' && s.id;
+          const canNav  = s.source === 'issue_logs';
           const editBtn = canEdit
             ? `<button class="symp-hist-chip-body" title="${tip}"
                        onclick="Symptoms._startEditFromDetail('${s.id}','${date}')">
@@ -264,6 +278,13 @@ const HealthLog = (() => {
                  <span class="symp-hist-chip-cat">${escHtml(cat)}</span>
                  <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">${s.severity}</span>
                  ${s.time ? `<span class="symp-hist-chip-time">${escHtml(s.time)}</span>` : ''}
+               </button>`
+            : canNav
+            ? `<button class="symp-hist-chip-body" title="${tip}"
+                       onclick="Symptoms._openIssueFromHealthLog('${issueId}','${date}')">
+                 <span class="health-issue-dot" style="background:${color}"></span>
+                 <span class="symp-hist-chip-cat">${escHtml(cat)}</span>
+                 <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">${s.severity}</span>
                </button>`
             : `<span class="symp-hist-chip-body symp-hist-chip-body--static" title="${tip}">
                  <span class="health-issue-dot" style="background:${color}"></span>
@@ -273,6 +294,9 @@ const HealthLog = (() => {
           const delBtn = canEdit
             ? `<button class="symp-hist-chip-del" title="Delete"
                        onclick="Symptoms._deleteSymptomByDate('${s.id}','${date}')">×</button>`
+            : canNav
+            ? `<button class="symp-hist-chip-del" title="Delete"
+                       onclick="HealthLog._deleteIssueLog('${issueId}','${date}')">×</button>`
             : '';
           return `<div class="symp-hist-chip">${editBtn}${delBtn}</div>`;
         }).join('');
@@ -349,6 +373,14 @@ const HealthLog = (() => {
     render();
   }
 
+  async function _deleteIssueLog(issueId, date) {
+    const day = (Data.getData().days ?? {})[date];
+    if (!day?.issue_logs) return;
+    day.issue_logs = day.issue_logs.filter(l => l.issue_id !== issueId);
+    await Data.save();
+    render();
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────────────────────
 
   return {
@@ -357,6 +389,6 @@ const HealthLog = (() => {
     _startResolve, _cancelResolve, _confirmResolve,
     _reopen,
     _startEdit, _cancelEdit, _saveEdit,
-    _deleteIssue,
+    _deleteIssue, _deleteIssueLog,
   };
 })();

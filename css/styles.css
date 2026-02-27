@@ -5521,6 +5521,33 @@ button {
   opacity: 0.82;
 }
 
+/* Symptom chips on Daily Check-in cards */
+.symp-prompt-symptom-chips {
+  display:    flex;
+  flex-wrap:  wrap;
+  gap:        6px;
+  margin-top: 8px;
+}
+
+.symp-prompt-symptom-chip {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       4px 8px;
+  border:        1px solid var(--clr-border);
+  border-radius: 20px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.8rem;
+  cursor:        pointer;
+  transition:    background 0.15s, border-color 0.15s;
+}
+
+.symp-prompt-symptom-chip:hover {
+  background:    var(--clr-accent-dim);
+  border-color:  var(--clr-accent);
+}
+
 /* ── Symptom card extras ─────────────────────────────────────────────────── */
 
 .symp-card-desc {
