@@ -5397,6 +5397,62 @@ button {
   white-space:   nowrap;
 }
 
+/* ── Health section: vitals bar ─────────────────────────────────────────── */
+
+#symp-vitals-bar:empty { display: none; }
+
+.symp-vitals-row {
+  display:     flex;
+  align-items: center;
+  flex-wrap:   wrap;
+  gap:         6px;
+  padding:     6px 16px;
+}
+.symp-vitals-row + .symp-vitals-row {
+  padding-top: 2px;
+}
+#symp-vitals-bar {
+  padding-bottom: 6px;
+  border-bottom:  1px solid var(--clr-border);
+  margin-bottom:  4px;
+}
+.symp-vitals-label {
+  font-size:      0.7rem;
+  font-weight:    700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--clr-text-2);
+  min-width:      36px;
+}
+.symp-vitals-sleep-stats {
+  display:     flex;
+  align-items: center;
+  flex-wrap:   wrap;
+  gap:         10px;
+}
+.symp-vitals-sleep-val {
+  font-size:   0.9rem;
+  font-weight: 700;
+  color:       var(--clr-accent);
+}
+.symp-vitals-meta {
+  font-size: 0.82rem;
+  color:     var(--clr-text-2);
+}
+.symp-vitals-chips-row {
+  display:  flex;
+  flex-wrap: wrap;
+  gap:       5px;
+}
+.symp-vitals-chip {
+  font-size:     0.78rem;
+  padding:       3px 9px;
+  border-radius: 20px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  white-space:   nowrap;
+}
+
 /* ── Symptom redesign: issues toggle button ──────────────────────────────── */
 
 .symp-issues-toggle-btn {
