@@ -163,6 +163,48 @@ const Symptoms = (() => {
     renderIssuePanel();
     renderCatPanel();
     renderContent();
+    renderVitalsBar(currentDate);
+  }
+
+  function renderVitalsBar(date) {
+    const el = document.getElementById('symp-vitals-bar');
+    if (!el) return;
+
+    const day = (Data.getData().days ?? {})[date];
+    if (!day) { el.innerHTML = ''; return; }
+
+    let html = '';
+
+    // ── Sleep block ─────────────────────────────────────────────────────────
+    const sl = day.sleep;
+    if (sl?.hours > 0) {
+      const parts = [`<span class="symp-vitals-sleep-val">${sl.hours}\u202fh</span>`];
+      if (sl.bedtime)   parts.push(`<span class="symp-vitals-meta">Bed\u00a0${sl.bedtime}</span>`);
+      if (sl.wake_time) parts.push(`<span class="symp-vitals-meta">Wake\u00a0${sl.wake_time}</span>`);
+      html += `<div class="symp-vitals-row">
+        <span class="symp-vitals-label">Sleep</span>
+        <div class="symp-vitals-sleep-stats">${parts.join('')}</div>
+      </div>`;
+    }
+
+    // ── Vitals chips ─────────────────────────────────────────────────────────
+    const chips = [];
+    if (day.steps          != null) chips.push(`${day.steps.toLocaleString()}\u00a0steps`);
+    if (day.resting_hr     != null) chips.push(`${day.resting_hr}\u00a0bpm`);
+    if (day.hrv            != null) chips.push(`${day.hrv}\u00a0ms HRV`);
+    if (day.spo2           != null) chips.push(`${day.spo2}%\u00a0SpO\u2082`);
+    if (day.breathing_rate != null) chips.push(`${day.breathing_rate}\u00a0br/min`);
+
+    if (chips.length) {
+      html += `<div class="symp-vitals-row">
+        <span class="symp-vitals-label">Vitals</span>
+        <div class="symp-vitals-chips-row">
+          ${chips.map(c => `<span class="symp-vitals-chip">${c}</span>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    el.innerHTML = html;
   }
 
   function renderContent() {
