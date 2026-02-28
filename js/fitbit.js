@@ -9,9 +9,13 @@ const Fitbit = (() => {
 
   // ── API helper ────────────────────────────────────────────────────────────────
 
-  async function apiFetch(path) {
+  // version: '1' (default) or '1.2' — sleep stages require v1.2
+  async function apiFetch(path, version = '1') {
+    const base  = version === '1.2'
+      ? CONFIG.FITBIT_API.replace('/1/', '/1.2/')
+      : CONFIG.FITBIT_API;
     const token = FitbitAuth.getAccessToken();
-    const res   = await fetch(`${CONFIG.FITBIT_API}${path}`, {
+    const res   = await fetch(`${base}${path}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
@@ -36,7 +40,7 @@ const Fitbit = (() => {
 
   async function syncDate(date) {
     const [sleepRes, actRes, hrvRes, spo2Res, brRes] = await Promise.allSettled([
-      apiFetch(`/sleep/date/${date}.json`),
+      apiFetch(`/sleep/date/${date}.json`, '1.2'),  // v1.2 required for sleep stages
       apiFetch(`/activities/date/${date}.json`),
       apiFetch(`/hrv/date/${date}.json`),
       apiFetch(`/spo2/date/${date}.json`),
@@ -54,8 +58,6 @@ const Fitbit = (() => {
 
         // Read stage data (modern devices have deep/light/rem/wake; older = asleep/restless/awake)
         const lvl = main.levels?.summary;
-        console.log('[Fitbit DEBUG] sleep levels.summary:', JSON.stringify(lvl));
-        console.log('[Fitbit DEBUG] sleep type:', main.type, '| efficiency:', main.efficiency);
         const deep  = lvl?.deep?.minutes    ?? null;
         const light = lvl?.light?.minutes   ?? lvl?.restless?.minutes ?? null;
         const rem   = lvl?.rem?.minutes     ?? null;
