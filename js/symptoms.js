@@ -189,7 +189,8 @@ const Symptoms = (() => {
 
     // ── Vitals chips ─────────────────────────────────────────────────────────
     const chips = [];
-    if (day.steps          != null) chips.push(`${day.steps.toLocaleString()}\u00a0steps`);
+    const steps = Number(day.steps);
+    if (day.steps          != null && !isNaN(steps)) chips.push(`${steps.toLocaleString()}\u00a0steps`);
     if (day.resting_hr     != null) chips.push(`${day.resting_hr}\u00a0bpm`);
     if (day.hrv            != null) chips.push(`${day.hrv}\u00a0ms HRV`);
     if (day.spo2           != null) chips.push(`${day.spo2}%\u00a0SpO\u2082`);
