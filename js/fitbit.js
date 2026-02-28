@@ -11,9 +11,12 @@ const Fitbit = (() => {
 
   async function apiFetch(path) {
     const token = FitbitAuth.getAccessToken();
-    const res   = await fetch(`${CONFIG.FITBIT_API}${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // Send token as a query param instead of Authorization header.
+    // Authorization header triggers a CORS preflight (OPTIONS); Fitbit returns 401
+    // on OPTIONS for several endpoints without CORS headers, blocking those requests.
+    // Query-param auth avoids the preflight entirely (simple GET, no custom headers).
+    const sep = path.includes('?') ? '&' : '?';
+    const res = await fetch(`${CONFIG.FITBIT_API}${path}${sep}access_token=${encodeURIComponent(token)}`);
     if (!res.ok) {
       if (res.status === 401) throw new Error('Token expired — please reconnect Fitbit');
       throw new Error(`Fitbit API error ${res.status}: ${path}`);
