@@ -893,12 +893,15 @@ const Reports = (() => {
 
     const points = dates.flatMap(date => {
       const d     = daysData[date];
-      const hours = d?.sleep?.hours     ?? null;
-      const eff   = d?.sleep_efficiency ?? null;
       const deep  = d?.sleep_deep       ?? null;
       const light = d?.sleep_light      ?? null;
       const rem   = d?.sleep_rem        ?? null;
       const awake = d?.sleep_awake      ?? null;
+      const eff   = d?.sleep_efficiency ?? null;
+      // Derive true sleep time from stages (deep+light+rem, no awake) to match Fitbit app.
+      // Fall back to stored hours only when stage data is absent.
+      const stageMin = (deep != null && light != null && rem != null) ? deep + light + rem : null;
+      const hours = stageMin != null ? +(stageMin / 60).toFixed(2) : (d?.sleep?.hours ?? null);
       if (hours == null && eff == null && deep == null) return [];
       return [{ date, hours, eff, deep, light, rem, awake }];
     });
@@ -914,17 +917,17 @@ const Reports = (() => {
 
     const body = `
       <div class="rpt-stats-grid rpt-stats-grid--4col">
-        <div class="rpt-stat"><span class="rpt-stat-value">${avgHours != null ? avgHours.toFixed(1) + 'h' : '—'}</span><span class="rpt-stat-label">Avg hours</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgHours != null ? avgHours.toFixed(1) + 'h' : '—'}</span><span class="rpt-stat-label">Avg sleep</span></div>
         <div class="rpt-stat"><span class="rpt-stat-value">${avgEff   != null ? Math.round(avgEff) + '%' : '—'}</span><span class="rpt-stat-label">Avg efficiency</span></div>
         <div class="rpt-stat"><span class="rpt-stat-value">${avgDeep  != null ? fmtMinutes(Math.round(avgDeep)) : '—'}</span><span class="rpt-stat-label">Avg deep</span></div>
         <div class="rpt-stat"><span class="rpt-stat-value">${avgREM   != null ? fmtMinutes(Math.round(avgREM))  : '—'}</span><span class="rpt-stat-label">Avg REM</span></div>
       </div>
-      <p class="rpt-section-label">Sleep hours</p>
-      <div class="rpt-chart-wrap"><canvas id="rpt-sleep-hours-chart"></canvas></div>
-      ${hasStages ? `
-        <p class="rpt-section-label">Sleep stages</p>
-        <div class="rpt-chart-wrap rpt-chart-wrap--tall"><canvas id="rpt-sleep-stages-chart"></canvas></div>
-      ` : ''}`;
+      ${hasStages
+        ? `<p class="rpt-section-label">Sleep stages</p>
+           <div class="rpt-chart-wrap rpt-chart-wrap--tall"><canvas id="rpt-sleep-stages-chart"></canvas></div>`
+        : `<p class="rpt-section-label">Sleep hours</p>
+           <div class="rpt-chart-wrap"><canvas id="rpt-sleep-hours-chart"></canvas></div>`
+      }`;
 
     return rptSection('Sleep', sleepIcon(), body);
   }
@@ -933,11 +936,15 @@ const Reports = (() => {
     const daysData = Data.getData().days ?? {};
     const textClr  = cssVar('--clr-text-2');
     const gridClr  = cssVar('--clr-border');
+    const fmtMins  = v => { const h = Math.floor(v / 60), m = Math.round(v % 60); return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`; };
 
-    // Hours — line chart
+    // Hours — line chart (fallback when no stage data)
     if (document.getElementById('rpt-sleep-hours-chart')) {
       let pts = dates.flatMap(date => {
-        const h = daysData[date]?.sleep?.hours ?? null;
+        const d = daysData[date];
+        const deep = d?.sleep_deep ?? null, light = d?.sleep_light ?? null, rem = d?.sleep_rem ?? null;
+        const stageMin = (deep != null && light != null && rem != null) ? deep + light + rem : null;
+        const h = stageMin != null ? +(stageMin / 60).toFixed(2) : (d?.sleep?.hours ?? null);
         return h != null ? [{ date, h }] : [];
       });
       if (pts.length > 45) { const s = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % s === 0 || i === pts.length - 1); }
@@ -945,7 +952,7 @@ const Reports = (() => {
         type: 'line',
         data: {
           labels:   pts.map(p => p.date.slice(5).replace('-', '/')),
-          datasets: [{ label: 'Hours', data: pts.map(p => p.h),
+          datasets: [{ label: 'Sleep', data: pts.map(p => p.h),
             borderColor: '#3f51b5', backgroundColor: 'rgba(63,81,181,0.10)',
             pointBackgroundColor: '#3f51b5', pointRadius: 3, tension: 0.3, fill: true, spanGaps: true }],
         },
@@ -961,7 +968,7 @@ const Reports = (() => {
       });
     }
 
-    // Stages — stacked bar chart
+    // Stages — stacked bar chart (deep / rem / light / awake)
     if (document.getElementById('rpt-sleep-stages-chart')) {
       let pts = dates.flatMap(date => {
         const d = daysData[date];
@@ -979,16 +986,19 @@ const Reports = (() => {
             { label: 'Deep',  data: pts.map(p => p.deep),  backgroundColor: '#3f51b5', stack: 'sleep' },
             { label: 'REM',   data: pts.map(p => p.rem),   backgroundColor: '#9c27b0', stack: 'sleep' },
             { label: 'Light', data: pts.map(p => p.light), backgroundColor: '#03a9f4', stack: 'sleep' },
-            { label: 'Awake', data: pts.map(p => p.awake), backgroundColor: cssVar('--clr-border'), stack: 'sleep' },
+            { label: 'Awake', data: pts.map(p => p.awake), backgroundColor: 'rgba(255,152,0,0.75)', stack: 'sleep' },
           ],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: textClr, boxWidth: 10, font: { size: 10 } } } },
+          plugins: {
+            legend: { labels: { color: textClr, boxWidth: 10, font: { size: 10 } } },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtMins(Math.round(ctx.parsed.y))}` } },
+          },
           scales: {
             x: { stacked: true, ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
             y: { stacked: true,
-                 ticks: { color: textClr, callback: v => v >= 60 ? `${Math.floor(v/60)}h` : `${v}m` },
+                 ticks: { color: textClr, callback: v => v >= 60 ? Math.round(v / 60) + 'h' : v + 'm' },
                  grid: { color: gridClr } },
           },
         },
