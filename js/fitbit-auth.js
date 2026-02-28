@@ -86,7 +86,6 @@ const FitbitAuth = (() => {
   // ── Token management ─────────────────────────────────────────────────────────
 
   function storeTokens(json) {
-    console.log('[Fitbit] Granted scopes:', json.scope);
     const d = Data.getData();
     if (!d.fitbit) d.fitbit = {};
     d.fitbit.access_token  = json.access_token;
