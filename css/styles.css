@@ -5458,6 +5458,28 @@ button {
   white-space:   nowrap;
 }
 
+/* ── Sleep stages ──────────────────────────────────────────────────────── */
+.symp-vitals-sleep-stats      { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+/* Efficiency badge */
+.symp-sleep-eff               { font-size: 0.72rem; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
+.symp-sleep-eff--good         { background: var(--clr-accent-dim); color: var(--clr-accent); }
+.symp-sleep-eff--ok           { background: #fff8e1; color: #f57f17; }
+.symp-sleep-eff--low          { background: #ffebee; color: #c62828; }
+@media (prefers-color-scheme: dark) {
+  .symp-sleep-eff--ok         { background: #3e2f00; color: #ffc107; }
+  .symp-sleep-eff--low        { background: #3e0000; color: #ef5350; }
+}
+
+/* Stages bar */
+.symp-sleep-stages            { display: flex; width: 100%; height: 6px; border-radius: 3px; overflow: hidden; gap: 1px; flex-basis: 100%; }
+.symp-sleep-seg               { display: block; height: 100%; border-radius: 2px; min-width: 2px; }
+.symp-sleep-seg--deep         { background: #3f51b5; }   /* indigo — deep */
+.symp-sleep-seg--rem          { background: #9c27b0; }   /* purple — REM */
+.symp-sleep-seg--light        { background: #03a9f4; }   /* light blue — light */
+.symp-sleep-seg--awake        { background: var(--clr-border); }  /* muted — awake */
+.symp-sleep-stages-label      { font-size: 0.72rem; color: var(--clr-text-2); flex-basis: 100%; line-height: 1.3; }
+
 /* ── Symptom redesign: issues toggle button ──────────────────────────────── */
 
 .symp-issues-toggle-btn {

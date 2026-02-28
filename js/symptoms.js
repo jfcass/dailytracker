@@ -178,9 +178,35 @@ const Symptoms = (() => {
     // ── Sleep block ─────────────────────────────────────────────────────────
     const sl = day.sleep;
     if (sl?.hours > 0) {
+      let sleepHtml = `<span class="symp-vitals-sleep-val">${sl.hours}\u202fh</span>`;
+
+      // Efficiency badge
+      if (day.sleep_efficiency != null) {
+        const effCls = day.sleep_efficiency >= 85 ? 'good' : day.sleep_efficiency >= 75 ? 'ok' : 'low';
+        sleepHtml += `<span class="symp-sleep-eff symp-sleep-eff--${effCls}">${day.sleep_efficiency}%</span>`;
+      }
+
+      // Sleep stages mini-bar (only if we have at least one stage value)
+      const deep  = day.sleep_deep  ?? 0;
+      const light = day.sleep_light ?? 0;
+      const rem   = day.sleep_rem   ?? 0;
+      const awake = day.sleep_awake ?? 0;
+      const total = deep + light + rem + awake;
+      if (total > 0) {
+        const pct = v => ((v / total) * 100).toFixed(1);
+        sleepHtml += `
+          <div class="symp-sleep-stages" title="Deep ${deep}m \u00b7 REM ${rem}m \u00b7 Light ${light}m \u00b7 Awake ${awake}m">
+            <span class="symp-sleep-seg symp-sleep-seg--deep"  style="width:${pct(deep)}%"></span>
+            <span class="symp-sleep-seg symp-sleep-seg--rem"   style="width:${pct(rem)}%"></span>
+            <span class="symp-sleep-seg symp-sleep-seg--light" style="width:${pct(light)}%"></span>
+            <span class="symp-sleep-seg symp-sleep-seg--awake" style="width:${pct(awake)}%"></span>
+          </div>
+          <span class="symp-sleep-stages-label">Deep\u00a0${deep}m \u00b7 REM\u00a0${rem}m \u00b7 Light\u00a0${light}m</span>`;
+      }
+
       html += `<div class="symp-vitals-row">
         <span class="symp-vitals-label">Sleep</span>
-        <div class="symp-vitals-sleep-stats"><span class="symp-vitals-sleep-val">${sl.hours}\u202fh</span></div>
+        <div class="symp-vitals-sleep-stats">${sleepHtml}</div>
       </div>`;
     }
 
@@ -192,6 +218,9 @@ const Symptoms = (() => {
     if (day.hrv            != null) chips.push(`${day.hrv}\u00a0ms HRV`);
     if (day.spo2           != null) chips.push(`${day.spo2}%\u00a0SpO\u2082`);
     if (day.breathing_rate != null) chips.push(`${day.breathing_rate}\u00a0br/min`);
+    if (day.floors         != null && day.floors > 0)  chips.push(`${day.floors}\u00a0floors`);
+    if (day.active_minutes != null)                     chips.push(`${day.active_minutes}\u00a0active\u00a0min`);
+    if (day.calories       != null)                     chips.push(`${day.calories.toLocaleString()}\u00a0cal`);
 
     if (chips.length) {
       html += `<div class="symp-vitals-row">

@@ -45,16 +45,36 @@ const Fitbit = (() => {
 
     const day = Data.getDay(date);
 
-    // Sleep: duration, bedtime, wake time
+    // Sleep: duration, bedtime, wake time, stages, efficiency
     if (sleepRes.status === 'fulfilled') {
       const main = (sleepRes.value.sleep ?? []).find(s => s.isMainSleep)
                 ?? sleepRes.value.sleep?.[0];
       if (main) {
         if (!day.sleep) day.sleep = {};
-        day.sleep.hours     = +(main.minutesAsleep / 60).toFixed(1);
+
+        // Read stage data (modern devices have deep/light/rem/wake; older = asleep/restless/awake)
+        const lvl = main.levels?.summary;
+        const deep  = lvl?.deep?.minutes    ?? null;
+        const light = lvl?.light?.minutes   ?? lvl?.restless?.minutes ?? null;
+        const rem   = lvl?.rem?.minutes     ?? null;
+        const awake = lvl?.wake?.minutes    ?? lvl?.awake?.minutes    ?? null;
+
+        // Sleep hours: prefer deep+light+rem (matches Fitbit app "Sleep Duration").
+        // Falls back to minutesAsleep for older devices without stage data.
+        const stageTotal = (deep != null && light != null && rem != null)
+          ? deep + light + rem
+          : null;
+        day.sleep.hours     = +(( stageTotal ?? main.minutesAsleep ) / 60).toFixed(1);
         // Fitbit times include date: "2026-02-27T23:15:00.000" → take HH:MM
         day.sleep.bedtime   = (main.startTime ?? '').slice(11, 16);
         day.sleep.wake_time = (main.endTime   ?? '').slice(11, 16);
+
+        // Extra sleep fields
+        day.sleep_efficiency = main.efficiency ?? null;
+        day.sleep_deep  = deep;
+        day.sleep_light = light;
+        day.sleep_rem   = rem;
+        day.sleep_awake = awake;
       }
     }
 
@@ -63,6 +83,10 @@ const Fitbit = (() => {
       const summary = actRes.value.summary ?? {};
       if (summary.steps != null)       day.steps      = summary.steps;
       if (summary.restingHeartRate)    day.resting_hr = summary.restingHeartRate;
+      if (summary.activityCalories != null) day.calories       = summary.activityCalories;
+      const activeMin = (summary.fairlyActiveMinutes ?? 0) + (summary.veryActiveMinutes ?? 0);
+      if (activeMin > 0)                    day.active_minutes = activeMin;
+      if (summary.floors != null)           day.floors         = summary.floors;
     }
 
     // HRV — daily RMSSD in milliseconds
