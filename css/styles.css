@@ -3838,6 +3838,7 @@ button {
 }
 
 /* Custom date range picker */
+.rpt-custom-picker[hidden] { display: none; }
 .rpt-custom-picker {
   display:     flex;
   align-items: center;
