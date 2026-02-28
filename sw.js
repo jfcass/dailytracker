@@ -1,4 +1,4 @@
-const CACHE = 'daily-tracker-v3';
+const CACHE = 'daily-tracker-v4';
 const SHELL = [
   './index.html',
   './css/styles.css',
