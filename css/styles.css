@@ -3992,6 +3992,12 @@ button {
   gap:                   8px;
   margin-bottom:         12px;
 }
+.rpt-stats-grid--4col {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 360px) {
+  .rpt-stats-grid--4col { grid-template-columns: repeat(2, 1fr); }
+}
 
 .rpt-stat {
   display:        flex;
@@ -4028,6 +4034,9 @@ button {
 }
 .rpt-chart-wrap--short {
   height: 120px;
+}
+.rpt-chart-wrap--tall {
+  height: 200px;
 }
 
 /* ── Health issues ───────────────────────────────────────────────────────── */

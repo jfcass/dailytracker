@@ -83,6 +83,12 @@ const Reports = (() => {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
+  function avg(arr) {
+    const vals = arr.filter(v => v != null);
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
   // ── Chart registry ────────────────────────────────────────────────────────────
 
   function createChart(id, config) {
@@ -870,6 +876,311 @@ const Reports = (() => {
   function bowelIcon() {
     return svgIcon('<path d="M12 2C6 8 4 12.5 4 15a8 8 0 0 0 16 0c0-2.5-2-7-8-13z"/>');
   }
+  function sleepIcon() {
+    return svgIcon('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>');
+  }
+  function activityIcon() {
+    return svgIcon('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>');
+  }
+  function biometricsIcon() {
+    return svgIcon('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>');
+  }
+
+  // ── Sleep section ─────────────────────────────────────────────────────────────
+
+  function buildSleepSection(dates) {
+    const daysData = Data.getData().days ?? {};
+
+    const points = dates.flatMap(date => {
+      const d     = daysData[date];
+      const hours = d?.sleep?.hours     ?? null;
+      const eff   = d?.sleep_efficiency ?? null;
+      const deep  = d?.sleep_deep       ?? null;
+      const light = d?.sleep_light      ?? null;
+      const rem   = d?.sleep_rem        ?? null;
+      const awake = d?.sleep_awake      ?? null;
+      if (hours == null && eff == null && deep == null) return [];
+      return [{ date, hours, eff, deep, light, rem, awake }];
+    });
+
+    if (!points.length)
+      return rptSection('Sleep', sleepIcon(), `<p class="rpt-empty">No sleep data in this period.</p>`);
+
+    const avgHours = avg(points.map(p => p.hours));
+    const avgEff   = avg(points.map(p => p.eff));
+    const avgDeep  = avg(points.map(p => p.deep));
+    const avgREM   = avg(points.map(p => p.rem));
+    const hasStages = points.some(p => p.deep != null || p.rem != null || p.light != null);
+
+    const body = `
+      <div class="rpt-stats-grid rpt-stats-grid--4col">
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgHours != null ? avgHours.toFixed(1) + 'h' : '—'}</span><span class="rpt-stat-label">Avg hours</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgEff   != null ? Math.round(avgEff) + '%' : '—'}</span><span class="rpt-stat-label">Avg efficiency</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgDeep  != null ? fmtMinutes(Math.round(avgDeep)) : '—'}</span><span class="rpt-stat-label">Avg deep</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgREM   != null ? fmtMinutes(Math.round(avgREM))  : '—'}</span><span class="rpt-stat-label">Avg REM</span></div>
+      </div>
+      <p class="rpt-section-label">Sleep hours</p>
+      <div class="rpt-chart-wrap"><canvas id="rpt-sleep-hours-chart"></canvas></div>
+      ${hasStages ? `
+        <p class="rpt-section-label">Sleep stages</p>
+        <div class="rpt-chart-wrap rpt-chart-wrap--tall"><canvas id="rpt-sleep-stages-chart"></canvas></div>
+      ` : ''}`;
+
+    return rptSection('Sleep', sleepIcon(), body);
+  }
+
+  function renderSleepCharts(dates) {
+    const daysData = Data.getData().days ?? {};
+    const textClr  = cssVar('--clr-text-2');
+    const gridClr  = cssVar('--clr-border');
+
+    // Hours — line chart
+    if (document.getElementById('rpt-sleep-hours-chart')) {
+      let pts = dates.flatMap(date => {
+        const h = daysData[date]?.sleep?.hours ?? null;
+        return h != null ? [{ date, h }] : [];
+      });
+      if (pts.length > 45) { const s = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % s === 0 || i === pts.length - 1); }
+      if (pts.length) createChart('rpt-sleep-hours-chart', {
+        type: 'line',
+        data: {
+          labels:   pts.map(p => p.date.slice(5).replace('-', '/')),
+          datasets: [{ label: 'Hours', data: pts.map(p => p.h),
+            borderColor: '#3f51b5', backgroundColor: 'rgba(63,81,181,0.10)',
+            pointBackgroundColor: '#3f51b5', pointRadius: 3, tension: 0.3, fill: true, spanGaps: true }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: false, suggestedMin: 4, suggestedMax: 10,
+                 ticks: { color: textClr, callback: v => `${v}h` }, grid: { color: gridClr } },
+            x: { ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    // Stages — stacked bar chart
+    if (document.getElementById('rpt-sleep-stages-chart')) {
+      let pts = dates.flatMap(date => {
+        const d = daysData[date];
+        const deep = d?.sleep_deep ?? null, light = d?.sleep_light ?? null,
+              rem  = d?.sleep_rem  ?? null, awake = d?.sleep_awake ?? null;
+        if (deep == null && rem == null && light == null) return [];
+        return [{ date, deep: deep ?? 0, rem: rem ?? 0, light: light ?? 0, awake: awake ?? 0 }];
+      });
+      if (pts.length > 45) { const s = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % s === 0 || i === pts.length - 1); }
+      if (pts.length) createChart('rpt-sleep-stages-chart', {
+        type: 'bar',
+        data: {
+          labels: pts.map(p => p.date.slice(5).replace('-', '/')),
+          datasets: [
+            { label: 'Deep',  data: pts.map(p => p.deep),  backgroundColor: '#3f51b5', stack: 'sleep' },
+            { label: 'REM',   data: pts.map(p => p.rem),   backgroundColor: '#9c27b0', stack: 'sleep' },
+            { label: 'Light', data: pts.map(p => p.light), backgroundColor: '#03a9f4', stack: 'sleep' },
+            { label: 'Awake', data: pts.map(p => p.awake), backgroundColor: cssVar('--clr-border'), stack: 'sleep' },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textClr, boxWidth: 10, font: { size: 10 } } } },
+          scales: {
+            x: { stacked: true, ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
+            y: { stacked: true,
+                 ticks: { color: textClr, callback: v => v >= 60 ? `${Math.floor(v/60)}h` : `${v}m` },
+                 grid: { color: gridClr } },
+          },
+        },
+      });
+    }
+  }
+
+  // ── Activity section ──────────────────────────────────────────────────────────
+
+  function buildActivitySection(dates) {
+    const daysData = Data.getData().days ?? {};
+
+    const points = dates.flatMap(date => {
+      const d = daysData[date];
+      const steps  = d?.steps          ?? null;
+      const active = d?.active_minutes ?? null;
+      const cals   = d?.calories       ?? null;
+      const floors = d?.floors         ?? null;
+      if (steps == null && active == null && cals == null && floors == null) return [];
+      return [{ date, steps, active, cals, floors }];
+    });
+
+    if (!points.length)
+      return rptSection('Activity', activityIcon(), `<p class="rpt-empty">No activity data in this period.</p>`);
+
+    const avgSteps  = avg(points.map(p => p.steps));
+    const avgActive = avg(points.map(p => p.active));
+    const avgCals   = avg(points.map(p => p.cals));
+    const avgFloors = avg(points.map(p => p.floors));
+    const hasFloors = points.some(p => p.floors != null);
+
+    const statItems = [
+      { v: avgSteps  != null ? Math.round(avgSteps).toLocaleString() : '—',   l: 'Avg steps'      },
+      { v: avgActive != null ? Math.round(avgActive) + '\u202fmin'   : '—',   l: 'Active min/day' },
+      { v: avgCals   != null ? Math.round(avgCals).toLocaleString()  : '—',   l: 'Avg calories'   },
+      ...(hasFloors ? [{ v: avgFloors != null ? Math.round(avgFloors).toLocaleString() : '—', l: 'Avg floors' }] : []),
+    ];
+
+    const gridCls = statItems.length === 4 ? 'rpt-stats-grid rpt-stats-grid--4col' : 'rpt-stats-grid';
+
+    const body = `
+      <div class="${gridCls}">
+        ${statItems.map(s => `<div class="rpt-stat"><span class="rpt-stat-value">${escHtml(s.v)}</span><span class="rpt-stat-label">${escHtml(s.l)}</span></div>`).join('')}
+      </div>
+      <p class="rpt-section-label">Daily steps</p>
+      <div class="rpt-chart-wrap"><canvas id="rpt-activity-steps-chart"></canvas></div>
+      <p class="rpt-section-label">Active minutes</p>
+      <div class="rpt-chart-wrap rpt-chart-wrap--short"><canvas id="rpt-activity-active-chart"></canvas></div>`;
+
+    return rptSection('Activity', activityIcon(), body);
+  }
+
+  function renderActivityCharts(dates) {
+    const daysData = Data.getData().days ?? {};
+    const textClr  = cssVar('--clr-text-2');
+    const gridClr  = cssVar('--clr-border');
+
+    if (document.getElementById('rpt-activity-steps-chart')) {
+      let pts = dates.flatMap(date => {
+        const s = daysData[date]?.steps ?? null;
+        return s != null ? [{ date, s }] : [];
+      });
+      if (pts.length > 45) { const step = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1); }
+      if (pts.length) createChart('rpt-activity-steps-chart', {
+        type: 'bar',
+        data: {
+          labels: pts.map(p => p.date.slice(5).replace('-', '/')),
+          datasets: [{ label: 'Steps', data: pts.map(p => p.s),
+            backgroundColor: cssVar('--clr-accent') + '99',
+            borderRadius: 4 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true,
+                 ticks: { color: textClr, callback: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v },
+                 grid: { color: gridClr } },
+            x: { ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    if (document.getElementById('rpt-activity-active-chart')) {
+      let pts = dates.flatMap(date => {
+        const a = daysData[date]?.active_minutes ?? null;
+        return a != null ? [{ date, a }] : [];
+      });
+      if (pts.length > 45) { const step = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % step === 0 || i === pts.length - 1); }
+      if (pts.length) createChart('rpt-activity-active-chart', {
+        type: 'bar',
+        data: {
+          labels: pts.map(p => p.date.slice(5).replace('-', '/')),
+          datasets: [{ label: 'Active min', data: pts.map(p => p.a),
+            backgroundColor: 'rgba(255,152,0,0.75)',
+            borderRadius: 4 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: textClr }, grid: { color: gridClr } },
+            x: { ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
+          },
+        },
+      });
+    }
+  }
+
+  // ── Biometrics section ────────────────────────────────────────────────────────
+
+  function buildBiometricsSection(dates) {
+    const daysData = Data.getData().days ?? {};
+
+    const points = dates.flatMap(date => {
+      const d  = daysData[date];
+      const hr = d?.resting_hr     ?? null;
+      const hv = d?.hrv            ?? null;
+      const sp = d?.spo2           ?? null;
+      const br = d?.breathing_rate ?? null;
+      if (hr == null && hv == null && sp == null && br == null) return [];
+      return [{ date, hr, hv, sp, br }];
+    });
+
+    if (!points.length)
+      return rptSection('Biometrics', biometricsIcon(), `<p class="rpt-empty">No biometric data in this period.</p>`);
+
+    const avgHR = avg(points.map(p => p.hr));
+    const avgHV = avg(points.map(p => p.hv));
+    const avgSp = avg(points.map(p => p.sp));
+    const avgBR = avg(points.map(p => p.br));
+
+    const body = `
+      <div class="rpt-stats-grid rpt-stats-grid--4col">
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgHR != null ? Math.round(avgHR) : '—'}</span><span class="rpt-stat-label">Resting HR (bpm)</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgHV != null ? avgHV.toFixed(1)  : '—'}</span><span class="rpt-stat-label">HRV (ms)</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgSp != null ? avgSp.toFixed(1) + '%' : '—'}</span><span class="rpt-stat-label">SpO2</span></div>
+        <div class="rpt-stat"><span class="rpt-stat-value">${avgBR != null ? avgBR.toFixed(1)  : '—'}</span><span class="rpt-stat-label">Breathing (br/min)</span></div>
+      </div>
+      <div class="rpt-chart-wrap rpt-chart-wrap--tall"><canvas id="rpt-biometrics-chart"></canvas></div>`;
+
+    return rptSection('Biometrics', biometricsIcon(), body);
+  }
+
+  function renderBiometricsChart(dates) {
+    if (!document.getElementById('rpt-biometrics-chart')) return;
+    const daysData = Data.getData().days ?? {};
+
+    let pts = dates.flatMap(date => {
+      const d  = daysData[date];
+      const hr = d?.resting_hr ?? null;
+      const hv = d?.hrv        ?? null;
+      if (hr == null && hv == null) return [];
+      return [{ date, hr, hv }];
+    });
+    if (!pts.length) return;
+    if (pts.length > 45) { const s = Math.ceil(pts.length / 45); pts = pts.filter((_, i) => i % s === 0 || i === pts.length - 1); }
+
+    const textClr = cssVar('--clr-text-2');
+    const gridClr = cssVar('--clr-border');
+    const hasHR   = pts.some(p => p.hr != null);
+    const hasHV   = pts.some(p => p.hv != null);
+
+    const datasets = [];
+    if (hasHR) datasets.push({
+      label: 'Resting HR (bpm)', data: pts.map(p => p.hr), yAxisID: 'y',
+      borderColor: '#f44336', backgroundColor: 'rgba(244,67,54,0.08)',
+      pointBackgroundColor: '#f44336', pointRadius: 3, tension: 0.3, fill: false, spanGaps: true,
+    });
+    if (hasHV) datasets.push({
+      label: 'HRV (ms)', data: pts.map(p => p.hv), yAxisID: 'y1',
+      borderColor: '#9c27b0', backgroundColor: 'rgba(156,39,176,0.08)',
+      pointBackgroundColor: '#9c27b0', pointRadius: 3, tension: 0.3, fill: false, spanGaps: true,
+    });
+
+    createChart('rpt-biometrics-chart', {
+      type: 'line',
+      data: { labels: pts.map(p => p.date.slice(5).replace('-', '/')), datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: textClr, boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { color: textClr, maxTicksLimit: 8 }, grid: { display: false } },
+          y:  { type: 'linear', position: 'left',  display: hasHR, title: { display: true, text: 'bpm', color: textClr, font: { size: 10 } },
+                ticks: { color: '#f44336' }, grid: { color: gridClr } },
+          y1: { type: 'linear', position: 'right', display: hasHV, title: { display: true, text: 'ms', color: textClr, font: { size: 10 } },
+                ticks: { color: '#9c27b0' }, grid: { drawOnChartArea: false } },
+        },
+      },
+    });
+  }
 
   // ── Main render ───────────────────────────────────────────────────────────────
 
@@ -880,17 +1191,24 @@ const Reports = (() => {
 
     const dates = getDatesInPeriod();
 
-    el.innerHTML = buildHabitsSection(dates)
+    el.innerHTML =
+        buildSleepSection(dates)
+      + buildActivitySection(dates)
+      + buildBiometricsSection(dates)
       + buildMoodSection(dates)
+      + buildHabitsSection(dates)
       + buildHealthSection(dates)
       + buildModerationSection(dates)
-      + buildBowelSection(dates)
       + buildMedicationsSection(dates)
+      + buildBowelSection(dates)
       + buildReadingSection(dates)
       + buildGratitudesSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {
+      renderSleepCharts(dates);
+      renderActivityCharts(dates);
+      renderBiometricsChart(dates);
       renderMoodChart(dates);
       renderHealthCharts(dates);
       renderModerationChart(dates);
