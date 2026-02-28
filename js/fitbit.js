@@ -54,6 +54,8 @@ const Fitbit = (() => {
 
         // Read stage data (modern devices have deep/light/rem/wake; older = asleep/restless/awake)
         const lvl = main.levels?.summary;
+        console.log('[Fitbit DEBUG] sleep levels.summary:', JSON.stringify(lvl));
+        console.log('[Fitbit DEBUG] sleep type:', main.type, '| efficiency:', main.efficiency);
         const deep  = lvl?.deep?.minutes    ?? null;
         const light = lvl?.light?.minutes   ?? lvl?.restless?.minutes ?? null;
         const rem   = lvl?.rem?.minutes     ?? null;
