@@ -5399,6 +5399,11 @@ button {
 
 /* ── Health section: vitals bar ─────────────────────────────────────────── */
 
+#symp-vitals-bar {
+  padding-bottom: 6px;
+  border-bottom:  1px solid var(--clr-border);
+  margin-bottom:  4px;
+}
 #symp-vitals-bar:empty { display: none; }
 
 .symp-vitals-row {
@@ -5411,18 +5416,13 @@ button {
 .symp-vitals-row + .symp-vitals-row {
   padding-top: 2px;
 }
-#symp-vitals-bar {
-  padding-bottom: 6px;
-  border-bottom:  1px solid var(--clr-border);
-  margin-bottom:  4px;
-}
 .symp-vitals-label {
   font-size:      0.7rem;
   font-weight:    700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color:          var(--clr-text-2);
-  min-width:      36px;
+  min-width:      36px; /* aligns labels across rows; expand if label text changes */
 }
 .symp-vitals-sleep-stats {
   display:     flex;
@@ -5440,9 +5440,10 @@ button {
   color:     var(--clr-text-2);
 }
 .symp-vitals-chips-row {
-  display:  flex;
-  flex-wrap: wrap;
-  gap:       5px;
+  display:     flex;
+  align-items: center;
+  flex-wrap:   wrap;
+  gap:         6px;
 }
 .symp-vitals-chip {
   font-size:     0.78rem;
