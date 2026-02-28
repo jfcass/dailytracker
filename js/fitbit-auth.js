@@ -42,7 +42,7 @@ const FitbitAuth = (() => {
     const params = new URLSearchParams({
       client_id:             CONFIG.FITBIT_CLIENT_ID,
       response_type:         'code',
-      scope:                 'sleep activity heartrate oxygen_saturation respiratory_rate cardio_fitness',
+      scope:                 'sleep activity heartrate oxygen_saturation respiratory_rate',
       redirect_uri:          getRedirectUri(),
       code_challenge:        challenge,
       code_challenge_method: 'S256',
