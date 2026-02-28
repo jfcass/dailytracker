@@ -33,7 +33,9 @@ self.addEventListener('fetch', e => {
       url.includes('fonts.') || url.includes('chart.js') ||
       url.includes('fitbit.com')) return;
 
+  // Bypass HTTP cache so GitHub Pages' max-age doesn't serve stale JS/CSS
+  const req = new Request(e.request.url, { cache: 'no-cache' });
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(req).catch(() => caches.match(e.request))
   );
 });
