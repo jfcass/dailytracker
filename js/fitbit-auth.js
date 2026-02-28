@@ -46,6 +46,7 @@ const FitbitAuth = (() => {
       redirect_uri:          getRedirectUri(),
       code_challenge:        challenge,
       code_challenge_method: 'S256',
+      prompt:                'consent',
       state,
     });
 
