@@ -26,6 +26,7 @@ const Settings = (() => {
     wrap.appendChild(buildCategoriesCard());
     wrap.appendChild(buildDisplayCard());
     wrap.appendChild(buildAccountCard());
+    wrap.appendChild(buildFitbitCard());
 
     const status = document.createElement('div');
     status.id = 'stg-save-status';
@@ -442,6 +443,77 @@ const Settings = (() => {
       App.showScreen('screen-auth');
     });
     card.appendChild(signOutRow);
+
+    return card;
+  }
+
+  // ── Fitbit Card ───────────────────────────────────────────────────────────────
+
+  function buildFitbitCard() {
+    const card = makeCard(`
+      <span class="stg-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        Fitbit
+      </span>
+    `);
+
+    const fitbit    = Data.getData().fitbit;
+    const connected = FitbitAuth.isConnected();
+
+    if (!connected) {
+      // ── Not connected ──
+      const row = document.createElement('div');
+      row.className = 'stg-action-row';
+      row.innerHTML = `
+        <div class="stg-action-info">
+          <div class="stg-action-title">Pixel Watch sync</div>
+          <div class="stg-action-desc">Auto-sync sleep, HRV, steps, heart rate, SpO2 and more</div>
+        </div>
+        <button class="stg-action-btn" type="button">Connect</button>
+      `;
+      row.querySelector('.stg-action-btn').addEventListener('click', () => FitbitAuth.startAuth());
+      card.appendChild(row);
+      return card;
+    }
+
+    // ── Connected ──
+    const disconnectBtn = document.createElement('button');
+    disconnectBtn.className = 'stg-action-btn stg-action-btn--danger';
+    disconnectBtn.type = 'button';
+    disconnectBtn.textContent = 'Disconnect';
+    disconnectBtn.addEventListener('click', async () => {
+      if (!confirm('Disconnect Fitbit? Auto-sync will stop, your logged data is kept.')) return;
+      await FitbitAuth.disconnect();
+      render();
+    });
+    card.querySelector('.stg-card-header').appendChild(disconnectBtn);
+
+    if (fitbit?.sync_error) {
+      // ── Error state ──
+      const errRow = document.createElement('div');
+      errRow.className = 'stg-fitbit-error';
+      errRow.innerHTML = `
+        <span class="stg-fitbit-error-msg">⚠ Last sync failed: ${escHtml(fitbit.sync_error)}</span>
+        <button class="stg-action-btn" type="button">Reconnect</button>
+      `;
+      errRow.querySelector('.stg-action-btn').addEventListener('click', () => FitbitAuth.startAuth());
+      card.appendChild(errRow);
+    } else {
+      // ── Healthy ──
+      const statusRow = document.createElement('div');
+      statusRow.className = 'stg-fitbit-status';
+      const lastSync = fitbit?.last_sync
+        ? (fitbit.last_sync === Data.today() ? 'Today' : fitbit.last_sync)
+        : 'Never';
+      statusRow.innerHTML = `
+        <span class="stg-fitbit-synced">Last synced: ${escHtml(lastSync)}</span>
+        <span class="stg-fitbit-fields">Sleep · HRV · Steps · Heart Rate · SpO2 · Breathing Rate</span>
+      `;
+      card.appendChild(statusRow);
+    }
 
     return card;
   }

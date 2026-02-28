@@ -4857,6 +4857,35 @@ button {
   font-style: italic;
 }
 
+/* ── Settings: Fitbit card ───────────────────────────────────────────────── */
+
+.stg-fitbit-status {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  padding:        10px 0 4px;
+}
+.stg-fitbit-synced {
+  font-size: 0.85rem;
+  color:     var(--clr-text);
+}
+.stg-fitbit-fields {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+.stg-fitbit-error {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     10px 0 4px;
+  flex-wrap:   wrap;
+}
+.stg-fitbit-error-msg {
+  font-size: 0.85rem;
+  color:     var(--clr-error);
+  flex:      1;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Today progress ring  (#today-ring-bar)
 ═══════════════════════════════════════════════════════════════════════════ */
