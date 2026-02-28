@@ -125,12 +125,25 @@ const App = (() => {
     Settings.init();
     HealthLog.init();
 
+    // Sync Fitbit in background — don't await, never blocks the UI
+    if (typeof Fitbit !== 'undefined') Fitbit.sync();
+
     applyCollapsedState();
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────────────
 
   async function init() {
+    // Detect Fitbit OAuth callback (?code=... in URL after Fitbit redirect)
+    const _fitbitParams = new URLSearchParams(window.location.search);
+    const _fitbitCode   = _fitbitParams.get('code');
+    const _fitbitState  = _fitbitParams.get('state');
+    if (_fitbitCode) {
+      sessionStorage.setItem('fitbit_pending_code',  _fitbitCode);
+      sessionStorage.setItem('fitbit_pending_state', _fitbitState ?? '');
+      history.replaceState({}, '', window.location.pathname);
+    }
+
     // Wire up sign-in button
     document.getElementById('btn-signin').addEventListener('click', handleSignIn);
 
@@ -185,6 +198,24 @@ const App = (() => {
 
     try {
       await Data.load();
+
+      // Complete Fitbit token exchange if this load follows a Fitbit OAuth redirect
+      const _pendingCode  = sessionStorage.getItem('fitbit_pending_code');
+      const _pendingState = sessionStorage.getItem('fitbit_pending_state');
+      if (_pendingCode) {
+        sessionStorage.removeItem('fitbit_pending_code');
+        sessionStorage.removeItem('fitbit_pending_state');
+        try {
+          await FitbitAuth.handleCallback(_pendingCode, _pendingState);
+          await Data.save();
+        } catch (err) {
+          console.error('Fitbit auth callback error:', err);
+          const d = Data.getData();
+          if (!d.fitbit) d.fitbit = {};
+          d.fitbit.sync_error = 'Connection failed: ' + (err.message ?? 'unknown error');
+          await Data.save();
+        }
+      }
 
       showMain();
     } catch (err) {
