@@ -11,7 +11,7 @@ const CONFIG = Object.freeze({
   // (Enable "Books API" in the same project first.)
   BOOKS_API_KEY:  'AIzaSyC_W1zuUVRMDgXrbbMSuwDkABjTZsLxamY',
   FITBIT_CLIENT_ID: '23V34Q',
-  FITBIT_API:       'https://api.fitbit.com/1/user/-',
+  FITBIT_API:       'https://fitbit-proxy.jfcass.workers.dev/1/user/-',
   FITBIT_TOKEN_URL: 'https://api.fitbit.com/oauth2/token',
   FITBIT_AUTH_URL:  'https://www.fitbit.com/oauth2/authorize',
 });
