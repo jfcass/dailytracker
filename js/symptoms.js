@@ -178,12 +178,9 @@ const Symptoms = (() => {
     // ── Sleep block ─────────────────────────────────────────────────────────
     const sl = day.sleep;
     if (sl?.hours > 0) {
-      const parts = [`<span class="symp-vitals-sleep-val">${sl.hours}\u202fh</span>`];
-      if (sl.bedtime)   parts.push(`<span class="symp-vitals-meta">Bed\u00a0${sl.bedtime}</span>`);
-      if (sl.wake_time) parts.push(`<span class="symp-vitals-meta">Wake\u00a0${sl.wake_time}</span>`);
       html += `<div class="symp-vitals-row">
         <span class="symp-vitals-label">Sleep</span>
-        <div class="symp-vitals-sleep-stats">${parts.join('')}</div>
+        <div class="symp-vitals-sleep-stats"><span class="symp-vitals-sleep-val">${sl.hours}\u202fh</span></div>
       </div>`;
     }
 

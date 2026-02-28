@@ -479,7 +479,18 @@ const Settings = (() => {
       return card;
     }
 
-    // ── Connected ──
+    // ── Connected: header buttons ──
+    const syncBtn = document.createElement('button');
+    syncBtn.className = 'stg-action-btn';
+    syncBtn.type = 'button';
+    syncBtn.textContent = 'Sync now';
+    syncBtn.addEventListener('click', async () => {
+      syncBtn.textContent = 'Syncing\u2026';
+      syncBtn.disabled = true;
+      await Fitbit.sync();
+    });
+    card.querySelector('.stg-card-header').appendChild(syncBtn);
+
     const disconnectBtn = document.createElement('button');
     disconnectBtn.className = 'stg-action-btn stg-action-btn--danger';
     disconnectBtn.type = 'button';
@@ -505,13 +516,34 @@ const Settings = (() => {
       // ── Healthy ──
       const statusRow = document.createElement('div');
       statusRow.className = 'stg-fitbit-status';
+
       const lastSync = fitbit?.last_sync
         ? (fitbit.last_sync === Data.today() ? 'Today' : fitbit.last_sync)
         : 'Never';
-      statusRow.innerHTML = `
-        <span class="stg-fitbit-synced">Last synced: ${escHtml(lastSync)}</span>
-        <span class="stg-fitbit-fields">Sleep · HRV · Steps · Heart Rate · SpO2 · Breathing Rate</span>
-      `;
+      const syncedEl = document.createElement('span');
+      syncedEl.className = 'stg-fitbit-synced';
+      syncedEl.textContent = `Last synced: ${lastSync}`;
+      statusRow.appendChild(syncedEl);
+
+      if (fitbit?.last_sync) {
+        const day = (Data.getData().days ?? {})[fitbit.last_sync];
+        const items = [];
+        const sl = day?.sleep;
+        if (sl?.hours > 0) items.push(`${sl.hours}\u202fh sleep`);
+        const stepsN = Number(day?.steps);
+        if (day?.steps != null && !isNaN(stepsN)) items.push(`${stepsN.toLocaleString()} steps`);
+        if (day?.resting_hr     != null) items.push(`${day.resting_hr} bpm`);
+        if (day?.hrv            != null) items.push(`${day.hrv} ms HRV`);
+        if (day?.spo2           != null) items.push(`${day.spo2}% SpO\u2082`);
+        if (day?.breathing_rate != null) items.push(`${day.breathing_rate} br/min`);
+        if (items.length) {
+          const dataEl = document.createElement('span');
+          dataEl.className = 'stg-fitbit-fields';
+          dataEl.textContent = items.join(' · ');
+          statusRow.appendChild(dataEl);
+        }
+      }
+
       card.appendChild(statusRow);
     }
 
