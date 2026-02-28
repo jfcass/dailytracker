@@ -1,4 +1,4 @@
-const CACHE = 'daily-tracker-v2';
+const CACHE = 'daily-tracker-v3';
 const SHELL = [
   './index.html',
   './css/styles.css',
@@ -30,7 +30,8 @@ self.addEventListener('fetch', e => {
   // Pass through Google API / OAuth / CDN requests — never cache these
   const url = e.request.url;
   if (url.includes('googleapis.com') || url.includes('accounts.google.com') ||
-      url.includes('fonts.') || url.includes('chart.js')) return;
+      url.includes('fonts.') || url.includes('chart.js') ||
+      url.includes('fitbit.com')) return;
 
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
