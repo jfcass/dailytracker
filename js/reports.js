@@ -149,8 +149,11 @@ const Reports = (() => {
   }
 
   function toggleCustomPicker() {
+    // Selecting "Custom" shows the picker; switching away hides it (handled by setPeriod).
     const picker = document.getElementById('rpt-custom-picker');
-    if (picker) picker.hidden = !picker.hidden;
+    if (picker) picker.hidden = false;
+    period = 'custom';
+    updatePeriodBtns();
   }
 
   function applyCustomRange() {
@@ -160,8 +163,7 @@ const Reports = (() => {
     customStart = start;
     customEnd   = end;
     period = 'custom';
-    const picker = document.getElementById('rpt-custom-picker');
-    if (picker) picker.hidden = true;
+    // Keep picker visible — it stays shown as long as Custom is the active period.
     updatePeriodBtns();
     render();
   }
