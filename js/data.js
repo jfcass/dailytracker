@@ -27,6 +27,7 @@ const Data = (() => {
     medications:    {},
     books:          {},
     blood_pressure: [],
+    fitbit:         null,
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
@@ -273,6 +274,11 @@ const Data = (() => {
         reading:           [],
         gym:               { muscle_groups: [] },
         bowel:             [],
+        steps:          null,
+        resting_hr:     null,
+        hrv:            null,
+        spo2:           null,
+        breathing_rate: null,
         gratitudes:        [],
         note:              '',
       };
