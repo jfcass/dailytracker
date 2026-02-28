@@ -605,8 +605,12 @@ const HealthLog = (() => {
 
   // ── Public bridge handlers ─────────────────────────────────────────────────────────────────────
 
-  function _openDetail(id)  { detailId = id; showResolveForm = false; showEditForm = false; render(); }
-  function _back()          { detailId = null; showResolveForm = false; showEditForm = false; bpFormMode = null; bpEditId = null; render(); }
+  function _openDetail(id)  { detailId = id; showResolveForm = false; showEditForm = false; history.pushState({ ht: 'hl-detail', id }, ''); render(); }
+  function _exitDetail()    { detailId = null; showResolveForm = false; showEditForm = false; bpFormMode = null; bpEditId = null; render(); }
+  function _back() {
+    if (history.state?.ht === 'hl-detail') { history.back(); return; }
+    detailId = null; showResolveForm = false; showEditForm = false; bpFormMode = null; bpEditId = null; render();
+  }
   function _startResolve()  { showResolveForm = true;  showEditForm = false; render(); }
   function _cancelResolve() { showResolveForm = false; render(); }
   function _startEdit()     { showEditForm = true;  showResolveForm = false; render(); }
@@ -665,7 +669,7 @@ const HealthLog = (() => {
 
   return {
     init, render,
-    _openDetail, _back,
+    _openDetail, _back, _exitDetail,
     _startResolve, _cancelResolve, _confirmResolve,
     _reopen,
     _startEdit, _cancelEdit, _saveEdit,

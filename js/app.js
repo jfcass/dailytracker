@@ -47,7 +47,14 @@ const App = (() => {
 
   // ── Tab navigation ────────────────────────────────────────────────────────────
 
-  function switchTab(name) {
+  let currentTab = 'today';
+
+  function switchTab(name, pushHistory = true) {
+    if (pushHistory && name !== currentTab) {
+      history.pushState({ ht: 'tab', tab: name }, '');
+    }
+    currentTab = name;
+
     // Show / hide tab content
     document.querySelectorAll('.tab-view').forEach(t => {
       const active = t.id === `tab-${name}`;
@@ -65,16 +72,33 @@ const App = (() => {
     if (screenEl) screenEl.scrollTop = 0;
 
     // Render the selected tab
-    if (name === 'reports')  Reports.render();
-    if (name === 'library')  Books.render();
-    if (name === 'settings') Settings.render();
+    if (name === 'reports')    Reports.render();
+    if (name === 'library')    Books.render();
+    if (name === 'settings')   Settings.render();
     if (name === 'health-log') HealthLog.render();
+  }
+
+  // ── Back-gesture / popstate handling ─────────────────────────────────────────
+
+  function handlePopState(e) {
+    const s = e.state;
+    if (!s?.ht) return;
+    if (s.ht === 'tab') {
+      // Returning to a tab — close any open detail views first
+      if (typeof HealthLog !== 'undefined') HealthLog._exitDetail();
+      switchTab(s.tab, false);
+    }
   }
 
   // ── Post-PIN: show main app ──────────────────────────────────────────────────
 
   function showMain() {
     showScreen('screen-app');
+
+    // Seed history so the first swipe-back has a state to land on
+    history.replaceState({ ht: 'tab', tab: 'today' }, '');
+    currentTab = 'today';
+    window.addEventListener('popstate', handlePopState);
 
     // Shared date navigator — must init before sections so getDate() is ready
     DateNav.init(date => {
