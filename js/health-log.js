@@ -285,13 +285,20 @@ const HealthLog = (() => {
       listHtml = `<p class="hl-empty" style="margin-top:8px">No blood pressure readings yet.</p>`;
     }
 
-    return `<div class="hl-bp-section">
-      <div class="hl-section-header">
+    const isCollapsed = collapsedSections.has('bp');
+    return `<div class="hl-bp-section${isCollapsed ? ' hl-section--collapsed' : ''}">
+      <div class="hl-section-header hl-section-header--toggle"
+           onclick="HealthLog._toggleSection('bp')">
         <span class="hl-section-title">Blood Pressure</span>
-        ${!bpFormMode ? `<button class="hl-section-add-btn" onclick="HealthLog._addBP()">+ Add</button>` : ''}
+        <div class="hl-section-header-right">
+          ${!bpFormMode && !isCollapsed
+            ? `<button class="hl-section-add-btn"
+                      onclick="event.stopPropagation(); HealthLog._addBP()">+ Add</button>`
+            : ''}
+          <span class="hl-section-chevron">▾</span>
+        </div>
       </div>
-      ${formHtml}
-      <div class="hl-bp-list">${listHtml}</div>
+      ${isCollapsed ? '' : `${formHtml}<div class="hl-bp-list">${listHtml}</div>`}
     </div>`;
   }
 
