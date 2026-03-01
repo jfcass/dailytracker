@@ -289,6 +289,7 @@ const Data = (() => {
         floors:           null,
         gratitudes:        [],
         note:              '',
+        prn_doses:         [],
       };
     }
     return data.days[dateStr];
