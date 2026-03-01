@@ -737,11 +737,21 @@ const Settings = (() => {
     const tagInput = wrap.querySelector('#prn-dose-tag-input');
     const addPrnDose = () => {
       const val = tagInput.value.trim();
-      if (val && !prnFDoses.includes(val)) {
-        prnFDoses = [...prnFDoses, val];
-        prnFDoseInput = '';
+      if (!val || prnFDoses.includes(val)) return;
+      prnFDoses = [...prnFDoses, val];
+      prnFDoseInput = '';
+      // Targeted DOM update — avoids full render() which dismisses the mobile keyboard
+      const tagsContainer = wrap.querySelector('#prn-dose-tags');
+      const tag = document.createElement('span');
+      tag.className = 'prn-dose-tag';
+      tag.innerHTML = `${escHtml(val)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(val)}" aria-label="Remove ${escHtml(val)}">×</button>`;
+      tag.querySelector('.prn-dose-tag__del').addEventListener('click', () => {
+        prnFDoses = prnFDoses.filter(d => d !== val);
         render();
-      }
+      });
+      tagsContainer.insertBefore(tag, tagInput);
+      tagInput.value = '';
+      tagInput.focus();
     };
     tagInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
@@ -974,10 +984,31 @@ const Settings = (() => {
     const tagInput = wrap.querySelector('#tx-dose-tag-input');
     const addTxDose = () => {
       const val = tagInput.value.trim();
-      if (val && !txMedFDoses.includes(val)) {
-        txMedFDoses = [...txMedFDoses, val];
-        txMedFDoseInput = '';
+      if (!val || txMedFDoses.includes(val)) return;
+      txMedFDoses = [...txMedFDoses, val];
+      txMedFDoseInput = '';
+      // Targeted DOM update — avoids full render() which dismisses the mobile keyboard
+      const tagsContainer = wrap.querySelector('#tx-dose-tags');
+      const tag = document.createElement('span');
+      tag.className = 'prn-dose-tag';
+      tag.innerHTML = `${escHtml(val)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(val)}" aria-label="Remove ${escHtml(val)}">×</button>`;
+      tag.querySelector('.prn-dose-tag__del').addEventListener('click', () => {
+        txMedFDoses = txMedFDoses.filter(d => d !== val);
         render();
+      });
+      tagsContainer.insertBefore(tag, tagInput);
+      tagInput.value = '';
+      tagInput.focus();
+      // Also update the default-dose <select> in-place so the new dose is immediately selectable
+      const defaultSelect = wrap.querySelector('#tx-f-default-dose');
+      if (defaultSelect) {
+        const current = txMedFDefaultDose;
+        defaultSelect.innerHTML = [
+          `<option value="">— None —</option>`,
+          ...txMedFDoses.map(d =>
+            `<option value="${escHtml(d)}"${d === current ? ' selected' : ''}>${escHtml(d)}</option>`
+          ),
+        ].join('');
       }
     };
     tagInput.addEventListener('keydown', e => {
