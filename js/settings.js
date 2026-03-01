@@ -18,10 +18,11 @@ const Settings = (() => {
   let prnFDoseInput  = '';
 
   // Treatment medication form state
-  let txMedForm       = null;   // null | 'add' | med-id (editing)
-  let txMedFName      = '';
-  let txMedFDoses     = [];     // string[]
-  let txMedFDoseInput = '';
+  let txMedForm         = null;   // null | 'add' | med-id (editing)
+  let txMedFName        = '';
+  let txMedFDoses       = [];     // string[]
+  let txMedFDoseInput   = '';
+  let txMedFDefaultDose = '';     // which dose is the default
 
   // ── Public entry points ───────────────────────────────────────────────────────
 
@@ -857,7 +858,10 @@ const Settings = (() => {
       row.className = 'stg-item-row';
 
       const doseTags = (med.doses ?? [])
-        .map(d => `<span class="prn-stg-tag">${escHtml(d)}</span>`)
+        .map(d => d === med.default_dose
+          ? `<span class="prn-stg-tag prn-stg-tag--default">${escHtml(d)} ★</span>`
+          : `<span class="prn-stg-tag">${escHtml(d)}</span>`
+        )
         .join('');
 
       row.innerHTML = `
@@ -905,10 +909,11 @@ const Settings = (() => {
       addBtn.type        = 'button';
       addBtn.textContent = '+ Add medication';
       addBtn.addEventListener('click', () => {
-        txMedForm       = 'add';
-        txMedFName      = '';
-        txMedFDoses     = [];
-        txMedFDoseInput = '';
+        txMedForm         = 'add';
+        txMedFName        = '';
+        txMedFDoses       = [];
+        txMedFDoseInput   = '';
+        txMedFDefaultDose = '';
         render();
       });
       addRow.appendChild(addBtn);
@@ -926,6 +931,13 @@ const Settings = (() => {
       `<span class="prn-dose-tag">${escHtml(d)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(d)}" aria-label="Remove ${escHtml(d)}">×</button></span>`
     ).join('');
 
+    const defaultDoseOptions = [
+      `<option value="">— None —</option>`,
+      ...txMedFDoses.map(d =>
+        `<option value="${escHtml(d)}"${d === txMedFDefaultDose ? ' selected' : ''}>${escHtml(d)}</option>`
+      ),
+    ].join('');
+
     wrap.innerHTML = `
       <div class="prn-stg-form__field">
         <label class="prn-stg-form__label" for="tx-f-name">Name</label>
@@ -939,6 +951,10 @@ const Settings = (() => {
           <input class="prn-dose-tag-input" id="tx-dose-tag-input" type="text"
                  value="${escHtml(txMedFDoseInput)}" placeholder="e.g. 200mg" maxlength="20">
         </div>
+      </div>
+      <div class="prn-stg-form__field">
+        <label class="prn-stg-form__label">Default dose</label>
+        <select class="prn-stg-form__input" id="tx-f-default-dose">${defaultDoseOptions}</select>
       </div>
       <div class="prn-stg-form__actions">
         <button class="stg-add-btn" style="background:transparent;border:1px solid var(--clr-border);color:var(--clr-text-2)" type="button" id="tx-f-cancel">Cancel</button>
@@ -965,6 +981,9 @@ const Settings = (() => {
     });
     tagInput.addEventListener('input', e => { txMedFDoseInput = e.target.value; });
 
+    wrap.querySelector('#tx-f-default-dose')
+      ?.addEventListener('change', e => { txMedFDefaultDose = e.target.value; });
+
     wrap.querySelectorAll('.prn-dose-tag__del').forEach(btn => {
       btn.addEventListener('click', () => {
         txMedFDoses = txMedFDoses.filter(d => d !== btn.dataset.dose);
@@ -982,10 +1001,11 @@ const Settings = (() => {
   }
 
   function startTxMedEdit(med) {
-    txMedForm       = med.id;
-    txMedFName      = med.name ?? '';
-    txMedFDoses     = [...(med.doses ?? [])];
-    txMedFDoseInput = '';
+    txMedForm         = med.id;
+    txMedFName        = med.name          ?? '';
+    txMedFDoses       = [...(med.doses    ?? [])];
+    txMedFDoseInput   = '';
+    txMedFDefaultDose = med.default_dose  ?? '';
     render();
   }
 
@@ -1000,20 +1020,25 @@ const Settings = (() => {
     const d = Data.getData();
     if (!d.treatment_medications) d.treatment_medications = {};
 
+    // Only persist a default_dose if it's still in the doses list
+    const defaultDose = txMedFDoses.includes(txMedFDefaultDose) ? txMedFDefaultDose : '';
+
     if (mode === 'add') {
       const id = crypto.randomUUID();
       d.treatment_medications[id] = {
         id,
         name,
-        doses:  [...txMedFDoses],
-        active: true,
-        notes:  '',
+        doses:        [...txMedFDoses],
+        default_dose: defaultDose,
+        active:       true,
+        notes:        '',
       };
     } else {
       const med = d.treatment_medications[editId];
       if (med) {
-        med.name  = name;
-        med.doses = [...txMedFDoses];
+        med.name         = name;
+        med.doses        = [...txMedFDoses];
+        med.default_dose = defaultDose;
       }
     }
 

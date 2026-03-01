@@ -6281,6 +6281,10 @@ button {
   background:    var(--clr-surface-2);
   color:         var(--clr-text-2);
 }
+.prn-stg-tag--default {
+  background: var(--clr-accent-dim);
+  color:      var(--clr-accent);
+}
 
 /* Add/edit form in settings */
 .prn-stg-form {

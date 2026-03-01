@@ -200,17 +200,22 @@ const Treatments = (() => {
       ),
     ].join('');
 
-    const selMed    = txMeds.find(m => m.id === fMedId);
-    const doseChips = (selMed?.doses ?? []).map(d =>
-      `<button class="prn-dose-chip${d === fDose ? ' prn-dose-chip--active' : ''}"
-               type="button" onclick="Treatments._selectDose('${escHtml(d)}')">${escHtml(d)}</button>`
-    ).join('');
+    const selMed = txMeds.find(m => m.id === fMedId);
 
+    // Dose field: dropdown when the selected med has predefined doses, plain text otherwise
     const doseField = selMed?.doses?.length
-      ? `<div class="tx-form-field">
+      ? (() => {
+          const doseOptions = [
+            `<option value="">— Select dose —</option>`,
+            ...selMed.doses.map(d =>
+              `<option value="${escHtml(d)}"${d === fDose ? ' selected' : ''}>${escHtml(d)}</option>`
+            ),
+          ].join('');
+          return `<div class="tx-form-field">
            <label class="tx-form-label">Dose</label>
-           <div class="prn-dose-chips">${doseChips}</div>
-         </div>`
+           <select class="hl-edit-select" onchange="Treatments._setDose(this.value)">${doseOptions}</select>
+         </div>`;
+        })()
       : `<div class="tx-form-field">
            <label class="tx-form-label">Dose</label>
            <input class="hl-edit-input" type="text" value="${escHtml(fDose)}"
@@ -249,13 +254,6 @@ const Treatments = (() => {
             </div>
           </div>
 
-          <div class="tx-form-field">
-            <label class="tx-form-label">Intention</label>
-            <textarea class="tx-form-textarea" rows="2"
-                      oninput="Treatments._setIntention(this.value)"
-                      placeholder="What do you intend to explore or work on?">${escHtml(fIntention)}</textarea>
-          </div>
-
           ${noMedsWarning}
 
           <div class="tx-form-field">
@@ -264,6 +262,13 @@ const Treatments = (() => {
           </div>
 
           ${doseField}
+
+          <div class="tx-form-field">
+            <label class="tx-form-label">Intention</label>
+            <textarea class="tx-form-textarea" rows="2"
+                      oninput="Treatments._setIntention(this.value)"
+                      placeholder="What do you intend to explore or work on?">${escHtml(fIntention)}</textarea>
+          </div>
 
           <div class="tx-form-field">
             <label class="tx-form-label">Notes</label>
@@ -599,9 +604,14 @@ const Treatments = (() => {
     _setStart:       v => { fStart = v; },
     _setEnd:         v => { fEnd = v; },
     _setIntention:   v => { fIntention = v; },
-    _setMedId:       v => { fMedId = v; fDose = ''; render(); },
+    _setMedId:       v => {
+      fMedId = v;
+      // Pre-fill the medication's default dose (user can still change it)
+      const med = (Data.getData().treatment_medications ?? {})[v];
+      fDose = med?.default_dose ?? '';
+      render();
+    },
     _setDose:        v => { fDose = v; },
-    _selectDose:     v => { fDose = v === fDose ? '' : v; render(); },
     _setNotes:       v => { fNotes = v; },
     _goToTxMedsSettings,
     _openBPForm:     treatmentId => openBPForm(treatmentId),
