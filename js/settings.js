@@ -735,21 +735,28 @@ const Settings = (() => {
     wrap.querySelector('#prn-f-max').addEventListener('input', e => { prnFMaxDoses = e.target.value; });
 
     const tagInput = wrap.querySelector('#prn-dose-tag-input');
-    tagInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        const val = tagInput.value.trim().replace(/,$/, '');
-        if (val && !prnFDoses.includes(val)) {
-          prnFDoses = [...prnFDoses, val];
-          prnFDoseInput = '';
-        }
+    const addPrnDose = () => {
+      const val = tagInput.value.trim();
+      if (val && !prnFDoses.includes(val)) {
+        prnFDoses = [...prnFDoses, val];
+        prnFDoseInput = '';
         render();
+      }
+    };
+    tagInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
+        e.preventDefault();
+        addPrnDose();
       } else if (e.key === 'Backspace' && tagInput.value === '' && prnFDoses.length > 0) {
         prnFDoses = prnFDoses.slice(0, -1);
         render();
       }
     });
-    tagInput.addEventListener('input', e => { prnFDoseInput = e.target.value; });
+    tagInput.addEventListener('input', e => {
+      // Android virtual keyboards fire 'insertLineBreak' instead of keydown Enter
+      if (e.inputType === 'insertLineBreak') { addPrnDose(); return; }
+      prnFDoseInput = e.target.value;
+    });
 
     wrap.querySelectorAll('.prn-dose-tag__del').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -965,21 +972,28 @@ const Settings = (() => {
     wrap.querySelector('#tx-f-name').addEventListener('input', e => { txMedFName = e.target.value; });
 
     const tagInput = wrap.querySelector('#tx-dose-tag-input');
-    tagInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ',') {
-        e.preventDefault();
-        const val = tagInput.value.trim().replace(/,$/, '');
-        if (val && !txMedFDoses.includes(val)) {
-          txMedFDoses = [...txMedFDoses, val];
-          txMedFDoseInput = '';
-        }
+    const addTxDose = () => {
+      const val = tagInput.value.trim();
+      if (val && !txMedFDoses.includes(val)) {
+        txMedFDoses = [...txMedFDoses, val];
+        txMedFDoseInput = '';
         render();
+      }
+    };
+    tagInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
+        e.preventDefault();
+        addTxDose();
       } else if (e.key === 'Backspace' && tagInput.value === '' && txMedFDoses.length > 0) {
         txMedFDoses = txMedFDoses.slice(0, -1);
         render();
       }
     });
-    tagInput.addEventListener('input', e => { txMedFDoseInput = e.target.value; });
+    tagInput.addEventListener('input', e => {
+      // Android virtual keyboards fire 'insertLineBreak' instead of keydown Enter
+      if (e.inputType === 'insertLineBreak') { addTxDose(); return; }
+      txMedFDoseInput = e.target.value;
+    });
 
     wrap.querySelector('#tx-f-default-dose')
       ?.addEventListener('change', e => { txMedFDefaultDose = e.target.value; });
@@ -1016,6 +1030,13 @@ const Settings = (() => {
       if (el) el.classList.add('prn-stg-form__input--error');
       return;
     }
+
+    // Auto-include any dose typed in the input but not yet confirmed with Enter
+    const pendingDose = txMedFDoseInput.trim();
+    if (pendingDose && !txMedFDoses.includes(pendingDose)) {
+      txMedFDoses = [...txMedFDoses, pendingDose];
+    }
+    txMedFDoseInput = '';
 
     const d = Data.getData();
     if (!d.treatment_medications) d.treatment_medications = {};
