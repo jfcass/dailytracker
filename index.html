@@ -509,6 +509,11 @@
       <div id="health-log-content"></div>
     </div>
 
+    <!-- ── Treatments tab ─────────────────────────────────────────────── -->
+    <div id="tab-treatments" class="tab-view" hidden>
+      <div id="treatments-content"></div>
+    </div>
+
     <!-- ── Bottom navigation ─────────────────────────────────────────── -->
     <nav class="bottom-nav" aria-label="Main navigation">
 
@@ -525,15 +530,16 @@
         Today
       </button>
 
-      <button class="bottom-nav-btn" data-tab="library"
-              type="button" onclick="App.switchTab('library')">
+      <button class="bottom-nav-btn" data-tab="treatments"
+              type="button" onclick="App.switchTab('treatments')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
              width="22" height="22" aria-hidden="true">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <path d="M9 3h6v8l4 8H5l4-8V3z"/>
+          <line x1="6" y1="3" x2="18" y2="3"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
         </svg>
-        Library
+        Treatments
       </button>
 
       <button class="bottom-nav-btn" data-tab="health-log"
@@ -544,6 +550,17 @@
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
         Health Log
+      </button>
+
+      <button class="bottom-nav-btn" data-tab="library"
+              type="button" onclick="App.switchTab('library')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        Library
       </button>
 
       <button class="bottom-nav-btn" data-tab="reports"
@@ -577,6 +594,7 @@
   <script src="js/bowel.js"></script>
   <script src="js/gratitudes.js"></script>
   <script src="js/medications.js"></script>
+  <script src="js/treatments.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="js/books.js"></script>
   <script src="js/reports.js"></script>
