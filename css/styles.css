@@ -5963,3 +5963,321 @@ button {
 .symp-assign-btn:hover {
   opacity: 0.82;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PRN (As-Needed) Medications
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Dose card ─────────────────────────────────────────────────────── */
+
+.prn-card {
+  display:         flex;
+  align-items:     center;
+  gap:             10px;
+  padding:         10px 14px;
+  border-radius:   8px;
+  background:      var(--clr-surface-2);
+  margin-bottom:   6px;
+  transition:      background 0.2s;
+}
+
+.prn-card--cooling {
+  background: rgba(255, 160, 0, 0.12);
+}
+
+.prn-card__info {
+  flex:        1;
+  min-width:   0;
+}
+
+.prn-card__name {
+  font-size:   0.93rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  white-space: nowrap;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+}
+
+.prn-card__meta {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  margin-top: 2px;
+}
+
+.prn-card__right {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex-shrink: 0;
+}
+
+.prn-card__countdown {
+  font-size:   0.82rem;
+  font-weight: 600;
+  color:       #f59e0b;
+  white-space: nowrap;
+}
+
+.prn-card__count {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  white-space: nowrap;
+}
+
+.prn-card__del {
+  background:  none;
+  border:      none;
+  cursor:      pointer;
+  color:       var(--clr-text-2);
+  padding:     2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  opacity:     0.6;
+  transition:  opacity 0.15s;
+}
+.prn-card__del:hover { opacity: 1; color: var(--clr-error); }
+
+/* ── Log form ──────────────────────────────────────────────────────── */
+
+.prn-log-form {
+  background:    var(--clr-surface-2);
+  border-radius: 10px;
+  padding:       12px 14px;
+  margin-bottom: 8px;
+}
+
+.prn-log-form__row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  margin-bottom: 8px;
+  flex-wrap:   wrap;
+}
+
+.prn-log-form__label {
+  font-size:   0.8rem;
+  color:       var(--clr-text-2);
+  min-width:   36px;
+}
+
+.prn-log-form__select {
+  flex:            1;
+  min-width:       120px;
+  background:      var(--clr-surface);
+  border:          1px solid var(--clr-border);
+  border-radius:   6px;
+  color:           var(--clr-text);
+  padding:         5px 8px;
+  font-size:       0.88rem;
+  font-family:     inherit;
+}
+
+.prn-dose-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.prn-dose-chip {
+  padding:       4px 10px;
+  border-radius: 20px;
+  border:        1.5px solid var(--clr-border);
+  background:    var(--clr-surface);
+  color:         var(--clr-text-2);
+  font-size:     0.82rem;
+  cursor:        pointer;
+  transition:    border-color 0.15s, color 0.15s, background 0.15s;
+}
+.prn-dose-chip--active {
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+  background:   var(--clr-accent-dim);
+}
+
+.prn-log-form__note {
+  width:       100%;
+  background:  var(--clr-surface);
+  border:      1px solid var(--clr-border);
+  border-radius: 6px;
+  color:       var(--clr-text);
+  padding:     5px 8px;
+  font-size:   0.88rem;
+  font-family: inherit;
+  resize:      none;
+  box-sizing:  border-box;
+}
+.prn-log-form__note:focus { outline: none; border-color: var(--clr-accent); }
+
+.prn-log-form__warning {
+  font-size:   0.78rem;
+  color:       #f59e0b;
+  margin-bottom: 6px;
+}
+
+.prn-log-form__actions {
+  display:     flex;
+  justify-content: flex-end;
+  gap:         8px;
+}
+
+.prn-log-btn {
+  padding:       6px 16px;
+  border-radius: 6px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  font-size:     0.88rem;
+  font-weight:   600;
+  cursor:        pointer;
+  font-family:   inherit;
+}
+.prn-log-btn:disabled { opacity: 0.4; cursor: default; }
+
+.prn-cancel-btn {
+  padding:       6px 12px;
+  border-radius: 6px;
+  border:        1px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.88rem;
+  cursor:        pointer;
+  font-family:   inherit;
+}
+
+/* ── Add dose button ───────────────────────────────────────────────── */
+
+.prn-add-btn {
+  display:       flex;
+  align-items:   center;
+  gap:           6px;
+  width:         100%;
+  padding:       9px 12px;
+  border-radius: 8px;
+  border:        1.5px dashed var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  font-size:     0.88rem;
+  cursor:        pointer;
+  font-family:   inherit;
+  margin-top:    4px;
+  transition:    border-color 0.15s, color 0.15s;
+}
+.prn-add-btn:hover { border-color: var(--clr-accent); color: var(--clr-accent); }
+
+/* ── Settings — PRN med list ───────────────────────────────────────── */
+
+.prn-stg-meta {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       4px;
+  margin-top: 3px;
+}
+
+.prn-stg-tag {
+  font-size:     0.75rem;
+  padding:       2px 7px;
+  border-radius: 10px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+}
+
+/* Add/edit form in settings */
+.prn-stg-form {
+  background:    var(--clr-surface-2);
+  border-radius: 8px;
+  padding:       12px;
+  margin-top:    8px;
+}
+
+.prn-stg-form__field {
+  margin-bottom: 10px;
+}
+
+.prn-stg-form__label {
+  display:     block;
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  margin-bottom: 4px;
+}
+
+.prn-stg-form__input {
+  width:         100%;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  color:         var(--clr-text);
+  padding:       6px 8px;
+  font-size:     0.88rem;
+  font-family:   inherit;
+  box-sizing:    border-box;
+}
+.prn-stg-form__input:focus { outline: none; border-color: var(--clr-accent); }
+.prn-stg-form__input--short { width: 80px; }
+.prn-stg-form__input--error { border-color: var(--clr-error); }
+
+/* Dose tag chip input area */
+.prn-dose-tags {
+  display:       flex;
+  flex-wrap:     wrap;
+  gap:           6px;
+  align-items:   center;
+  padding:       6px 8px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  cursor:        text;
+  min-height:    36px;
+}
+.prn-dose-tags:focus-within { border-color: var(--clr-accent); }
+
+.prn-dose-tag {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  padding:       2px 8px;
+  border-radius: 12px;
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+  font-size:     0.8rem;
+}
+.prn-dose-tag__del {
+  background: none;
+  border:     none;
+  cursor:     pointer;
+  color:      var(--clr-accent);
+  padding:    0;
+  font-size:  1rem;
+  line-height: 1;
+  opacity:    0.7;
+}
+.prn-dose-tag__del:hover { opacity: 1; }
+
+.prn-dose-tag-input {
+  border:     none;
+  outline:    none;
+  background: transparent;
+  color:      var(--clr-text);
+  font-size:  0.88rem;
+  font-family: inherit;
+  min-width:  80px;
+  flex:       1;
+}
+
+.prn-stg-form__row {
+  display:     flex;
+  gap:         8px;
+  align-items: center;
+}
+
+.prn-stg-form__unit {
+  font-size: 0.82rem;
+  color:     var(--clr-text-2);
+}
+
+.prn-stg-form__actions {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+  margin-top:      10px;
+}
