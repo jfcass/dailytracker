@@ -22,6 +22,9 @@ const Settings = (() => {
   function init() {
     // Apply stored theme preference immediately on startup
     applyTheme(Data.getSettings().theme ?? 'system');
+    // Populate version badge
+    const badge = document.getElementById('stg-version-badge');
+    if (badge) badge.textContent = `v${APP_VERSION}`;
   }
 
   function render() {

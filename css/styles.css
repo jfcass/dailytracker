@@ -4532,14 +4532,24 @@ button {
 
 /* Settings tab header */
 .stg-tab-header {
-  padding:       16px 16px 10px;
-  border-bottom: 1px solid var(--clr-border);
+  padding:         16px 16px 10px;
+  border-bottom:   1px solid var(--clr-border);
+  display:         flex;
+  align-items:     baseline;
+  justify-content: space-between;
 }
 
 .stg-tab-title {
   font-size:   1.1rem;
   font-weight: 700;
   color:       var(--clr-text);
+}
+
+.stg-version {
+  font-size:  0.72rem;
+  color:      var(--clr-text-2);
+  font-family: monospace;
+  opacity:    0.7;
 }
 
 /* Settings content area */

@@ -1,3 +1,5 @@
+const APP_VERSION = '2026.03.01';
+
 const CONFIG = Object.freeze({
   CLIENT_ID:      '145577028186-85gl257hjuqbuu6qs80l5l8mueopam4q.apps.googleusercontent.com',
   SCOPES:         'https://www.googleapis.com/auth/drive.file',
