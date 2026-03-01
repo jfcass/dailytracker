@@ -137,8 +137,8 @@ const Moderation = (() => {
             </svg>
           </button>
 
-          <input id="mod-qty-input" class="mod-qty-input" type="number"
-                 value="${fQty}" min="0.5" step="0.5" inputmode="decimal"
+          <input id="mod-qty-input" class="mod-qty-input" type="text"
+                 value="${fQty}" inputmode="decimal"
                  aria-label="Quantity">
 
           <button class="mod-stepper" type="button" data-op="inc" aria-label="Increase quantity">
@@ -193,14 +193,10 @@ const Moderation = (() => {
     wrap.querySelector('.mod-save-btn').addEventListener('click', () => saveEntry(sub));
     wrap.querySelector('.mod-clear-btn')?.addEventListener('click', () => clearEntry(sub));
 
-    // Scroll and focus the qty input (with brief delay for DOM to settle)
+    // Scroll form into view — do NOT focus the qty input automatically,
+    // so the keyboard doesn't open until the user explicitly taps it.
     requestAnimationFrame(() => {
-      const inp = wrap.querySelector('#mod-qty-input');
-      if (inp) {
-        inp.focus();
-        inp.select();
-        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   }
 
