@@ -44,6 +44,11 @@ const Settings = (() => {
     wrap.appendChild(status);
   }
 
+  function focusPrnMeds() {
+    const el = document.getElementById('stg-prn-meds-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   // ── Card builder ─────────────────────────────────────────────────────────────
 
   function makeCard(titleHtml) {
@@ -573,6 +578,7 @@ const Settings = (() => {
         As-Needed Medications
       </span>
     `);
+    card.id = 'stg-prn-meds-card';
 
     const meds = Object.values(Data.getData().medications ?? {}).filter(m => m.as_needed);
     const list = document.createElement('div');
@@ -841,6 +847,6 @@ const Settings = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, render };
+  return { init, render, focusPrnMeds };
 
 })();
