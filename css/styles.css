@@ -5301,8 +5301,47 @@ button {
 }
 .hl-section-add-btn:hover { background: var(--clr-accent-dim); }
 
+/* Collapsible section toggle */
+.hl-section-header--toggle {
+  cursor:      pointer;
+  user-select: none;
+}
+.hl-section-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+.hl-section-chevron {
+  font-size:   0.7rem;
+  color:       var(--clr-text-2);
+  transition:  transform 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.hl-section--collapsed .hl-section-chevron {
+  transform: rotate(-90deg);
+}
+.hl-section-icon-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           28px;
+  height:          28px;
+  border-radius:   6px;
+  border:          1px solid var(--clr-border);
+  background:      transparent;
+  color:           var(--clr-text-2);
+  cursor:          pointer;
+  transition:      background var(--transition), color var(--transition);
+}
+.hl-section-icon-btn:hover {
+  background: var(--clr-surface-2);
+  color:      var(--clr-text);
+}
+
 .hl-bp-section,
 .hl-dig-section,
+.hl-meds-section,
 .hl-issues-section {
   padding:       16px 16px 20px;
   border-bottom: 1px solid var(--clr-border);
@@ -5409,6 +5448,44 @@ button {
   background:    color-mix(in srgb, var(--q-clr) 15%, transparent);
   color:         var(--q-clr);
   white-space:   nowrap;
+}
+
+/* ── Health Log: Medications ─────────────────────────────────────────── */
+
+.hl-med-dose-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.hl-med-dose-entry {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  flex-wrap:       wrap;
+  gap:             4px;
+  padding:         7px 0;
+  border-bottom:   1px solid var(--clr-border);
+}
+.hl-med-dose-entry:last-child { border-bottom: none; }
+.hl-med-dose-name {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+}
+.hl-med-dose-chip {
+  font-size:     0.72rem;
+  font-weight:   500;
+  padding:       2px 7px;
+  border-radius: 10px;
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+}
+.hl-med-dose-when {
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  white-space: nowrap;
 }
 
 /* ── Health section: vitals bar ─────────────────────────────────────────── */
