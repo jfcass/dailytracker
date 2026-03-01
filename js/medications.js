@@ -1,427 +1,316 @@
 /**
- * medications.js — Medication Tracker section
+ * medications.js — PRN (As-Needed) Medication Tracker
  *
- * Renders into the static #section-medications shell in index.html.
+ * Today tab section: shows dose cards for meds taken in the last 24h,
+ * with cooldown countdown and daily dose count.
  *
- * Master list:  Data.getData().medications  — dict keyed by uuid
- *   { id, name, dose, frequency, timing[], start_date, end_date, active, as_needed, notes }
+ * Renders into #prn-list (built by render()).
+ * A setInterval (30s) keeps countdowns live.
  *
- * Daily log:    Data.getDay(date).medications_taken  — array
- *   { medication_id, taken, time, dose_override, notes }
+ * Data written:
+ *   Data.getDay(date).prn_doses — array of
+ *     { id, medication_id, iso_timestamp, dose, notes }
+ *
+ * Med definitions:
+ *   Data.getData().medications[id] — { id, name, doses[], min_interval_hours,
+ *                                       max_daily_doses, as_needed, active, notes }
  */
 const Medications = (() => {
 
-  const TIMING_ORDER = { morning: 0, afternoon: 1, evening: 2 };
+  // ── State ──────────────────────────────────────────────────────────────────
 
-  // ── State ─────────────────────────────────────────────────────────────────
+  let currentDate = null;
+  let showForm    = false;   // is the log-dose form open?
+  let fMedId      = '';      // selected med in log form
+  let fDose       = '';      // selected dose chip
+  let fNote       = '';      // note text
+  let tickTimer   = null;
 
-  let currentDate  = null;
-  let editingMedId = null;   // med.id of row showing inline edit form
-  let addingNew    = false;  // whether the add-medication form is open
-  let saveTimer    = null;
-
-  // Add-form state
-  let fName    = '';
-  let fDose    = '';
-  let fTimings = [];   // e.g. ['morning', 'evening']
-
-  // Edit-record form state (for an existing taken entry)
-  let fTime         = '';
-  let fDoseOverride = '';
-  let fNotes        = '';
-
-  // ── Public ────────────────────────────────────────────────────────────────
+  // ── Public API ─────────────────────────────────────────────────────────────
 
   function init() {
     currentDate = DateNav.getDate();
     render();
+    startTick();
   }
 
-  // ── Rendering ─────────────────────────────────────────────────────────────
+  function setDate(date) {
+    currentDate = date;
+    showForm    = false;
+    fMedId      = '';
+    fDose       = '';
+    fNote       = '';
+    render();
+  }
+
+  // ── Tick — refresh countdowns every 30s ────────────────────────────────────
+
+  function startTick() {
+    clearInterval(tickTimer);
+    tickTimer = setInterval(render, 30_000);
+  }
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
 
   function render() {
-    const allMeds = Data.getData().medications ?? {};
-    const active  = sortMeds(Object.values(allMeds).filter(m => m.active));
-    const taken   = Data.getDay(currentDate).medications_taken ?? [];
+    const list = document.getElementById('prn-list');
+    if (!list) return;
 
-    // Progress badge — count only non-as-needed (scheduled) meds
-    const scheduled  = active.filter(m => !m.as_needed);
-    const takenCount = scheduled.filter(m => taken.some(r => r.medication_id === m.id)).length;
-    const badge = document.getElementById('med-progress-text');
-    if (badge) {
-      badge.textContent = scheduled.length > 0 ? `${takenCount} / ${scheduled.length}` : '';
-    }
+    const activeMeds = getActiveMeds();
 
-    const list = document.getElementById('med-list');
+    // Collect all prn_doses from today + yesterday that are within 24h
+    const now       = Date.now();
+    const cutoff    = now - 24 * 60 * 60 * 1000;
+    const todayDoses    = (Data.getDay(currentDate).prn_doses ?? []);
+    const yesterdayDoses = (Data.getDay(shiftDate(currentDate, -1)).prn_doses ?? []);
+    const recentDoses = [...yesterdayDoses, ...todayDoses]
+      .filter(d => new Date(d.iso_timestamp).getTime() > cutoff)
+      .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
+
     list.innerHTML = '';
 
-    if (active.length === 0 && !addingNew) {
-      const empty = document.createElement('p');
-      empty.className   = 'section-empty';
-      empty.textContent = 'No medications added yet.';
-      list.appendChild(empty);
-    } else {
-      active.forEach(med => {
-        const record = taken.find(r => r.medication_id === med.id) ?? null;
-        list.appendChild(makeMedRow(med, record));
-      });
-    }
+    // Render one card per recent dose (most recent first)
+    recentDoses.forEach(dose => {
+      const med = activeMeds.find(m => m.id === dose.medication_id)
+                  ?? Object.values(Data.getData().medications ?? {}).find(m => m.id === dose.medication_id);
+      if (!med) return;
+      list.appendChild(makeDoseCard(dose, med, recentDoses));
+    });
 
-    // Add form or Add button
-    if (addingNew) {
-      list.appendChild(buildAddForm());
+    // Log form or Add button
+    if (showForm) {
+      list.appendChild(buildLogForm(activeMeds, recentDoses));
     } else {
-      const addBtn = document.createElement('button');
-      addBtn.type      = 'button';
-      addBtn.className = 'med-add-btn';
-      addBtn.textContent = '+ Add Medication';
-      addBtn.addEventListener('click', startAdd);
-      list.appendChild(addBtn);
+      const btn = document.createElement('button');
+      btn.className   = 'prn-add-btn';
+      btn.type        = 'button';
+      btn.innerHTML   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+        width="14" height="14" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/></svg> Log dose`;
+      btn.addEventListener('click', openForm);
+      list.appendChild(btn);
     }
   }
 
-  // ── Medication row ────────────────────────────────────────────────────────
+  // ── Dose card ──────────────────────────────────────────────────────────────
 
-  function makeMedRow(med, record) {
-    const wrap = document.createElement('div');
-    wrap.className = 'med-row-wrap';
+  function makeDoseCard(dose, med, allRecentDoses) {
+    const ts        = new Date(dose.iso_timestamp);
+    const timeStr   = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isoDate   = dose.iso_timestamp.slice(0, 10);
+    const isToday   = isoDate === currentDate;
+    const dayLabel  = isToday ? '' : 'yesterday · ';
 
-    const isTaken   = !!record;
-    const isEditing = editingMedId === med.id;
+    // Cooldown remaining for this med (based on most recent dose of this med)
+    const lastDose    = allRecentDoses.find(d => d.medication_id === med.id);
+    const isThisLast  = lastDose?.id === dose.id;
+    const remaining   = isThisLast ? cooldownRemaining(med, allRecentDoses) : 0;
+    const cooling     = remaining > 0;
 
-    // Assemble meta line: dose · timing
-    const metaParts = [med.dose, fmtTimings(med)].filter(Boolean);
-    const metaText  = metaParts.join(' · ');
+    // Daily dose count (doses in last 24h for this med)
+    const dosesIn24h  = allRecentDoses.filter(d => d.medication_id === med.id).length;
+    const maxDoses    = med.max_daily_doses ?? null;
+    const countLabel  = maxDoses ? `${dosesIn24h} of ${maxDoses}` : null;
 
-    const takenTimeHtml = (isTaken && record.time)
-      ? `<span class="med-taken-time">${escHtml(record.time)}</span>`
-      : '';
+    const card = document.createElement('div');
+    card.className = 'prn-card' + (cooling ? ' prn-card--cooling' : '');
 
-    const row = document.createElement('div');
-    row.className = 'med-row'
-      + (isTaken   ? ' med-row--taken'   : '')
-      + (isEditing ? ' med-row--editing' : '');
-    row.setAttribute('role', 'listitem');
-    row.innerHTML = `
-      <button class="med-check-btn${isTaken ? ' med-check-btn--taken' : ''}"
-              type="button"
-              aria-pressed="${isTaken}"
-              aria-label="${isTaken ? 'Unmark' : 'Mark'} ${escHtml(med.name)} as taken">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"
-             width="13" height="13" aria-hidden="true">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </button>
-      <div class="med-info">
-        <span class="med-name">${escHtml(med.name)}</span>
-        ${metaText ? `<span class="med-meta">${escHtml(metaText)}</span>` : ''}
-        ${takenTimeHtml}
+    card.innerHTML = `
+      <div class="prn-card__info">
+        <div class="prn-card__name">${escHtml(med.name)} ${escHtml(dose.dose)}</div>
+        <div class="prn-card__meta">${dayLabel}${timeStr}${dose.notes ? ' · ' + escHtml(dose.notes) : ''}</div>
       </div>
-      ${isTaken
-        ? `<button class="med-edit-btn" type="button" aria-label="Edit ${escHtml(med.name)} record">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                  width="14" height="14" aria-hidden="true">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-             </svg>
-           </button>`
-        : ''
-      }
+      <div class="prn-card__right">
+        ${cooling && isThisLast
+          ? `<span class="prn-card__countdown">⏱ ${fmtMs(remaining)}</span>`
+          : ''}
+        ${countLabel ? `<span class="prn-card__count">${escHtml(countLabel)}</span>` : ''}
+        <button class="prn-card__del" type="button" aria-label="Remove dose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
     `;
 
-    row.querySelector('.med-check-btn').addEventListener('click', () => toggleTaken(med));
-    row.querySelector('.med-edit-btn')?.addEventListener('click', () => startEdit(med, record));
+    card.querySelector('.prn-card__del').addEventListener('click', () => deleteDose(dose));
+    return card;
+  }
 
-    wrap.appendChild(row);
+  // ── Log form ───────────────────────────────────────────────────────────────
 
-    // Inline edit form for the taken record
-    if (isEditing) {
-      wrap.appendChild(buildEditForm(med, record));
-    }
+  function buildLogForm(activeMeds, recentDoses) {
+    const wrap = document.createElement('div');
+    wrap.className = 'prn-log-form';
+
+    // Pre-select first med if none chosen yet
+    if (!fMedId && activeMeds.length > 0) fMedId = activeMeds[0].id;
+    const med = activeMeds.find(m => m.id === fMedId);
+
+    // Build med select options
+    const medOptions = activeMeds.map(m =>
+      `<option value="${escHtml(m.id)}" ${m.id === fMedId ? 'selected' : ''}>${escHtml(m.name)}</option>`
+    ).join('');
+
+    // Warnings
+    const remaining = med ? cooldownRemaining(med, recentDoses) : 0;
+    const dosesIn24h = med ? recentDoses.filter(d => d.medication_id === med.id).length : 0;
+    const maxWarning = med?.max_daily_doses && dosesIn24h >= med.max_daily_doses
+      ? `<div class="prn-log-form__warning">⚠ Max daily doses reached (${dosesIn24h} of ${med.max_daily_doses})</div>`
+      : '';
+    const coolWarn = remaining > 0
+      ? `<div class="prn-log-form__warning">⏱ Next dose recommended after ${fmtMs(remaining)}</div>`
+      : '';
+
+    // Dose chips from med definition
+    const doses = med?.doses ?? [];
+    const doseChips = doses.map(d =>
+      `<button class="prn-dose-chip${d === fDose ? ' prn-dose-chip--active' : ''}"
+               type="button" data-dose="${escHtml(d)}">${escHtml(d)}</button>`
+    ).join('');
+
+    wrap.innerHTML = `
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Med</span>
+        <select class="prn-log-form__select" id="prn-form-med">${medOptions}</select>
+      </div>
+      ${doses.length > 0 ? `
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Dose</span>
+        <div class="prn-dose-chips" id="prn-dose-chips">${doseChips}</div>
+      </div>` : ''}
+      ${coolWarn}${maxWarning}
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Note</span>
+        <input class="prn-log-form__note" type="text" id="prn-form-note"
+               value="${escHtml(fNote)}" placeholder="Optional" maxlength="200">
+      </div>
+      <div class="prn-log-form__actions">
+        <button class="prn-cancel-btn" type="button">Cancel</button>
+        <button class="prn-log-btn" type="button" id="prn-log-submit">Log</button>
+      </div>
+    `;
+
+    wrap.querySelector('#prn-form-med').addEventListener('change', e => {
+      fMedId = e.target.value;
+      fDose  = '';
+      render();
+    });
+
+    wrap.querySelectorAll('.prn-dose-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fDose = btn.dataset.dose === fDose ? '' : btn.dataset.dose;
+        render();
+      });
+    });
+
+    wrap.querySelector('#prn-form-note').addEventListener('input', e => {
+      fNote = e.target.value;
+    });
+
+    wrap.querySelector('.prn-cancel-btn').addEventListener('click', () => {
+      showForm = false;
+      render();
+    });
+
+    wrap.querySelector('#prn-log-submit').addEventListener('click', submitLog);
 
     return wrap;
   }
 
-  // ── Edit-record form ──────────────────────────────────────────────────────
+  // ── Actions ────────────────────────────────────────────────────────────────
 
-  function buildEditForm(med, record) {
-    const form = document.createElement('div');
-    form.className = 'med-edit-form';
-    form.innerHTML = `
-      <div class="med-form-field">
-        <label class="med-form-label" for="med-time-input">Time taken</label>
-        <input id="med-time-input" class="med-form-input med-time-input" type="time"
-               value="${escHtml(fTime)}" aria-label="Time taken">
-      </div>
-      <div class="med-form-field">
-        <label class="med-form-label" for="med-dose-input">
-          Dose <span class="med-form-optional">(override)</span>
-        </label>
-        <input id="med-dose-input" class="med-form-input" type="text"
-               value="${escHtml(fDoseOverride)}" maxlength="50"
-               placeholder="${escHtml(med.dose || 'e.g. 500mg')}"
-               aria-label="Dose override">
-      </div>
-      <div class="med-form-field">
-        <label class="med-form-label" for="med-notes-input">Notes</label>
-        <input id="med-notes-input" class="med-form-input" type="text"
-               value="${escHtml(fNotes)}" maxlength="200"
-               placeholder="Optional notes" aria-label="Notes">
-      </div>
-      <div class="med-form-actions">
-        <button class="med-unmark-btn"  type="button">Unmark</button>
-        <button class="med-archive-btn" type="button">Archive</button>
-        <span   class="med-form-spacer"></span>
-        <button class="med-cancel-btn"      type="button">Cancel</button>
-        <button class="med-record-save-btn" type="button">Save</button>
-      </div>
-    `;
-
-    form.querySelector('#med-time-input').addEventListener('input', e => {
-      fTime = e.target.value;
-    });
-    form.querySelector('#med-dose-input').addEventListener('input', e => {
-      fDoseOverride = e.target.value;
-    });
-    form.querySelector('#med-notes-input').addEventListener('input', e => {
-      fNotes = e.target.value;
-    });
-
-    form.querySelector('.med-unmark-btn').addEventListener('click', () => clearTaken(med));
-    form.querySelector('.med-archive-btn').addEventListener('click', () => archiveMed(med.id));
-    form.querySelector('.med-cancel-btn').addEventListener('click', cancelEdit);
-    form.querySelector('.med-record-save-btn').addEventListener('click', () => saveEdit(med));
-
-    return form;
-  }
-
-  // ── Add-medication form ───────────────────────────────────────────────────
-
-  function buildAddForm() {
-    const TIMING_OPTIONS = [
-      { value: 'morning',   label: 'Morning'   },
-      { value: 'afternoon', label: 'Afternoon' },
-      { value: 'evening',   label: 'Evening'   },
-      { value: 'as_needed', label: 'As Needed' },
-    ];
-
-    const timingChips = TIMING_OPTIONS.map(opt => {
-      const active = fTimings.includes(opt.value);
-      return `<button class="med-timing-chip${active ? ' med-timing-chip--active' : ''}"
-                      type="button" data-timing="${opt.value}"
-                      aria-pressed="${active}">${opt.label}</button>`;
-    }).join('');
-
-    const form = document.createElement('div');
-    form.className = 'med-add-form';
-    form.innerHTML = `
-      <div class="med-add-form-header">
-        <span>Add Medication</span>
-        <button class="med-add-cancel-btn" type="button">Cancel</button>
-      </div>
-      <div class="med-form-field">
-        <label class="med-form-label" for="med-add-name">Name</label>
-        <input id="med-add-name" class="med-form-input" type="text"
-               value="${escHtml(fName)}" maxlength="100"
-               placeholder="e.g. Metformin" aria-label="Medication name">
-      </div>
-      <div class="med-form-field">
-        <label class="med-form-label" for="med-add-dose">
-          Dose <span class="med-form-optional">(optional)</span>
-        </label>
-        <input id="med-add-dose" class="med-form-input" type="text"
-               value="${escHtml(fDose)}" maxlength="50"
-               placeholder="e.g. 500mg" aria-label="Dose">
-      </div>
-      <div class="med-form-field">
-        <label class="med-form-label">Timing</label>
-        <div class="med-timing-chips">${timingChips}</div>
-      </div>
-      <div class="med-form-actions">
-        <button class="med-add-save-btn" type="button">Add</button>
-      </div>
-    `;
-
-    form.querySelector('#med-add-name').addEventListener('input', e => {
-      fName = e.target.value;
-    });
-    form.querySelector('#med-add-dose').addEventListener('input', e => {
-      fDose = e.target.value;
-    });
-
-    form.querySelectorAll('.med-timing-chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const t = btn.dataset.timing;
-        if (fTimings.includes(t)) {
-          fTimings = fTimings.filter(x => x !== t);
-        } else {
-          fTimings = [...fTimings, t];
-        }
-        btn.classList.toggle('med-timing-chip--active', fTimings.includes(t));
-        btn.setAttribute('aria-pressed', String(fTimings.includes(t)));
-      });
-    });
-
-    form.querySelector('.med-add-cancel-btn').addEventListener('click', cancelAdd);
-    form.querySelector('.med-add-save-btn').addEventListener('click', saveAdd);
-
-    requestAnimationFrame(() => {
-      const inp = form.querySelector('#med-add-name');
-      if (inp) {
-        inp.focus();
-        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    });
-
-    return form;
-  }
-
-  // ── State transitions ─────────────────────────────────────────────────────
-
-  /** Toggle taken / not-taken. Records current time when marking taken. */
-  function toggleTaken(med) {
-    const day = Data.getDay(currentDate);
-    const idx = day.medications_taken.findIndex(r => r.medication_id === med.id);
-    if (idx !== -1) {
-      day.medications_taken.splice(idx, 1);
-    } else {
-      const now  = new Date();
-      const time = now.toTimeString().slice(0, 5);   // "HH:MM"
-      day.medications_taken.push({
-        medication_id: med.id,
-        taken:         true,
-        time,
-        dose_override: null,
-        notes:         '',
-      });
-    }
-    editingMedId = null;
-    render();
-    scheduleSave();
-  }
-
-  function startEdit(med, record) {
-    fTime         = record?.time ?? '';
-    fDoseOverride = record?.dose_override ?? '';
-    fNotes        = record?.notes ?? '';
-    editingMedId  = med.id;
-    addingNew     = false;
-    render();
-  }
-
-  function cancelEdit() {
-    editingMedId = null;
-    render();
-  }
-
-  function saveEdit(med) {
-    const timeEl  = document.getElementById('med-time-input');
-    const doseEl  = document.getElementById('med-dose-input');
-    const notesEl = document.getElementById('med-notes-input');
-
-    const time  = (timeEl?.value  ?? fTime).trim();
-    const dose  = (doseEl?.value  ?? fDoseOverride).trim();
-    const notes = (notesEl?.value ?? fNotes).trim();
-
-    const day = Data.getDay(currentDate);
-    const idx = day.medications_taken.findIndex(r => r.medication_id === med.id);
-    if (idx !== -1) {
-      day.medications_taken[idx] = {
-        ...day.medications_taken[idx],
-        time:          time  || undefined,
-        dose_override: dose  || null,
-        notes,
-      };
-    }
-
-    editingMedId = null;
-    render();
-    scheduleSave();
-  }
-
-  function clearTaken(med) {
-    const day = Data.getDay(currentDate);
-    day.medications_taken = day.medications_taken.filter(
-      r => r.medication_id !== med.id
-    );
-    editingMedId = null;
-    render();
-    scheduleSave();
-  }
-
-  function archiveMed(medId) {
-    const med = Data.getData().medications[medId];
-    if (med) {
-      med.active   = false;
-      med.end_date = Data.today();
-    }
-    editingMedId = null;
-    render();
-    scheduleSave();
-  }
-
-  function startAdd() {
-    fName    = '';
+  function openForm() {
+    showForm = true;
     fDose    = '';
-    fTimings = [];
-    addingNew    = true;
-    editingMedId = null;
+    fNote    = '';
     render();
   }
 
-  function cancelAdd() {
-    addingNew = false;
-    render();
-  }
+  function submitLog() {
+    if (!fMedId) return;
 
-  function saveAdd() {
-    const nameEl = document.getElementById('med-add-name');
-    const doseEl = document.getElementById('med-add-dose');
+    const now = new Date();
+    // Pad iso_timestamp to local time (no UTC conversion)
+    const iso = now.getFullYear()
+      + '-' + String(now.getMonth() + 1).padStart(2, '0')
+      + '-' + String(now.getDate()).padStart(2, '0')
+      + 'T' + String(now.getHours()).padStart(2, '0')
+      + ':' + String(now.getMinutes()).padStart(2, '0')
+      + ':' + String(now.getSeconds()).padStart(2, '0');
 
-    const name = (nameEl?.value ?? fName).trim();
-    const dose = (doseEl?.value ?? fDose).trim();
-
-    if (!name) {
-      nameEl?.classList.add('input--error');
-      return;
-    }
-    nameEl?.classList.remove('input--error');
-
-    const asNeeded = fTimings.includes('as_needed');
-    const timings  = fTimings.filter(t => t !== 'as_needed');
-    const id       = crypto.randomUUID();
-
-    Data.getData().medications[id] = {
-      id,
-      name,
-      dose,
-      frequency:  asNeeded ? 'as_needed' : 'daily',
-      timing:     timings,
-      start_date: Data.today(),
-      end_date:   null,
-      active:     true,
-      as_needed:  asNeeded,
-      notes:      '',
+    const dose = {
+      id:             crypto.randomUUID(),
+      medication_id:  fMedId,
+      iso_timestamp:  iso,
+      dose:           fDose,
+      notes:          fNote.trim(),
     };
 
-    addingNew = false;
+    const day = Data.getDay(currentDate);
+    if (!Array.isArray(day.prn_doses)) day.prn_doses = [];
+    day.prn_doses.push(dose);
+
+    showForm = false;
+    fDose    = '';
+    fNote    = '';
     render();
     scheduleSave();
   }
 
-  // ── Date sync (called by DateNav) ────────────────────────────────────────
+  function deleteDose(dose) {
+    // Find which day this dose belongs to
+    const today = Data.getDay(currentDate);
+    const yest  = Data.getDay(shiftDate(currentDate, -1));
 
-  function setDate(date) {
-    editingMedId = null;
-    addingNew    = false;
-    currentDate  = date;
+    [today, yest].forEach(day => {
+      if (!Array.isArray(day.prn_doses)) return;
+      day.prn_doses = day.prn_doses.filter(d => d.id !== dose.id);
+    });
+
     render();
+    scheduleSave();
   }
 
-  // ── Debounced save ────────────────────────────────────────────────────────
+  // ── Cooldown helpers ───────────────────────────────────────────────────────
 
+  /** Returns ms remaining in cooldown for a med (0 = ready). */
+  function cooldownRemaining(med, recentDoses) {
+    if (!med.min_interval_hours) return 0;
+    const last = recentDoses.find(d => d.medication_id === med.id);
+    if (!last) return 0;
+    const readyAt = new Date(last.iso_timestamp).getTime() + med.min_interval_hours * 3600_000;
+    return Math.max(0, readyAt - Date.now());
+  }
+
+  /** Format milliseconds as "Xh Ym" or "Ym". */
+  function fmtMs(ms) {
+    const totalMin = Math.ceil(ms / 60_000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0)           return `${h}h`;
+    return `${m}m`;
+  }
+
+  // ── Data helpers ───────────────────────────────────────────────────────────
+
+  function getActiveMeds() {
+    const all = Data.getData().medications ?? {};
+    return Object.values(all).filter(m => m.active && m.as_needed);
+  }
+
+  function shiftDate(dateStr, days) {
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+
+  let saveTimer = null;
   function scheduleSave() {
     setSaveStatus('pending');
     clearTimeout(saveTimer);
@@ -432,56 +321,21 @@ const Medications = (() => {
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus(''), 2200);
       } catch (err) {
-        console.error('Medications save failed:', err);
+        console.error('PRN save error:', err);
         setSaveStatus('error');
       }
     }, 1200);
   }
 
   function setSaveStatus(s) {
-    const el = document.getElementById('med-save-status');
+    const el = document.getElementById('prn-save-status');
     if (!el) return;
     el.dataset.status = s;
-    const labels = {
-      pending: 'Unsaved', saving: 'Saving…', saved: 'Saved',
-      error: 'Save failed', '': '',
-    };
-    el.textContent = labels[s] ?? '';
+    el.textContent = { pending: 'Unsaved', saving: 'Saving…', saved: 'Saved',
+                       error: 'Save failed', '': '' }[s] ?? '';
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  function sortMeds(meds) {
-    return [...meds].sort((a, b) => {
-      // As-needed medications go after scheduled ones
-      if (a.as_needed !== b.as_needed) return a.as_needed ? 1 : -1;
-      // Within scheduled: sort by earliest timing slot
-      const aOrder = Math.min(...(a.timing ?? []).map(t => TIMING_ORDER[t] ?? 3), 3);
-      const bOrder = Math.min(...(b.timing ?? []).map(t => TIMING_ORDER[t] ?? 3), 3);
-      return aOrder - bOrder;
-    });
-  }
-
-  function fmtTimings(med) {
-    if (med.as_needed) return 'as needed';
-    if (!med.timing || med.timing.length === 0) return '';
-    return med.timing.join(', ');
-  }
-
-  function fmtDateLabel(dateStr) {
-    const today = Data.today();
-    if (dateStr === today)                return 'Today';
-    if (dateStr === shiftDate(today, -1)) return 'Yesterday';
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-  }
-
-  function shiftDate(dateStr, days) {
-    const d = new Date(dateStr + 'T12:00:00');
-    d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
-  }
+  // ── escHtml ────────────────────────────────────────────────────────────────
 
   function escHtml(s) {
     if (s == null) return '';
@@ -489,8 +343,6 @@ const Medications = (() => {
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
   }
-
-  // ── Public API ────────────────────────────────────────────────────────────
 
   return { init, render, setDate };
 })();
