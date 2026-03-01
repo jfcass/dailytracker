@@ -23,6 +23,9 @@ const HealthLog = (() => {
   let fBpCtx     = 'At Rest';
   let fBpNotes   = '';
 
+  // Which hl sections are collapsed? Keys: 'bp' | 'dig' | 'meds' | 'issues'
+  let collapsedSections = new Set();
+
   // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
   function escHtml(str) {
@@ -395,6 +398,12 @@ const HealthLog = (() => {
   function _setBpCtx(v)          { fBpCtx   = v; }
   function _setBpNotes(v)        { fBpNotes = v; }
 
+  function _toggleSection(key) {
+    if (collapsedSections.has(key)) collapsedSections.delete(key);
+    else collapsedSections.add(key);
+    render();
+  }
+
   // ── Section: Issues ───────────────────────────────────────────────────────────────────────
 
   function renderIssuesSection() {
@@ -678,5 +687,6 @@ const HealthLog = (() => {
     _addBP, _editBP, _cancelBP, _saveBP, _deleteBP,
     _setBpDate, _setBpTime, _setBpSys, _setBpDia,
     _setBpPulse, _setBpCtx, _setBpNotes,
+    _toggleSection,
   };
 })();
