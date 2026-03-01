@@ -76,6 +76,7 @@ const App = (() => {
     if (name === 'library')    Books.render();
     if (name === 'settings')   Settings.render();
     if (name === 'health-log') HealthLog.render();
+    if (name === 'treatments') Treatments.render();
   }
 
   // ── Back-gesture / popstate handling ─────────────────────────────────────────
@@ -85,8 +86,18 @@ const App = (() => {
     if (!s?.ht) return;
     if (s.ht === 'tab') {
       // Returning to a tab — close any open detail views first
-      if (typeof HealthLog !== 'undefined') HealthLog._exitDetail();
+      if (typeof HealthLog    !== 'undefined') HealthLog._exitDetail();
+      if (typeof Treatments   !== 'undefined') Treatments._exitDetail();
       switchTab(s.tab, false);
+    } else if (s.ht === 'tx-detail') {
+      // Back from within a treatment detail — return to treatment list
+      if (typeof Treatments !== 'undefined') {
+        Treatments._exitDetail();
+        App.switchTab('treatments', false);
+      }
+    } else if (s.ht === 'hl-detail') {
+      if (typeof HealthLog !== 'undefined') HealthLog._exitDetail();
+      App.switchTab('health-log', false);
     }
   }
 
@@ -126,6 +137,7 @@ const App = (() => {
     Reports.init();
     Settings.init();
     HealthLog.init();
+    Treatments.init();
 
     // Sync Fitbit in background — don't await, never blocks the UI
     if (typeof Fitbit !== 'undefined') Fitbit.sync();
