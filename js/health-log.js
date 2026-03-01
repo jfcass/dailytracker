@@ -186,10 +186,26 @@ const HealthLog = (() => {
     container.innerHTML = detailId ? renderDetail(detailId) : renderList();
   }
 
+  /** Returns all prn_doses from the past 30 days, sorted newest-first. */
+  function getRecentPrnDoses() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutStr = cutoff.toISOString().slice(0, 10);
+    const days   = Data.getData().days ?? {};
+    const doses  = [];
+    Object.entries(days).forEach(([date, day]) => {
+      if (date < cutStr) return;
+      (day.prn_doses ?? []).forEach(d => doses.push({ ...d, date }));
+    });
+    doses.sort((a, b) => b.iso_timestamp.localeCompare(a.iso_timestamp));
+    return doses;
+  }
+
   function renderList() {
     return `<div class="hl-tab-header"><h2 class="hl-tab-title">Health Log</h2></div>`
       + renderBPSection()
       + renderDigestionSection()
+      + renderMedsSection()
       + renderIssuesSection();
   }
 
@@ -411,6 +427,15 @@ const HealthLog = (() => {
     render();
   }
 
+  function _goToMedsSettings() {
+    App.switchTab('settings');
+    // Settings.render() runs synchronously in switchTab; RAF ensures scrollIntoView
+    // runs after the next layout paint.
+    requestAnimationFrame(() => {
+      if (typeof Settings !== 'undefined' && Settings.focusPrnMeds) Settings.focusPrnMeds();
+    });
+  }
+
   // ── Section: Issues ───────────────────────────────────────────────────────────────────────
 
   function renderIssuesSection() {
@@ -505,6 +530,67 @@ const HealthLog = (() => {
       </div>
       ${isCollapsed ? '' : `<p class="hl-dig-summary">${escHtml(summary)}</p>
         <div class="hl-dig-list">${rows}</div>`}
+    </div>`;
+  }
+
+  function renderMedsSection() {
+    const isCollapsed = collapsedSections.has('meds');
+    const doses       = isCollapsed ? [] : getRecentPrnDoses();
+    const meds        = Data.getData().medications ?? {};
+
+    const gearBtn = `<button class="hl-section-icon-btn"
+      title="Manage medications"
+      onclick="event.stopPropagation(); HealthLog._goToMedsSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06
+                 a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09
+                 A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83
+                 l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09
+                 A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83
+                 l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09
+                 a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83
+                 l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
+                 a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>`;
+
+    let bodyHtml = '';
+    if (!isCollapsed) {
+      if (!doses.length) {
+        bodyHtml = `<p class="hl-empty" style="margin-top:8px">No PRN doses logged in the last 30 days.</p>`;
+      } else {
+        bodyHtml = `<div class="hl-med-dose-list">${
+          doses.map(d => {
+            const med     = meds[d.medication_id];
+            const name    = med ? escHtml(med.name) : 'Unknown med';
+            const doseTag = d.dose
+              ? ` <span class="hl-med-dose-chip">${escHtml(d.dose)}</span>`
+              : '';
+            const ts      = new Date(d.iso_timestamp);
+            const timeStr = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = fmtDate(d.date);
+            const noteStr = d.notes ? ` · ${escHtml(d.notes)}` : '';
+            return `<div class="hl-med-dose-entry">
+              <span class="hl-med-dose-name">${name}${doseTag}</span>
+              <span class="hl-med-dose-when">${escHtml(dateStr)} · ${escHtml(timeStr)}${noteStr}</span>
+            </div>`;
+          }).join('')
+        }</div>`;
+      }
+    }
+
+    return `<div class="hl-meds-section${isCollapsed ? ' hl-section--collapsed' : ''}">
+      <div class="hl-section-header hl-section-header--toggle"
+           onclick="HealthLog._toggleSection('meds')">
+        <span class="hl-section-title">Medications</span>
+        <div class="hl-section-header-right">
+          ${!isCollapsed ? gearBtn : ''}
+          <span class="hl-section-chevron">▾</span>
+        </div>
+      </div>
+      ${bodyHtml}
     </div>`;
   }
 
@@ -711,6 +797,6 @@ const HealthLog = (() => {
     _addBP, _editBP, _cancelBP, _saveBP, _deleteBP,
     _setBpDate, _setBpTime, _setBpSys, _setBpDia,
     _setBpPulse, _setBpCtx, _setBpNotes,
-    _toggleSection,
+    _toggleSection, _goToMedsSettings,
   };
 })();
