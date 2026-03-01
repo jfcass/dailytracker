@@ -17,6 +17,12 @@ const Settings = (() => {
   let prnFDoses      = [];     // string[]
   let prnFDoseInput  = '';
 
+  // Treatment medication form state
+  let txMedForm       = null;   // null | 'add' | med-id (editing)
+  let txMedFName      = '';
+  let txMedFDoses     = [];     // string[]
+  let txMedFDoseInput = '';
+
   // ── Public entry points ───────────────────────────────────────────────────────
 
   function init() {
@@ -35,6 +41,7 @@ const Settings = (() => {
     wrap.appendChild(buildHabitsCard());
     wrap.appendChild(buildSubstancesCard());
     wrap.appendChild(buildPrnMedsCard());
+    wrap.appendChild(buildTreatmentMedsCard());
     wrap.appendChild(buildCategoriesCard());
     wrap.appendChild(buildDisplayCard());
     wrap.appendChild(buildAccountCard());
@@ -49,6 +56,11 @@ const Settings = (() => {
 
   function focusPrnMeds() {
     const el = document.getElementById('stg-prn-meds-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function focusTxMeds() {
+    const el = document.getElementById('stg-tx-meds-card');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -813,6 +825,211 @@ const Settings = (() => {
     if (typeof Medications !== 'undefined') Medications.render();
   }
 
+  // ── Treatment Medications Card ──────────────────────────────────────────────
+
+  function buildTreatmentMedsCard() {
+    const card = makeCard(`
+      <span class="stg-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+          <path d="M9 3h6v8l4 8H5l4-8V3z"/>
+          <line x1="6" y1="3" x2="18" y2="3"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        Treatment Medications
+      </span>
+    `);
+    card.id = 'stg-tx-meds-card';
+
+    const meds = Object.values(Data.getData().treatment_medications ?? {}).filter(m => m.active);
+    const list = document.createElement('div');
+    list.className = 'stg-list';
+
+    if (meds.length === 0 && txMedForm !== 'add') {
+      const empty = document.createElement('p');
+      empty.className   = 'stg-empty';
+      empty.textContent = 'No treatment medications configured.';
+      list.appendChild(empty);
+    }
+
+    meds.forEach(med => {
+      const row = document.createElement('div');
+      row.className = 'stg-item-row';
+
+      const doseTags = (med.doses ?? [])
+        .map(d => `<span class="prn-stg-tag">${escHtml(d)}</span>`)
+        .join('');
+
+      row.innerHTML = `
+        <div class="stg-item-info">
+          <span class="stg-item-name">${escHtml(med.name)}</span>
+          <div class="prn-stg-meta">${doseTags}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="stg-icon-btn tx-med-edit-btn" type="button" data-id="${escHtml(med.id)}"
+                  aria-label="Edit ${escHtml(med.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button class="stg-icon-btn stg-icon-btn--danger tx-med-archive-btn" type="button"
+                  data-id="${escHtml(med.id)}" aria-label="Archive ${escHtml(med.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+          </button>
+        </div>
+      `;
+
+      row.querySelector('.tx-med-edit-btn').addEventListener('click', () => startTxMedEdit(med));
+      row.querySelector('.tx-med-archive-btn').addEventListener('click', () => archiveTxMed(med.id));
+      list.appendChild(row);
+
+      if (txMedForm === med.id) list.appendChild(buildTxMedForm('edit', med));
+    });
+
+    if (txMedForm === 'add') list.appendChild(buildTxMedForm('add'));
+
+    card.appendChild(list);
+
+    if (txMedForm !== 'add') {
+      const addRow = document.createElement('div');
+      addRow.className = 'stg-add-row';
+      const addBtn = document.createElement('button');
+      addBtn.className   = 'stg-add-btn';
+      addBtn.type        = 'button';
+      addBtn.textContent = '+ Add medication';
+      addBtn.addEventListener('click', () => {
+        txMedForm       = 'add';
+        txMedFName      = '';
+        txMedFDoses     = [];
+        txMedFDoseInput = '';
+        render();
+      });
+      addRow.appendChild(addBtn);
+      card.appendChild(addRow);
+    }
+
+    return card;
+  }
+
+  function buildTxMedForm(mode, med = null) {
+    const wrap = document.createElement('div');
+    wrap.className = 'prn-stg-form';
+
+    const tagsHtml = txMedFDoses.map(d =>
+      `<span class="prn-dose-tag">${escHtml(d)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(d)}" aria-label="Remove ${escHtml(d)}">×</button></span>`
+    ).join('');
+
+    wrap.innerHTML = `
+      <div class="prn-stg-form__field">
+        <label class="prn-stg-form__label" for="tx-f-name">Name</label>
+        <input id="tx-f-name" class="prn-stg-form__input" type="text"
+               value="${escHtml(txMedFName)}" maxlength="80" placeholder="e.g. Ketamine">
+      </div>
+      <div class="prn-stg-form__field">
+        <label class="prn-stg-form__label">Available doses <span style="font-size:0.72rem">(type + Enter)</span></label>
+        <div class="prn-dose-tags" id="tx-dose-tags">
+          ${tagsHtml}
+          <input class="prn-dose-tag-input" id="tx-dose-tag-input" type="text"
+                 value="${escHtml(txMedFDoseInput)}" placeholder="e.g. 200mg" maxlength="20">
+        </div>
+      </div>
+      <div class="prn-stg-form__actions">
+        <button class="stg-add-btn" style="background:transparent;border:1px solid var(--clr-border);color:var(--clr-text-2)" type="button" id="tx-f-cancel">Cancel</button>
+        <button class="stg-add-btn" type="button" id="tx-f-save">${mode === 'add' ? 'Add' : 'Save'}</button>
+      </div>
+    `;
+
+    wrap.querySelector('#tx-f-name').addEventListener('input', e => { txMedFName = e.target.value; });
+
+    const tagInput = wrap.querySelector('#tx-dose-tag-input');
+    tagInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = tagInput.value.trim().replace(/,$/, '');
+        if (val && !txMedFDoses.includes(val)) {
+          txMedFDoses = [...txMedFDoses, val];
+          txMedFDoseInput = '';
+        }
+        render();
+      } else if (e.key === 'Backspace' && tagInput.value === '' && txMedFDoses.length > 0) {
+        txMedFDoses = txMedFDoses.slice(0, -1);
+        render();
+      }
+    });
+    tagInput.addEventListener('input', e => { txMedFDoseInput = e.target.value; });
+
+    wrap.querySelectorAll('.prn-dose-tag__del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        txMedFDoses = txMedFDoses.filter(d => d !== btn.dataset.dose);
+        render();
+      });
+    });
+
+    wrap.querySelector('#tx-f-cancel').addEventListener('click', () => {
+      txMedForm = null;
+      render();
+    });
+
+    wrap.querySelector('#tx-f-save').addEventListener('click', () => saveTxMedForm(mode, med?.id));
+    return wrap;
+  }
+
+  function startTxMedEdit(med) {
+    txMedForm       = med.id;
+    txMedFName      = med.name ?? '';
+    txMedFDoses     = [...(med.doses ?? [])];
+    txMedFDoseInput = '';
+    render();
+  }
+
+  function saveTxMedForm(mode, editId) {
+    const name = txMedFName.trim();
+    if (!name) {
+      const el = document.getElementById('tx-f-name');
+      if (el) el.classList.add('prn-stg-form__input--error');
+      return;
+    }
+
+    const d = Data.getData();
+    if (!d.treatment_medications) d.treatment_medications = {};
+
+    if (mode === 'add') {
+      const id = crypto.randomUUID();
+      d.treatment_medications[id] = {
+        id,
+        name,
+        doses:  [...txMedFDoses],
+        active: true,
+        notes:  '',
+      };
+    } else {
+      const med = d.treatment_medications[editId];
+      if (med) {
+        med.name  = name;
+        med.doses = [...txMedFDoses];
+      }
+    }
+
+    txMedForm = null;
+    render();
+    scheduleSave();
+  }
+
+  function archiveTxMed(id) {
+    const med = (Data.getData().treatment_medications ?? {})[id];
+    if (med) med.active = false;
+    txMedForm = null;
+    render();
+    scheduleSave();
+  }
+
   // ── Save ─────────────────────────────────────────────────────────────────────
 
   function scheduleSave() {
@@ -850,6 +1067,6 @@ const Settings = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, render, focusPrnMeds };
+  return { init, render, focusPrnMeds, focusTxMeds };
 
 })();
