@@ -414,27 +414,37 @@ const HealthLog = (() => {
   // ── Section: Issues ───────────────────────────────────────────────────────────────────────
 
   function renderIssuesSection() {
+    const isCollapsed = collapsedSections.has('issues');
     const issues   = getIssues();
     const active   = issues.filter(i => !i.resolved)
                            .sort((a, b) => b.start_date.localeCompare(a.start_date));
     const resolved = issues.filter(i =>  i.resolved)
                            .sort((a, b) => (b.end_date ?? '').localeCompare(a.end_date ?? ''));
 
-    let html = `<div class="hl-issues-section">
-      <div class="hl-section-header"><span class="hl-section-title">Issues</span></div>`;
+    let html = `<div class="hl-issues-section${isCollapsed ? ' hl-section--collapsed' : ''}">
+    <div class="hl-section-header hl-section-header--toggle"
+         onclick="HealthLog._toggleSection('issues')">
+      <span class="hl-section-title">Issues</span>
+      <div class="hl-section-header-right">
+        <span class="hl-section-chevron">▾</span>
+      </div>
+    </div>`;
 
-    if (!issues.length) {
-      html += `<p class="hl-empty">No ongoing issues yet. Add one from the Health section on Today.</p>`;
-    } else {
-      if (active.length) {
-        html += `<p class="hl-group-label">Active</p>`;
-        html += active.map(issueRow).join('');
-      }
-      if (resolved.length) {
-        html += `<p class="hl-group-label">Resolved</p>`;
-        html += resolved.map(issueRow).join('');
+    if (!isCollapsed) {
+      if (!issues.length) {
+        html += `<p class="hl-empty">No ongoing issues yet. Add one from the Health section on Today.</p>`;
+      } else {
+        if (active.length) {
+          html += `<p class="hl-group-label">Active</p>`;
+          html += active.map(issueRow).join('');
+        }
+        if (resolved.length) {
+          html += `<p class="hl-group-label">Resolved</p>`;
+          html += resolved.map(issueRow).join('');
+        }
       }
     }
+
     html += `</div>`;
     return html;
   }
@@ -484,10 +494,17 @@ const HealthLog = (() => {
       rows = `<p class="hl-empty" style="margin-top:8px">No digestion entries yet.</p>`;
     }
 
-    return `<div class="hl-dig-section">
-      <div class="hl-section-header"><span class="hl-section-title">Digestion</span></div>
-      <p class="hl-dig-summary">${escHtml(summary)}</p>
-      <div class="hl-dig-list">${rows}</div>
+    const isCollapsed = collapsedSections.has('dig');
+    return `<div class="hl-dig-section${isCollapsed ? ' hl-section--collapsed' : ''}">
+      <div class="hl-section-header hl-section-header--toggle"
+           onclick="HealthLog._toggleSection('dig')">
+        <span class="hl-section-title">Digestion</span>
+        <div class="hl-section-header-right">
+          <span class="hl-section-chevron">▾</span>
+        </div>
+      </div>
+      ${isCollapsed ? '' : `<p class="hl-dig-summary">${escHtml(summary)}</p>
+        <div class="hl-dig-list">${rows}</div>`}
     </div>`;
   }
 
