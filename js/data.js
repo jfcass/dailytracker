@@ -26,8 +26,10 @@ const Data = (() => {
     issues:         {},
     medications:    {},
     books:          {},
-    blood_pressure: [],
-    fitbit:         null,
+    blood_pressure:         [],
+    treatment_medications:  {},  // { [uuid]: { id, name, doses[], active, notes } }
+    treatments:             {},  // { [uuid]: { id, date, start_time, end_time, intention, medication_id, dose, notes } }
+    fitbit:                 null,
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
