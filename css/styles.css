@@ -6381,3 +6381,346 @@ button {
   gap:             8px;
   margin-top:      10px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Treatments tab
+═══════════════════════════════════════════════════════════════════════════ */
+
+#tab-treatments {
+  padding-bottom: max(80px, calc(65px + env(safe-area-inset-bottom)));
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.tx-tab-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         16px 16px 10px;
+  border-bottom:   1px solid var(--clr-border);
+}
+.tx-tab-title {
+  font-size:   1.1rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+.tx-add-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 12px;
+  border-radius: 8px;
+  border:        1px solid var(--clr-accent);
+  background:    transparent;
+  color:         var(--clr-accent);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition);
+}
+.tx-add-btn:hover { background: var(--clr-accent-dim); }
+
+/* ── List view ───────────────────────────────────────────────────────────── */
+
+.tx-list {
+  padding: 8px 0;
+}
+.tx-empty {
+  padding:    24px 16px;
+  color:      var(--clr-text-2);
+  font-size:  0.88rem;
+  text-align: center;
+}
+.tx-list-item {
+  padding:       12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+.tx-list-item:last-child { border-bottom: none; }
+.tx-list-item:active     { background: var(--clr-surface-2); }
+.tx-list-item__row1 {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 3px;
+}
+.tx-list-item__date {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+.tx-list-item__time {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+.tx-list-item__med {
+  font-size:     0.82rem;
+  font-weight:   500;
+  color:         var(--clr-accent);
+  margin-bottom: 2px;
+}
+.tx-list-item__intention {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  font-style: italic;
+}
+
+/* ── Detail view ─────────────────────────────────────────────────────────── */
+
+.tx-back-btn {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  margin:        12px 16px 4px;
+  font-size:     0.82rem;
+  font-weight:   500;
+  color:         var(--clr-accent);
+  background:    none;
+  border:        none;
+  cursor:        pointer;
+  padding:       4px 0;
+}
+.tx-detail {
+  padding-bottom: 32px;
+}
+.tx-detail-header {
+  padding:       12px 16px 10px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.tx-detail-title {
+  font-size:   1.1rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+  margin-bottom: 3px;
+}
+.tx-detail-sub {
+  font-size: 0.82rem;
+  color:     var(--clr-text-2);
+}
+.tx-detail-section {
+  padding:       14px 16px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.tx-detail-section:last-of-type { border-bottom: none; }
+.tx-section-label {
+  font-size:      0.72rem;
+  font-weight:    700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--clr-text-2);
+  margin-bottom:  8px;
+}
+.tx-intention-text,
+.tx-notes-text {
+  font-size:   0.9rem;
+  color:       var(--clr-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.tx-detail-actions {
+  display:  flex;
+  gap:      10px;
+  padding:  14px 16px 0;
+}
+.tx-edit-btn {
+  font-size:     0.82rem;
+  font-weight:   500;
+  padding:       6px 14px;
+  border-radius: 7px;
+  border:        1px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.tx-edit-btn:hover  { color: var(--clr-text); background: var(--clr-surface-2); border-color: var(--clr-text-2); }
+.tx-delete-btn {
+  font-size:     0.82rem;
+  font-weight:   500;
+  padding:       6px 14px;
+  border-radius: 7px;
+  border:        1px solid transparent;
+  background:    transparent;
+  color:         var(--clr-error);
+  cursor:        pointer;
+  transition:    background var(--transition), border-color var(--transition);
+}
+.tx-delete-btn:hover { border-color: var(--clr-error); background: var(--clr-surface-2); }
+
+/* ── BP section within treatment detail ──────────────────────────────────── */
+
+.tx-bp-groups {
+  display:        flex;
+  flex-direction: column;
+  gap:            10px;
+  margin-bottom:  12px;
+}
+.tx-bp-ctx-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+}
+.tx-bp-ctx-label {
+  font-size:      0.72rem;
+  font-weight:    700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.tx-bp-ctx-empty {
+  font-size:    0.8rem;
+  color:        var(--clr-text-2);
+  padding-left: 4px;
+}
+.tx-bp-row {
+  display:     flex;
+  flex-wrap:   wrap;
+  gap:         8px;
+  align-items: center;
+  padding:     5px 0 5px 4px;
+}
+.tx-bp-reading {
+  font-weight:          700;
+  font-size:            0.95rem;
+  font-variant-numeric: tabular-nums;
+  color:                var(--clr-text);
+}
+.tx-bp-pulse,
+.tx-bp-time,
+.tx-bp-date-label,
+.tx-bp-notes {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+.tx-bp-actions {
+  display:     flex;
+  gap:         6px;
+  margin-left: auto;
+}
+.tx-add-bp-btn {
+  font-size:     0.82rem;
+  font-weight:   500;
+  padding:       6px 12px;
+  border-radius: 7px;
+  border:        1px solid var(--clr-border);
+  background:    transparent;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  transition:    background var(--transition), color var(--transition), border-color var(--transition);
+}
+.tx-add-bp-btn:hover {
+  color:        var(--clr-accent);
+  border-color: var(--clr-accent);
+  background:   var(--clr-accent-dim);
+}
+
+/* ── Inline BP form ──────────────────────────────────────────────────────── */
+
+.tx-bp-form {
+  background:    var(--clr-surface-2);
+  border-radius: 10px;
+  padding:       14px;
+  margin-top:    8px;
+}
+.tx-bp-form-row {
+  display:   flex;
+  gap:       10px;
+  flex-wrap: wrap;
+}
+.tx-bp-form-actions {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+  margin-top:      10px;
+}
+
+/* ── Add/edit treatment form ─────────────────────────────────────────────── */
+
+.tx-form-wrap {
+  padding-bottom: 32px;
+}
+.tx-form {
+  padding:        16px;
+  display:        flex;
+  flex-direction: column;
+  gap:            14px;
+}
+.tx-form-row {
+  display:   flex;
+  gap:       10px;
+  flex-wrap: wrap;
+}
+.tx-form-field {
+  display:        flex;
+  flex-direction: column;
+  gap:            5px;
+  flex:           1;
+  min-width:      110px;
+}
+.tx-form-label {
+  font-size:      0.75rem;
+  font-weight:    600;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tx-form-textarea {
+  width:         100%;
+  padding:       8px 10px;
+  border-radius: 8px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.9rem;
+  font-family:   inherit;
+  resize:        vertical;
+  transition:    border-color var(--transition);
+  box-sizing:    border-box;
+}
+.tx-form-textarea:focus {
+  outline:      none;
+  border-color: var(--clr-accent);
+}
+.tx-save-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 14px;
+  border-radius: 8px;
+  border:        none;
+  background:    var(--clr-accent);
+  color:         #fff;
+  cursor:        pointer;
+  transition:    opacity var(--transition);
+}
+.tx-save-btn:hover    { opacity: 0.88; }
+.tx-no-meds-hint {
+  font-size:     0.82rem;
+  color:         var(--clr-text-2);
+  background:    var(--clr-surface-2);
+  border-radius: 8px;
+  padding:       10px 12px;
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  flex-wrap:     wrap;
+}
+.tx-link-btn {
+  background:      none;
+  border:          none;
+  color:           var(--clr-accent);
+  font-size:       0.82rem;
+  font-weight:     600;
+  cursor:          pointer;
+  padding:         0;
+  text-decoration: underline;
+}
+
+/* ── Health Log: treatment badge on BP entries ───────────────────────────── */
+
+.hl-bp-tx-badge {
+  font-size:      0.68rem;
+  font-weight:    700;
+  padding:        2px 6px;
+  border-radius:  10px;
+  background:     var(--clr-accent-dim);
+  color:          var(--clr-accent);
+  letter-spacing: 0.03em;
+  white-space:    nowrap;
+}
