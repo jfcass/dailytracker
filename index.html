@@ -383,34 +383,9 @@
         <!-- Inline save status -->
         <div id="symp-save-status" class="save-status" aria-live="polite"></div>
 
-      </section>
-
-      <!-- ── Section: As-Needed Medications ─────────────────────────────── -->
-      <section id="section-prn-meds" class="tracker-section" aria-label="As-Needed Meds">
-
-        <div class="section-header" onclick="App.toggleSection('section-prn-meds')">
-          <h2 class="section-title">
-            <!-- Pill / capsule icon -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 width="16" height="16" aria-hidden="true">
-              <path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3"/>
-              <circle cx="18" cy="18" r="4"/>
-              <path d="M15.27 20.73 20.73 15.27"/>
-            </svg>
-            As-Needed Meds
-            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                 width="14" height="14" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </h2>
-        </div>
-
-        <!-- Dose cards + log form — populated by medications.js -->
+        <!-- As-Needed Meds sub-section — populated by medications.js -->
+        <div class="prn-sublabel">As-Needed Meds</div>
         <div id="prn-list"></div>
-
-        <!-- Inline save status -->
         <div id="prn-save-status" class="save-status" aria-live="polite"></div>
 
       </section>

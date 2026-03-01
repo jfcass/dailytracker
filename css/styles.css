@@ -5968,6 +5968,19 @@ button {
    PRN (As-Needed) Medications
    ═══════════════════════════════════════════════════════════════════════ */
 
+/* ── Sub-section label inside Health ──────────────────────────────── */
+
+.prn-sublabel {
+  font-size:     0.72rem;
+  font-weight:   600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color:         var(--clr-text-2);
+  padding:       12px 0 6px;
+  border-top:    1px solid var(--clr-border);
+  margin-top:    10px;
+}
+
 /* ── Dose card ─────────────────────────────────────────────────────── */
 
 .prn-card {

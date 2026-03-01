@@ -19,12 +19,17 @@ const Medications = (() => {
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  let currentDate = null;
-  let showForm    = false;   // is the log-dose form open?
-  let fMedId      = '';      // selected med in log form
-  let fDose       = '';      // selected dose chip
-  let fNote       = '';      // note text
-  let tickTimer   = null;
+  let currentDate    = null;
+  let showForm       = false;   // is the log-dose form open?
+  let fMedId         = '';      // selected med in log form
+  let fDose          = '';      // selected dose chip
+  let fNote          = '';      // note text
+  let fTime          = '';      // time for new dose (HH:MM)
+  let editingDoseId  = null;    // id of dose card currently in edit mode
+  let eFDose         = '';      // edit form: selected dose
+  let eFTime         = '';      // edit form: time
+  let eFNote         = '';      // edit form: note
+  let tickTimer      = null;
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -35,11 +40,13 @@ const Medications = (() => {
   }
 
   function setDate(date) {
-    currentDate = date;
-    showForm    = false;
-    fMedId      = '';
-    fDose       = '';
-    fNote       = '';
+    currentDate   = date;
+    showForm      = false;
+    fMedId        = '';
+    fDose         = '';
+    fNote         = '';
+    fTime         = '';
+    editingDoseId = null;
     render();
   }
 
@@ -74,7 +81,11 @@ const Medications = (() => {
       const med = activeMeds.find(m => m.id === dose.medication_id)
                   ?? Object.values(Data.getData().medications ?? {}).find(m => m.id === dose.medication_id);
       if (!med) return;
-      list.appendChild(makeDoseCard(dose, med, recentDoses));
+      if (editingDoseId === dose.id) {
+        list.appendChild(buildEditForm(dose, med));
+      } else {
+        list.appendChild(makeDoseCard(dose, med, recentDoses));
+      }
     });
 
     // Log form or Add button
@@ -135,8 +146,107 @@ const Medications = (() => {
       </div>
     `;
 
-    card.querySelector('.prn-card__del').addEventListener('click', () => deleteDose(dose));
+    card.querySelector('.prn-card__del').addEventListener('click', e => {
+      e.stopPropagation();
+      deleteDose(dose);
+    });
+    card.addEventListener('click', () => startEdit(dose));
+    card.style.cursor = 'pointer';
     return card;
+  }
+
+  // ── Edit form (for existing dose cards) ────────────────────────────────────
+
+  function startEdit(dose) {
+    editingDoseId = dose.id;
+    eFTime  = dose.iso_timestamp.slice(11, 16);  // "HH:MM"
+    eFDose  = dose.dose  ?? '';
+    eFNote  = dose.notes ?? '';
+    showForm = false;
+    render();
+  }
+
+  function buildEditForm(dose, med) {
+    const wrap = document.createElement('div');
+    wrap.className = 'prn-log-form';
+
+    const doses = med?.doses ?? [];
+    const doseChips = doses.map(d =>
+      `<button class="prn-dose-chip${d === eFDose ? ' prn-dose-chip--active' : ''}"
+               type="button" data-dose="${escHtml(d)}">${escHtml(d)}</button>`
+    ).join('');
+
+    wrap.innerHTML = `
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Time</span>
+        <input class="prn-log-form__select" type="time" id="prn-edit-time"
+               value="${escHtml(eFTime)}" style="max-width:120px">
+      </div>
+      ${doses.length > 0 ? `
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Dose</span>
+        <div class="prn-dose-chips">${doseChips}</div>
+      </div>` : ''}
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Note</span>
+        <input class="prn-log-form__note" type="text" id="prn-edit-note"
+               value="${escHtml(eFNote)}" placeholder="Optional" maxlength="200">
+      </div>
+      <div class="prn-log-form__actions">
+        <button class="prn-cancel-btn" type="button" id="prn-edit-delete"
+                style="color:var(--clr-error);border-color:var(--clr-error)">Delete</button>
+        <span style="flex:1"></span>
+        <button class="prn-cancel-btn" type="button" id="prn-edit-cancel">Cancel</button>
+        <button class="prn-log-btn"    type="button" id="prn-edit-save">Save</button>
+      </div>
+    `;
+
+    wrap.querySelector('#prn-edit-time').addEventListener('input', e => { eFTime = e.target.value; });
+    wrap.querySelector('#prn-edit-note').addEventListener('input', e => { eFNote = e.target.value; });
+
+    wrap.querySelectorAll('.prn-dose-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        eFDose = btn.dataset.dose === eFDose ? '' : btn.dataset.dose;
+        render();
+      });
+    });
+
+    wrap.querySelector('#prn-edit-cancel').addEventListener('click', () => {
+      editingDoseId = null;
+      render();
+    });
+
+    wrap.querySelector('#prn-edit-save').addEventListener('click', () => saveEdit(dose));
+    wrap.querySelector('#prn-edit-delete').addEventListener('click', () => {
+      editingDoseId = null;
+      deleteDose(dose);
+    });
+
+    return wrap;
+  }
+
+  function saveEdit(dose) {
+    if (!eFTime) return;
+    const datePart = dose.iso_timestamp.slice(0, 10);
+    const newIso   = `${datePart}T${eFTime}:00`;
+
+    // Update in whichever day owns this dose
+    [Data.getDay(currentDate), Data.getDay(shiftDate(currentDate, -1))].forEach(day => {
+      if (!Array.isArray(day.prn_doses)) return;
+      const idx = day.prn_doses.findIndex(d => d.id === dose.id);
+      if (idx !== -1) {
+        day.prn_doses[idx] = {
+          ...day.prn_doses[idx],
+          iso_timestamp: newIso,
+          dose:  eFDose,
+          notes: eFNote.trim(),
+        };
+      }
+    });
+
+    editingDoseId = null;
+    render();
+    scheduleSave();
   }
 
   // ── Log form ───────────────────────────────────────────────────────────────
@@ -176,6 +286,11 @@ const Medications = (() => {
         <span class="prn-log-form__label">Med</span>
         <select class="prn-log-form__select" id="prn-form-med">${medOptions}</select>
       </div>
+      <div class="prn-log-form__row">
+        <span class="prn-log-form__label">Time</span>
+        <input class="prn-log-form__select" type="time" id="prn-form-time"
+               value="${escHtml(fTime)}" style="max-width:120px">
+      </div>
       ${doses.length > 0 ? `
       <div class="prn-log-form__row">
         <span class="prn-log-form__label">Dose</span>
@@ -197,6 +312,10 @@ const Medications = (() => {
       fMedId = e.target.value;
       fDose  = '';
       render();
+    });
+
+    wrap.querySelector('#prn-form-time').addEventListener('input', e => {
+      fTime = e.target.value;
     });
 
     wrap.querySelectorAll('.prn-dose-chip').forEach(btn => {
@@ -223,23 +342,25 @@ const Medications = (() => {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   function openForm() {
-    showForm = true;
-    fDose    = '';
-    fNote    = '';
+    showForm      = true;
+    editingDoseId = null;
+    fDose         = '';
+    fNote         = '';
+    // Default time to now
+    const now = new Date();
+    fTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
     render();
   }
 
   function submitLog() {
     if (!fMedId) return;
 
-    const now = new Date();
-    // Pad iso_timestamp to local time (no UTC conversion)
-    const iso = now.getFullYear()
-      + '-' + String(now.getMonth() + 1).padStart(2, '0')
-      + '-' + String(now.getDate()).padStart(2, '0')
-      + 'T' + String(now.getHours()).padStart(2, '0')
-      + ':' + String(now.getMinutes()).padStart(2, '0')
-      + ':' + String(now.getSeconds()).padStart(2, '0');
+    // Use user-specified time (or fall back to now if somehow empty)
+    const timeStr = fTime || (() => {
+      const n = new Date();
+      return String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    })();
+    const iso = `${currentDate}T${timeStr}:00`;
 
     const dose = {
       id:             crypto.randomUUID(),
