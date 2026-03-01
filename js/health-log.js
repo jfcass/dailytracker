@@ -290,6 +290,7 @@ const HealthLog = (() => {
           <span class="hl-bp-reading">${escHtml(String(e.systolic))}/${escHtml(String(e.diastolic))}</span>
           ${e.pulse != null && e.pulse !== '' ? `<span class="hl-bp-pulse">${escHtml(String(e.pulse))} bpm</span>` : ''}
           <span class="hl-bp-ctx-badge" style="--ctx-clr:${ctxColor}">${escHtml(e.context ?? '')}</span>
+          ${e.treatment_id ? `<span class="hl-bp-tx-badge" title="Logged during a treatment">Tx</span>` : ''}
           ${e.notes ? `<span class="hl-bp-notes">${escHtml(e.notes)}</span>` : ''}
           <span class="hl-bp-actions">
             <button class="hl-bp-edit-btn" onclick="HealthLog._editBP('${e.id}')">Edit</button>
