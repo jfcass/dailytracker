@@ -12,6 +12,53 @@ const Gratitudes = (() => {
   let currentDate = null;
   let saveTimer   = null;
 
+  // ── Streak helpers ───────────────────────────────────────────────────────
+  function shiftDate(dateStr, days) {
+    const d = new Date(dateStr + 'T12:00:00'); // noon avoids DST edge cases
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function formatStreakLabel(n) {
+    if (n < 365) return String(n);
+    const years = Math.floor(n / 365);
+    const rem   = n % 365;
+    return rem === 0 ? `${years}y` : `${years}y ${rem}d`;
+  }
+
+  function calcGratitudeStreak() {
+    const allDays  = Data.getData().days ?? {};
+    const today    = Data.today();
+    const todayHas = (allDays[today]?.gratitudes ?? []).some(g => g.trim());
+    let date = todayHas ? today : shiftDate(today, -1);
+    let n    = 0;
+    for (let i = 0; i < 3650; i++) {
+      const hasEntry = (allDays[date]?.gratitudes ?? []).some(g => g.trim());
+      if (hasEntry) { n++; date = shiftDate(date, -1); }
+      else          { break; }
+    }
+    return n;
+  }
+
+  function updateGratitudeStreakBadge() {
+    const el = document.getElementById('grat-streak');
+    if (!el) return;
+    const streak = calcGratitudeStreak();
+    if (streak === 0) {
+      el.hidden      = true;
+      el.className   = 'habit-streak';
+      el.textContent = '';
+    } else if (streak === 1) {
+      el.hidden      = false;
+      el.className   = 'habit-streak habit-streak--one';
+      el.textContent = '1';
+    } else {
+      el.hidden      = false;
+      el.className   = 'habit-streak';
+      el.textContent = '🔥 ' + formatStreakLabel(streak);
+    }
+  }
+
   // ── Public ────────────────────────────────────────────────────────────────
 
   function init() {
@@ -59,6 +106,7 @@ const Gratitudes = (() => {
     document.querySelectorAll('#grat-list .grat-input').forEach(_autoResize);
 
     updateSaveStatus('');
+    updateGratitudeStreakBadge();
   }
 
   function escHtml(str) {
