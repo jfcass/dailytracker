@@ -717,11 +717,12 @@ const Settings = (() => {
         </div>
       </div>
       <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Available doses <span style="font-size:0.72rem">(type + Enter)</span></label>
+        <label class="prn-stg-form__label">Available doses</label>
         <div class="prn-dose-tags" id="prn-dose-tags">
           ${tagsHtml}
           <input class="prn-dose-tag-input" id="prn-dose-tag-input" type="text"
                  value="${escHtml(prnFDoseInput)}" placeholder="e.g. 400mg" maxlength="20">
+          <button class="prn-dose-add-btn" id="prn-dose-add-btn" type="button" aria-label="Add dose">+</button>
         </div>
       </div>
       <div class="prn-stg-form__actions">
@@ -753,6 +754,7 @@ const Settings = (() => {
       tagInput.value = '';
       tagInput.focus();
     };
+    wrap.querySelector('#prn-dose-add-btn').addEventListener('click', () => addPrnDose());
     tagInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
         e.preventDefault();
@@ -762,8 +764,10 @@ const Settings = (() => {
         render();
       }
     });
+    tagInput.addEventListener('keyup', e => {
+      if (e.key === 'Enter' || e.keyCode === 13) addPrnDose();
+    });
     tagInput.addEventListener('input', e => {
-      // Android virtual keyboards fire 'insertLineBreak' instead of keydown Enter
       if (e.inputType === 'insertLineBreak') { addPrnDose(); return; }
       prnFDoseInput = e.target.value;
     });
@@ -962,11 +966,12 @@ const Settings = (() => {
                value="${escHtml(txMedFName)}" maxlength="80" placeholder="e.g. Ketamine">
       </div>
       <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Available doses <span style="font-size:0.72rem">(type + Enter)</span></label>
+        <label class="prn-stg-form__label">Available doses</label>
         <div class="prn-dose-tags" id="tx-dose-tags">
           ${tagsHtml}
           <input class="prn-dose-tag-input" id="tx-dose-tag-input" type="text"
                  value="${escHtml(txMedFDoseInput)}" placeholder="e.g. 200mg" maxlength="20">
+          <button class="prn-dose-add-btn" id="tx-dose-add-btn" type="button" aria-label="Add dose">+</button>
         </div>
       </div>
       <div class="prn-stg-form__field">
@@ -1011,6 +1016,7 @@ const Settings = (() => {
         ].join('');
       }
     };
+    wrap.querySelector('#tx-dose-add-btn').addEventListener('click', () => addTxDose());
     tagInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
         e.preventDefault();
@@ -1020,8 +1026,10 @@ const Settings = (() => {
         render();
       }
     });
+    tagInput.addEventListener('keyup', e => {
+      if (e.key === 'Enter' || e.keyCode === 13) addTxDose();
+    });
     tagInput.addEventListener('input', e => {
-      // Android virtual keyboards fire 'insertLineBreak' instead of keydown Enter
       if (e.inputType === 'insertLineBreak') { addTxDose(); return; }
       txMedFDoseInput = e.target.value;
     });

@@ -6368,6 +6368,22 @@ button {
   flex:       1;
 }
 
+.prn-dose-add-btn {
+  height:        26px;
+  padding:       0 10px;
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 6px;
+  font-size:     1.1rem;
+  font-weight:   700;
+  line-height:   1;
+  cursor:        pointer;
+  flex-shrink:   0;
+  transition:    opacity var(--transition);
+}
+.prn-dose-add-btn:hover { opacity: 0.85; }
+
 .prn-stg-form__row {
   display:     flex;
   gap:         8px;
