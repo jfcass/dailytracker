@@ -32,7 +32,6 @@ js/
   sleep.js              (Phase 6) Sleep tracker
   mood.js               (Phase 6) Mood/energy tracker
   food.js               (Phase 6) Food/diet tracker
-  social.js             (Phase 6) Social activity tracker
   reports.js            (Phase 7) Reports & charts
 CLAUDE.md               This file
 ```
@@ -129,18 +128,6 @@ All data lives in `health-tracker-data.json` in Google Drive.
           "dose_override": null,
           "notes":         ""
         }
-      ],
-
-      "social": [
-        {
-          "id":          "<uuid>",
-          "description": "Dinner with friends",
-          "people":      ["Alice", "Bob"],
-          "start_time":  "19:00",
-          "end_time":    "22:00",
-          "mood_impact": 2,
-          "notes":       ""
-        }
       ]
 
     }
@@ -220,7 +207,7 @@ Master medication list. Daily `medications_taken` entries reference these via `m
 | 3 | ✅ Done | Moderation Tracker section |
 | 4 | ✅ Done | Symptom Log section |
 | 5 | ✅ Done | Medication Tracker |
-| 6 | Planned | Sleep, Mood, Food, Social trackers |
+| 6 | Planned | Sleep, Mood, Food trackers |
 | 7 | Planned | Reports & Charts (timeline, correlation, date range filters) |
 
 ---

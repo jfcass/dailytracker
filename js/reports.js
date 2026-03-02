@@ -278,7 +278,7 @@ const Reports = (() => {
         : '';
 
       return `<div class="rpt-health-issue">
-        <div class="rpt-issue-name">${escHtml(issue.title)}${resolvedBadge}</div>
+        <div class="rpt-issue-name">${escHtml(issue.name)}${resolvedBadge}</div>
         <div class="rpt-issue-meta">
           <span class="rpt-issue-cat">${escHtml(issue.category)}</span>
           <span>·</span>
@@ -1334,6 +1334,8 @@ const Reports = (() => {
             if (chevron) chevron.classList.add('rpt-section-chevron--closed');
             if (body) body.hidden = true;
           }
+          // Persist collapsed state across sessions
+          try { localStorage.setItem('rpt_collapsed', JSON.stringify([...collapsedSections])); } catch {}
         });
       });
     });
@@ -1353,6 +1355,12 @@ const Reports = (() => {
 
   function init() {
     period = Data.getSettings().default_report_period ?? '7d';
+
+    // Restore collapsed section preferences from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('rpt_collapsed') ?? '[]');
+      if (Array.isArray(saved)) collapsedSections = new Set(saved);
+    } catch { /* ignore parse errors */ }
 
     const wrap = document.getElementById('rpt-period-wrap');
     if (!wrap) return;
