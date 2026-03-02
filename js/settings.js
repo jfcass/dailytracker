@@ -9,6 +9,9 @@ const Settings = (() => {
 
   let saveTimer = null;
 
+  // Which settings cards are expanded? (all collapsed by default)
+  let expandedCards = new Set();
+
   // PRN med form state
   let prnForm          = null;   // null | 'add' | med-id (editing)
   let prnFName         = '';
@@ -57,31 +60,68 @@ const Settings = (() => {
   }
 
   function focusPrnMeds() {
-    const el = document.getElementById('stg-prn-meds-card');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    expandedCards.add('prn');
+    render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById('stg-prn-meds-card');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function focusTxMeds() {
-    const el = document.getElementById('stg-tx-meds-card');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    expandedCards.add('tx');
+    render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById('stg-tx-meds-card');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   // ── Card builder ─────────────────────────────────────────────────────────────
 
-  function makeCard(titleHtml) {
+  function makeCard(titleHtml, key) {
     const card = document.createElement('div');
     card.className = 'stg-card';
+
     const header = document.createElement('div');
     header.className = 'stg-card-header';
     header.innerHTML = titleHtml;
+
+    const body = document.createElement('div');
+    body.className = 'stg-card-body';
+
+    if (key) {
+      const isExpanded = expandedCards.has(key);
+      body.hidden = !isExpanded;
+      card.classList.toggle('stg-card--collapsed', !isExpanded);
+
+      const chevron = document.createElement('span');
+      chevron.className = 'stg-card-chevron' + (isExpanded ? ' stg-card-chevron--open' : '');
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.textContent = '▾';
+      header.classList.add('stg-card-header--toggle');
+      header.setAttribute('role', 'button');
+      header.setAttribute('tabindex', '0');
+      header.appendChild(chevron);
+      header.addEventListener('click', () => {
+        if (expandedCards.has(key)) expandedCards.delete(key);
+        else expandedCards.add(key);
+        render();
+      });
+      header.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); header.click(); }
+      });
+    }
+
     card.appendChild(header);
-    return card;
+    card.appendChild(body);
+    return { card, body };
   }
 
   // ── Habits Card ──────────────────────────────────────────────────────────────
 
   function buildHabitsCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -90,7 +130,7 @@ const Settings = (() => {
         </svg>
         Habits
       </span>
-    `);
+    `, 'habits');
 
     const habits = Data.getSettings().habits ?? [];
     const list   = document.createElement('div');
@@ -139,7 +179,7 @@ const Settings = (() => {
       list.appendChild(row);
     });
 
-    card.appendChild(list);
+    body.appendChild(list);
 
     const addRow = document.createElement('div');
     addRow.className = 'stg-add-row';
@@ -152,7 +192,7 @@ const Settings = (() => {
     const doAdd = () => { if (addHabit(inp.value.trim())) { inp.value = ''; } inp.focus(); };
     addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
-    card.appendChild(addRow);
+    body.appendChild(addRow);
 
     return card;
   }
@@ -182,7 +222,7 @@ const Settings = (() => {
   // ── Substances Card ──────────────────────────────────────────────────────────
 
   function buildSubstancesCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -198,7 +238,7 @@ const Settings = (() => {
         </svg>
         Moderation Substances
       </span>
-    `);
+    `, 'substances');
 
     const subs = Data.getSettings().moderation_substances ?? [];
     const list = document.createElement('div');
@@ -232,7 +272,7 @@ const Settings = (() => {
       list.appendChild(row);
     });
 
-    card.appendChild(list);
+    body.appendChild(list);
 
     const addRow = document.createElement('div');
     addRow.className = 'stg-add-row stg-add-row--multi';
@@ -253,7 +293,7 @@ const Settings = (() => {
     };
     addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
     [nameInp, unitInp].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); }));
-    card.appendChild(addRow);
+    body.appendChild(addRow);
 
     return card;
   }
@@ -279,7 +319,7 @@ const Settings = (() => {
   // ── Categories Card ──────────────────────────────────────────────────────────
 
   function buildCategoriesCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -289,7 +329,7 @@ const Settings = (() => {
         </svg>
         Health Categories
       </span>
-    `);
+    `, 'categories');
 
     const cats     = Data.getSettings().symptom_categories ?? [];
     const tagsWrap = document.createElement('div');
@@ -310,7 +350,7 @@ const Settings = (() => {
       });
     }
 
-    card.appendChild(tagsWrap);
+    body.appendChild(tagsWrap);
 
     const addRow = document.createElement('div');
     addRow.className = 'stg-add-row';
@@ -323,7 +363,7 @@ const Settings = (() => {
     const doAdd = () => { if (addCategory(inp.value.trim())) { inp.value = ''; } inp.focus(); };
     addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
-    card.appendChild(addRow);
+    body.appendChild(addRow);
 
     return card;
   }
@@ -354,7 +394,7 @@ const Settings = (() => {
     const theme = s.theme        ?? 'system';
     const unit  = s.weather_unit ?? 'auto';
 
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -370,7 +410,7 @@ const Settings = (() => {
         </svg>
         Display
       </span>
-    `);
+    `, 'display');
 
     // Theme row
     const themeRow = document.createElement('div');
@@ -387,7 +427,7 @@ const Settings = (() => {
     themeRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
       btn.addEventListener('click', () => setTheme(btn.dataset.value))
     );
-    card.appendChild(themeRow);
+    body.appendChild(themeRow);
 
     // Temperature unit row
     const unitRow = document.createElement('div');
@@ -404,7 +444,7 @@ const Settings = (() => {
     unitRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
       btn.addEventListener('click', () => setWeatherUnit(btn.dataset.value))
     );
-    card.appendChild(unitRow);
+    body.appendChild(unitRow);
 
     return card;
   }
@@ -435,7 +475,7 @@ const Settings = (() => {
   // ── Account Card ─────────────────────────────────────────────────────────────
 
   function buildAccountCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -444,7 +484,7 @@ const Settings = (() => {
         </svg>
         Account
       </span>
-    `);
+    `, 'account');
 
     // Change PIN row
     const pinRow = document.createElement('div');
@@ -457,7 +497,7 @@ const Settings = (() => {
       <button class="stg-action-btn" type="button">Change</button>
     `;
     pinRow.querySelector('.stg-action-btn').addEventListener('click', () => PIN.showSetup());
-    card.appendChild(pinRow);
+    body.appendChild(pinRow);
 
     // Sign out row
     const signOutRow = document.createElement('div');
@@ -473,7 +513,7 @@ const Settings = (() => {
       Auth.signOut();
       App.showScreen('screen-auth');
     });
-    card.appendChild(signOutRow);
+    body.appendChild(signOutRow);
 
     return card;
   }
@@ -481,7 +521,7 @@ const Settings = (() => {
   // ── Fitbit Card ───────────────────────────────────────────────────────────────
 
   function buildFitbitCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -489,7 +529,7 @@ const Settings = (() => {
         </svg>
         Fitbit
       </span>
-    `);
+    `, 'fitbit');
 
     const fitbit    = Data.getData().fitbit;
     const connected = FitbitAuth.isConnected();
@@ -506,7 +546,7 @@ const Settings = (() => {
         <button class="stg-action-btn" type="button">Connect</button>
       `;
       row.querySelector('.stg-action-btn').addEventListener('click', () => FitbitAuth.startAuth());
-      card.appendChild(row);
+      body.appendChild(row);
       return card;
     }
 
@@ -542,7 +582,7 @@ const Settings = (() => {
         <button class="stg-action-btn" type="button">Reconnect</button>
       `;
       errRow.querySelector('.stg-action-btn').addEventListener('click', () => FitbitAuth.startAuth());
-      card.appendChild(errRow);
+      body.appendChild(errRow);
     } else {
       // ── Healthy ──
       const statusRow = document.createElement('div');
@@ -575,7 +615,7 @@ const Settings = (() => {
         }
       }
 
-      card.appendChild(statusRow);
+      body.appendChild(statusRow);
     }
 
     return card;
@@ -584,7 +624,7 @@ const Settings = (() => {
   // ── PRN Medications Card ──────────────────────────────────────────────────
 
   function buildPrnMedsCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -594,7 +634,7 @@ const Settings = (() => {
         </svg>
         As-Needed Medications
       </span>
-    `);
+    `, 'prn');
     card.id = 'stg-prn-meds-card';
 
     const meds = Object.values(Data.getData().medications ?? {}).filter(m => m.as_needed);
@@ -665,7 +705,7 @@ const Settings = (() => {
     // Add form
     if (prnForm === 'add') list.appendChild(buildPrnForm('add'));
 
-    card.appendChild(list);
+    body.appendChild(list);
 
     // Add button
     if (prnForm !== 'add') {
@@ -686,7 +726,7 @@ const Settings = (() => {
         render();
       });
       addRow.appendChild(addBtn);
-      card.appendChild(addRow);
+      body.appendChild(addRow);
     }
 
     return card;
@@ -895,7 +935,7 @@ const Settings = (() => {
   // ── Treatment Medications Card ──────────────────────────────────────────────
 
   function buildTreatmentMedsCard() {
-    const card = makeCard(`
+    const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
@@ -905,7 +945,7 @@ const Settings = (() => {
         </svg>
         Treatment Medications
       </span>
-    `);
+    `, 'tx');
     card.id = 'stg-tx-meds-card';
 
     const meds = Object.values(Data.getData().treatment_medications ?? {}).filter(m => m.active);
@@ -965,7 +1005,7 @@ const Settings = (() => {
 
     if (txMedForm === 'add') list.appendChild(buildTxMedForm('add'));
 
-    card.appendChild(list);
+    body.appendChild(list);
 
     if (txMedForm !== 'add') {
       const addRow = document.createElement('div');
@@ -983,7 +1023,7 @@ const Settings = (() => {
         render();
       });
       addRow.appendChild(addBtn);
-      card.appendChild(addRow);
+      body.appendChild(addRow);
     }
 
     return card;
