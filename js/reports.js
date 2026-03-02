@@ -707,34 +707,54 @@ const Reports = (() => {
     return rptSection('Medications', medIcon(), rows);
   }
 
+  // ── Streak helpers ───────────────────────────────────────────────────────────
+
+  // Returns the longest unbroken run of days (within `dates`) where hasEntry()
+  // is true.  If the winning run starts at dates[0], walks backwards past the
+  // period start so the full historical streak is captured.
+  function calcLongestStreak(dates, hasEntry) {
+    if (!dates.length) return 0;
+    let maxLen = 0, maxRunStart = -1, run = 0, runStart = -1;
+    for (let i = 0; i < dates.length; i++) {
+      if (hasEntry(dates[i])) {
+        if (run === 0) runStart = i;
+        run++;
+        if (run > maxLen) { maxLen = run; maxRunStart = runStart; }
+      } else { run = 0; runStart = -1; }
+    }
+    if (maxLen === 0) return 0;
+    // Extend backwards if the best run started at the very beginning of the period
+    if (maxRunStart === 0) {
+      const d = parseLocalDate(dates[0]);
+      for (let i = 0; i < 3650; i++) {
+        d.setDate(d.getDate() - 1);
+        if (hasEntry(toDateStr(d))) { maxLen++; } else { break; }
+      }
+    }
+    return maxLen;
+  }
+
   // ── Gratitudes section ───────────────────────────────────────────────────────
 
   function buildGratitudeStreak(dates) {
-    // Current streak: consecutive days from most recent backwards with ≥1 gratitude
-    let streak = 0;
-    for (let i = dates.length - 1; i >= 0; i--) {
-      const day     = Data.getData().days?.[dates[i]];
-      const entries = (day?.gratitudes ?? []).filter(g => g.trim());
-      if (entries.length > 0) { streak++; } else { break; }
-    }
-    // Total days with gratitudes in the period
-    const totalDays = dates.filter(d => {
-      const day = Data.getData().days?.[d];
-      return (day?.gratitudes ?? []).filter(g => g.trim()).length > 0;
-    }).length;
-    return { streak, totalDays };
+    const daysData = Data.getData().days ?? {};
+    const hasEntry = date => (daysData[date]?.gratitudes ?? []).some(g => g.trim());
+    return {
+      longest:   calcLongestStreak(dates, hasEntry),
+      totalDays: dates.filter(hasEntry).length,
+    };
   }
 
   function buildGratitudesSection(dates) {
-    const { streak, totalDays } = buildGratitudeStreak(dates);
+    const { longest, totalDays } = buildGratitudeStreak(dates);
     if (!totalDays) {
       return rptSection('Gratitudes', gratitudeIcon(), `<p class="rpt-empty">No gratitudes logged in this period.</p>`);
     }
     const pct  = dates.length ? Math.round(totalDays / dates.length * 100) : 0;
     const body = `<div class="rpt-stats-grid">
       <div class="rpt-stat">
-        <span class="rpt-stat-value">${streak}</span>
-        <span class="rpt-stat-label">Current streak</span>
+        <span class="rpt-stat-value">${longest}</span>
+        <span class="rpt-stat-label">Longest streak</span>
       </div>
       <div class="rpt-stat">
         <span class="rpt-stat-value">${totalDays}</span>
@@ -751,21 +771,18 @@ const Reports = (() => {
   // ── Daily Notes section ───────────────────────────────────────────────────────
 
   function buildDailyNotesSection(dates) {
-    const daysData   = Data.getData().days ?? {};
-    const daysLogged = dates.filter(d => (daysData[d]?.note ?? '').trim()).length;
+    const daysData = Data.getData().days ?? {};
+    const hasEntry = date => !!(daysData[date]?.note ?? '').trim();
+    const daysLogged = dates.filter(hasEntry).length;
     if (!daysLogged) {
       return rptSection('Daily Notes', notesIcon(), `<p class="rpt-empty">No daily notes in this period.</p>`);
     }
-    const pct = dates.length ? Math.round(daysLogged / dates.length * 100) : 0;
-    // Streak: consecutive days from end of period backwards
-    let streak = 0;
-    for (let i = dates.length - 1; i >= 0; i--) {
-      if ((daysData[dates[i]]?.note ?? '').trim()) { streak++; } else { break; }
-    }
+    const pct     = dates.length ? Math.round(daysLogged / dates.length * 100) : 0;
+    const longest = calcLongestStreak(dates, hasEntry);
     const body = `<div class="rpt-stats-grid">
       <div class="rpt-stat">
-        <span class="rpt-stat-value">${streak}</span>
-        <span class="rpt-stat-label">Current streak</span>
+        <span class="rpt-stat-value">${longest}</span>
+        <span class="rpt-stat-label">Longest streak</span>
       </div>
       <div class="rpt-stat">
         <span class="rpt-stat-value">${daysLogged}</span>
@@ -1264,17 +1281,17 @@ const Reports = (() => {
     // Gratitudes → Daily Notes), then passive/Fitbit sections below.
     el.innerHTML =
         buildHabitsSection(dates)
+      + buildReadingSection(dates)
       + buildMoodSection(dates)
       + buildBowelSection(dates)
       + buildHealthSection(dates)
+      + buildMedicationsSection(dates)
       + buildModerationSection(dates)
       + buildGratitudesSection(dates)
       + buildDailyNotesSection(dates)
       + buildSleepSection(dates)
       + buildActivitySection(dates)
-      + buildBiometricsSection(dates)
-      + buildReadingSection(dates)
-      + buildMedicationsSection(dates);
+      + buildBiometricsSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {
