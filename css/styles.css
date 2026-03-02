@@ -4091,6 +4091,20 @@ button {
   font-size:   0.9rem;
   font-weight: 600;
   color:       var(--clr-text);
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+}
+
+.rpt-resolved-badge {
+  font-size:     0.68rem;
+  font-weight:   600;
+  padding:       2px 6px;
+  border-radius: 4px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  border:        1px solid var(--clr-border);
+  flex-shrink:   0;
 }
 
 .rpt-issue-meta {

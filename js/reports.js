@@ -251,13 +251,19 @@ const Reports = (() => {
   function buildHealthSection(dates) {
     const issues   = Data.getData().issues ?? {};
     const daysData = Data.getData().days ?? {};
-    const active   = Object.values(issues).filter(i => !i.resolved);
+    const all      = Object.values(issues);
 
-    if (!active.length) {
-      return rptSection('Health', healthIcon(), `<p class="rpt-empty">No active health issues tracked.</p>`);
+    if (!all.length) {
+      return rptSection('Health', healthIcon(), `<p class="rpt-empty">No health issues tracked.</p>`);
     }
 
-    const issueBlocks = active.map(issue => {
+    // Active issues first, then resolved; within each group sort by start date
+    const sorted = all.slice().sort((a, b) => {
+      if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+      return (a.start_date ?? '').localeCompare(b.start_date ?? '');
+    });
+
+    const issueBlocks = sorted.map(issue => {
       const logsInPeriod = dates.flatMap(date => {
         const log = (daysData[date]?.issue_logs ?? []).find(l => l.issue_id === issue.id);
         return log ? [{ date, severity: log.severity ?? 0 }] : [];
@@ -267,8 +273,12 @@ const Reports = (() => {
         ? `<div class="rpt-chart-wrap"><canvas id="rpt-health-${issue.id}"></canvas></div>`
         : `<p class="rpt-empty" style="padding:6px 0 2px">No logs in this period</p>`;
 
+      const resolvedBadge = issue.resolved
+        ? `<span class="rpt-resolved-badge">Resolved</span>`
+        : '';
+
       return `<div class="rpt-health-issue">
-        <div class="rpt-issue-name">${escHtml(issue.title)}</div>
+        <div class="rpt-issue-name">${escHtml(issue.title)}${resolvedBadge}</div>
         <div class="rpt-issue-meta">
           <span class="rpt-issue-cat">${escHtml(issue.category)}</span>
           <span>·</span>
@@ -285,7 +295,7 @@ const Reports = (() => {
     const issues   = Data.getData().issues ?? {};
     const daysData = Data.getData().days ?? {};
 
-    Object.values(issues).filter(i => !i.resolved).forEach(issue => {
+    Object.values(issues).forEach(issue => {
       const points = dates.flatMap(date => {
         const log = (daysData[date]?.issue_logs ?? []).find(l => l.issue_id === issue.id);
         return log ? [{ date, severity: log.severity ?? 0 }] : [];
