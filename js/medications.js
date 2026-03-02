@@ -65,14 +65,22 @@ const Medications = (() => {
 
     const activeMeds = getActiveMeds();
 
-    // Collect all prn_doses from today + yesterday that are within 24h
-    const now       = Date.now();
-    const cutoff    = now - 24 * 60 * 60 * 1000;
-    const todayDoses    = (Data.getDay(currentDate).prn_doses ?? []);
-    const yesterdayDoses = (Data.getDay(shiftDate(currentDate, -1)).prn_doses ?? []);
-    const recentDoses = [...yesterdayDoses, ...todayDoses]
-      .filter(d => new Date(d.iso_timestamp).getTime() > cutoff)
-      .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
+    // For today: show doses from the last 24 h (today + yesterday, time-filtered).
+    // For past dates: show all doses logged on that specific day — no time filter.
+    const todayDate = Data.today();
+    let recentDoses;
+    if (currentDate === todayDate) {
+      const cutoff         = Date.now() - 24 * 60 * 60 * 1000;
+      const todayDoses     = (Data.getDay(currentDate).prn_doses ?? []);
+      const yesterdayDoses = (Data.getDay(shiftDate(currentDate, -1)).prn_doses ?? []);
+      recentDoses = [...yesterdayDoses, ...todayDoses]
+        .filter(d => new Date(d.iso_timestamp).getTime() > cutoff)
+        .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
+    } else {
+      recentDoses = (Data.getDay(currentDate).prn_doses ?? [])
+        .slice()
+        .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
+    }
 
     list.innerHTML = '';
 
