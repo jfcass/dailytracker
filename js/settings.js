@@ -446,6 +446,28 @@ const Settings = (() => {
     );
     body.appendChild(unitRow);
 
+    // Default report period row
+    const rptPeriod = Data.getSettings().default_report_period ?? '7d';
+    const rptRow = document.createElement('div');
+    rptRow.className = 'stg-pref-row';
+    rptRow.innerHTML = `
+      <span class="stg-pref-label">Default period</span>
+      <div class="stg-toggle-group" role="group" aria-label="Default report period">
+        ${[['7d', '7d'], ['30d', '30d'], ['90d', '90d'], ['all', 'All']].map(([v, lbl]) =>
+          `<button class="stg-toggle-btn${rptPeriod === v ? ' stg-toggle-btn--active' : ''}"
+                   data-value="${v}" type="button">${escHtml(lbl)}</button>`
+        ).join('')}
+      </div>
+    `;
+    rptRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        Data.getSettings().default_report_period = btn.dataset.value;
+        scheduleSave();
+        render();
+      })
+    );
+    body.appendChild(rptRow);
+
     return card;
   }
 
