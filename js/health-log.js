@@ -24,7 +24,7 @@ const HealthLog = (() => {
   let fBpNotes   = '';
 
   // Which hl sections are collapsed? Keys: 'bp' | 'dig' | 'meds' | 'issues'
-  let collapsedSections = new Set();
+  let collapsedSections = new Set(['bp', 'dig', 'meds', 'issues']);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
