@@ -4586,6 +4586,28 @@ button {
   gap:         7px;
 }
 
+/* ── Collapsible card toggle ─────────────────────────────────────────────── */
+.stg-card-header--toggle {
+  cursor:      pointer;
+  user-select: none;
+}
+.stg-card-chevron {
+  font-size:   0.7rem;
+  color:       var(--clr-text-2);
+  transition:  transform 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.stg-card-chevron--open {
+  transform: rotate(0deg);
+}
+.stg-card-chevron:not(.stg-card-chevron--open) {
+  transform: rotate(-90deg);
+}
+.stg-card--collapsed .stg-card-header {
+  border-bottom: none;
+}
+
 /* ── List (habits, substances) ───────────────────────────────────────────── */
 .stg-list {
   padding: 2px 0;
