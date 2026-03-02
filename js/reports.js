@@ -455,7 +455,7 @@ const Reports = (() => {
 
   function buildBowelSection(dates) {
     const daysData       = Data.getData().days ?? {};
-    const QUALITY_LABELS = ['', 'Hard', 'Firm', 'Normal', 'Soft', 'Watery'];
+    const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
 
     let totalMovements = 0, daysWithMovements = 0;
     const qualityCounts = [0, 0, 0, 0, 0, 0];
@@ -503,7 +503,7 @@ const Reports = (() => {
 
   function renderBowelCharts(dates) {
     const daysData       = Data.getData().days ?? {};
-    const QUALITY_LABELS = ['', 'Hard', 'Firm', 'Normal', 'Soft', 'Watery'];
+    const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
     const QUALITY_COLORS = ['', '#8B6240', '#C09040', '#1ABEA5', '#E89020', '#E05030'];
     const textClr        = cssVar('--clr-text-2');
     const gridClr        = cssVar('--clr-border');

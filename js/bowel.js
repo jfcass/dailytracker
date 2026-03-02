@@ -5,7 +5,7 @@
  * Reads/writes Data.getDay(date).bowel  →  [{ id, time, quality, notes }, …]
  *
  * Quality scale (Bristol-inspired):
- *   1 = Hard   2 = Firm   3 = Normal   4 = Soft   5 = Watery
+ *   1 = Lumpy   2 = Cracked   3 = Normal   4 = Mushy   5 = Watery
  */
 const Bowel = (() => {
 
@@ -17,7 +17,7 @@ const Bowel = (() => {
   let fQuality = 0;
   let fNotes   = '';
 
-  const QUALITY_LABELS = ['', 'Hard', 'Firm', 'Normal', 'Soft', 'Watery'];
+  const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
   const QUALITY_COLORS = ['', '#8B6240', '#C09040', '#1ABEA5', '#E89020', '#E05030'];
 
   // ── Public ───────────────────────────────────────────────────────────────
