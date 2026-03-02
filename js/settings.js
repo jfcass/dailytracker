@@ -10,12 +10,13 @@ const Settings = (() => {
   let saveTimer = null;
 
   // PRN med form state
-  let prnForm        = null;   // null | 'add' | med-id (editing)
-  let prnFName       = '';
-  let prnFInterval   = '';
-  let prnFMaxDoses   = '';
-  let prnFDoses      = [];     // string[]
-  let prnFDoseInput  = '';
+  let prnForm          = null;   // null | 'add' | med-id (editing)
+  let prnFName         = '';
+  let prnFInterval     = '';
+  let prnFMaxDoses     = '';
+  let prnFDoses        = [];     // string[]
+  let prnFDoseInput    = '';
+  let prnFDefaultDose  = '';     // which dose is the default
 
   // Treatment medication form state
   let txMedForm         = null;   // null | 'add' | med-id (editing)
@@ -616,14 +617,20 @@ const Settings = (() => {
       const metaTags = [
         med.min_interval_hours ? `Every ${med.min_interval_hours}h` : null,
         med.max_daily_doses    ? `Max ${med.max_daily_doses}/day` : null,
-        ...(med.doses ?? []),
       ].filter(Boolean);
+
+      const doseTagsHtml = (med.doses ?? [])
+        .map(d => d === med.default_dose
+          ? `<span class="prn-stg-tag prn-stg-tag--default">${escHtml(d)} ★</span>`
+          : `<span class="prn-stg-tag">${escHtml(d)}</span>`
+        ).join('');
 
       row.innerHTML = `
         <div class="stg-item-info">
           <span class="stg-item-name">${escHtml(med.name)}</span>
           <div class="prn-stg-meta">
             ${metaTags.map(t => `<span class="prn-stg-tag">${escHtml(t)}</span>`).join('')}
+            ${doseTagsHtml}
           </div>
         </div>
         <div style="display:flex;gap:4px">
@@ -669,12 +676,13 @@ const Settings = (() => {
       addBtn.type        = 'button';
       addBtn.textContent = '+ Add medication';
       addBtn.addEventListener('click', () => {
-        prnForm       = 'add';
-        prnFName      = '';
-        prnFInterval  = '';
-        prnFMaxDoses  = '';
-        prnFDoses     = [];
-        prnFDoseInput = '';
+        prnForm         = 'add';
+        prnFName        = '';
+        prnFInterval    = '';
+        prnFMaxDoses    = '';
+        prnFDoses       = [];
+        prnFDoseInput   = '';
+        prnFDefaultDose = '';
         render();
       });
       addRow.appendChild(addBtn);
@@ -691,6 +699,13 @@ const Settings = (() => {
     const tagsHtml = prnFDoses.map(d =>
       `<span class="prn-dose-tag">${escHtml(d)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(d)}" aria-label="Remove ${escHtml(d)}">×</button></span>`
     ).join('');
+
+    const defaultDoseOptions = [
+      `<option value="">— None —</option>`,
+      ...prnFDoses.map(d =>
+        `<option value="${escHtml(d)}"${d === prnFDefaultDose ? ' selected' : ''}>${escHtml(d)}</option>`
+      ),
+    ].join('');
 
     wrap.innerHTML = `
       <div class="prn-stg-form__field">
@@ -725,6 +740,10 @@ const Settings = (() => {
           <button class="prn-dose-add-btn" id="prn-dose-add-btn" type="button" aria-label="Add dose">+</button>
         </div>
       </div>
+      <div class="prn-stg-form__field">
+        <label class="prn-stg-form__label">Default dose</label>
+        <select class="prn-stg-form__input" id="prn-f-default-dose">${defaultDoseOptions}</select>
+      </div>
       <div class="prn-stg-form__actions">
         <button class="stg-add-btn" style="background:transparent;border:1px solid var(--clr-border);color:var(--clr-text-2)" type="button" id="prn-f-cancel">Cancel</button>
         <button class="stg-add-btn" type="button" id="prn-f-save">${mode === 'add' ? 'Add' : 'Save'}</button>
@@ -753,8 +772,21 @@ const Settings = (() => {
       tagsContainer.insertBefore(tag, tagInput);
       tagInput.value = '';
       tagInput.focus();
+      // Also update the default-dose <select> in-place so the new dose is immediately selectable
+      const defaultSelect = wrap.querySelector('#prn-f-default-dose');
+      if (defaultSelect) {
+        const current = prnFDefaultDose;
+        defaultSelect.innerHTML = [
+          `<option value="">— None —</option>`,
+          ...prnFDoses.map(d =>
+            `<option value="${escHtml(d)}"${d === current ? ' selected' : ''}>${escHtml(d)}</option>`
+          ),
+        ].join('');
+      }
     };
     wrap.querySelector('#prn-dose-add-btn').addEventListener('click', () => addPrnDose());
+    wrap.querySelector('#prn-f-default-dose')
+      ?.addEventListener('change', e => { prnFDefaultDose = e.target.value; });
     tagInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
         e.preventDefault();
@@ -792,12 +824,13 @@ const Settings = (() => {
   }
 
   function startPrnEdit(med) {
-    prnForm      = med.id;
-    prnFName     = med.name ?? '';
-    prnFInterval = med.min_interval_hours != null ? String(med.min_interval_hours) : '';
-    prnFMaxDoses = med.max_daily_doses    != null ? String(med.max_daily_doses)    : '';
-    prnFDoses    = [...(med.doses ?? [])];
-    prnFDoseInput = '';
+    prnForm         = med.id;
+    prnFName        = med.name ?? '';
+    prnFInterval    = med.min_interval_hours != null ? String(med.min_interval_hours) : '';
+    prnFMaxDoses    = med.max_daily_doses    != null ? String(med.max_daily_doses)    : '';
+    prnFDoses       = [...(med.doses ?? [])];
+    prnFDoseInput   = '';
+    prnFDefaultDose = med.default_dose ?? '';
     render();
   }
 
@@ -811,12 +844,23 @@ const Settings = (() => {
     const interval = parseFloat(prnFInterval) || null;
     const maxDoses = parseInt(prnFMaxDoses, 10) || null;
 
+    // Auto-include any dose typed in the input but not yet confirmed with +
+    const pendingDose = prnFDoseInput.trim();
+    if (pendingDose && !prnFDoses.includes(pendingDose)) {
+      prnFDoses = [...prnFDoses, pendingDose];
+    }
+    prnFDoseInput = '';
+
+    // Only persist default_dose if it's still in the doses list
+    const defaultDose = prnFDoses.includes(prnFDefaultDose) ? prnFDefaultDose : '';
+
     if (mode === 'add') {
       const id = crypto.randomUUID();
       Data.getData().medications[id] = {
         id,
         name,
         doses:               [...prnFDoses],
+        default_dose:        defaultDose,
         min_interval_hours:  interval,
         max_daily_doses:     maxDoses,
         as_needed:           true,
@@ -828,6 +872,7 @@ const Settings = (() => {
       if (med) {
         med.name               = name;
         med.doses              = [...prnFDoses];
+        med.default_dose       = defaultDose;
         med.min_interval_hours = interval;
         med.max_daily_doses    = maxDoses;
       }
