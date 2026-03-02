@@ -620,13 +620,30 @@ const HealthLog = (() => {
       <button class="hl-detail-back" onclick="HealthLog._back()">← Back to Health Log</button>
       <div class="hl-detail-header">
         <h2 class="hl-detail-title">${escHtml(issue.name)}</h2>
-        <p class="hl-detail-sub">${dateRange} · ${symptoms.length} symptom entr${symptoms.length === 1 ? 'y' : 'ies'}</p>
+        <p class="hl-detail-sub">
+          ${issue.category ? `<span class="hl-cat-badge" style="margin-right:6px">${escHtml(issue.category)}</span>` : ''}${dateRange} · ${symptoms.length} symptom entr${symptoms.length === 1 ? 'y' : 'ies'}
+        </p>
       </div>`;
 
     if (showEditForm) {
+      const cats = Data.getSettings().symptom_categories ?? [];
+      const catOptions = cats.map(c =>
+        `<option value="${escHtml(c)}"${issue.category === c ? ' selected' : ''}>${escHtml(c)}</option>`
+      ).join('');
+      // Ensure the current category is always in the list even if not in settings
+      const currentCatInList = !issue.category || cats.includes(issue.category);
+      const extraOption = (!currentCatInList && issue.category)
+        ? `<option value="${escHtml(issue.category)}" selected>${escHtml(issue.category)}</option>`
+        : '';
       html += `<div class="hl-edit-form">
         <div><label class="hl-edit-label">Name</label>
           <input id="hl-edit-title" class="hl-edit-input" type="text" value="${escHtml(issue.name)}"></div>
+        <div><label class="hl-edit-label">Category</label>
+          <select id="hl-edit-category" class="hl-edit-select">
+            <option value="">— No category —</option>
+            ${extraOption}${catOptions}
+          </select>
+        </div>
         <div><label class="hl-edit-label">Start Date</label>
           <input id="hl-edit-start" class="hl-edit-input" type="date" value="${escHtml(issue.start_date ?? '')}"></div>
         <div class="hl-edit-actions">
@@ -761,8 +778,10 @@ const HealthLog = (() => {
     const issue    = (Data.getData().issues ?? {})[issueId];
     if (!issue) return;
     const name  = document.getElementById('hl-edit-title')?.value.trim();
+    const cat   = document.getElementById('hl-edit-category')?.value ?? '';
     const start = document.getElementById('hl-edit-start')?.value;
     if (name)  issue.name       = name;
+    issue.category = cat;   // allow clearing to ''
     if (start) issue.start_date = start;
     showEditForm = false;
     await Data.save();
