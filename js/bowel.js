@@ -102,7 +102,7 @@ const Bowel = (() => {
   // ── Form ──────────────────────────────────────────────────────────────────
 
   function buildForm(wrap, existingEntry) {
-    const qualityBtns = QUALITY_LABELS.slice(1).map((label, i) => {
+    const allQualityBtns = QUALITY_LABELS.slice(1).map((label, i) => {
       const val    = i + 1;
       const color  = QUALITY_COLORS[val];
       const active = fQuality === val ? 'bwl-quality-btn--active' : '';
@@ -110,11 +110,14 @@ const Bowel = (() => {
                       data-quality="${val}" style="--q-clr: ${color}">
                 ${escHtml(label)}
               </button>`;
-    }).reverse().join('');
+    }).reverse();                          // display order: 7 → 1 (loose → firm)
+    const qualityRow1 = allQualityBtns.slice(0, 4).join(''); // 7 Watery … 4 Normal
+    const qualityRow2 = allQualityBtns.slice(4).join('');    // 3 Cracked … 1 Hard
 
     wrap.innerHTML = `
       <div class="bwl-form">
-        <div class="bwl-form-quality-row">${qualityBtns}</div>
+        <div class="bwl-form-quality-row">${qualityRow1}</div>
+        <div class="bwl-form-quality-row">${qualityRow2}</div>
         <div class="bwl-form-fields">
           <input class="bwl-time-input" type="time"
                  value="${escHtml(fTime)}" aria-label="Time (optional)">
