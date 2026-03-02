@@ -21,6 +21,14 @@ const Reports = (() => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  // Parse 'YYYY-MM-DD' as LOCAL midnight, not UTC midnight.
+  // new Date('YYYY-MM-DD') is UTC midnight, which shifts to the previous day
+  // for any timezone west of UTC (e.g. US Eastern = UTC-5).
+  function parseLocalDate(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
   function getDatesInPeriod() {
     const today    = new Date();
     const todayStr = toDateStr(today);
@@ -28,7 +36,7 @@ const Reports = (() => {
     if (period === 'custom' && customStart && customEnd) {
       const dates = [];
       const end   = customEnd > todayStr ? todayStr : customEnd;
-      for (let d = new Date(customStart); toDateStr(d) <= end; d.setDate(d.getDate() + 1)) {
+      for (let d = parseLocalDate(customStart); toDateStr(d) <= end; d.setDate(d.getDate() + 1)) {
         dates.push(toDateStr(new Date(d)));
       }
       return dates.length ? dates : [todayStr];
@@ -38,7 +46,7 @@ const Reports = (() => {
       const allDays = Object.keys(Data.getData().days ?? {}).sort();
       if (!allDays.length) return [todayStr];
       const dates = [];
-      for (let d = new Date(allDays[0]); toDateStr(d) <= todayStr; d.setDate(d.getDate() + 1)) {
+      for (let d = parseLocalDate(allDays[0]); toDateStr(d) <= todayStr; d.setDate(d.getDate() + 1)) {
         dates.push(toDateStr(new Date(d)));
       }
       return dates;
@@ -72,7 +80,7 @@ const Reports = (() => {
 
   // Weekday-based Monday for a date string
   function weekStart(dateStr) {
-    const d   = new Date(dateStr);
+    const d   = parseLocalDate(dateStr);
     const dow = d.getDay(); // 0=Sun
     d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
     return toDateStr(d);
@@ -537,7 +545,7 @@ const Reports = (() => {
       dates.forEach(date => {
         const wk = weekStart(date);
         if (!weekMap.has(wk)) {
-          const d = new Date(wk);
+          const d = parseLocalDate(wk);
           weekMap.set(wk, { label: `${d.getMonth() + 1}/${d.getDate()}`, count: 0 });
         }
         weekMap.get(wk).count += (daysData[date]?.bowel ?? []).length;
@@ -605,7 +613,7 @@ const Reports = (() => {
     dates.forEach(date => {
       const wk = weekStart(date);
       if (!weekMap.has(wk)) {
-        const d = new Date(wk);
+        const d = parseLocalDate(wk);
         weekMap.set(wk, { label: `${d.getMonth() + 1}/${d.getDate()}`, subs: {} });
       }
       const bucket = weekMap.get(wk);
@@ -797,7 +805,7 @@ const Reports = (() => {
     dates.forEach(date => {
       const wk = weekStart(date);
       if (!weekMap.has(wk)) {
-        const d = new Date(wk);
+        const d = parseLocalDate(wk);
         weekMap.set(wk, { label: `${d.getMonth() + 1}/${d.getDate()}`, minutes: 0 });
       }
       const dayMins = (daysData[date]?.reading ?? []).reduce((s, r) => s + (r.minutes ?? 0), 0);
