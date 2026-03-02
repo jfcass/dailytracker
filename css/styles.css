@@ -1096,6 +1096,132 @@ button {
   background: var(--clr-accent-h);
 }
 
+/* ── Multi-entry list (below the display row) ── */
+.mod-entry-list {
+  padding:       4px 16px 10px 54px;  /* aligns with substance name (54px = 16px + 28px badge + 10px gap) */
+  display:       flex;
+  flex-direction: column;
+  gap:           6px;
+}
+
+.mod-entry-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+
+.mod-entry-qty {
+  font-size:   0.88rem;
+  font-weight: 400;
+  color:       var(--clr-text);
+  white-space: nowrap;
+}
+
+.mod-entry-time {
+  font-size:    0.8rem;
+  color:        var(--clr-text-2);
+  background:   var(--clr-surface-2);
+  border:       1px solid var(--clr-border);
+  border-radius: 20px;
+  padding:      2px 8px;
+  white-space:  nowrap;
+  flex-shrink:  0;
+}
+
+.mod-entry-note {
+  font-size:   0.82rem;
+  color:       var(--clr-text-2);
+  font-style:  italic;
+  flex:        1;
+  min-width:   0;
+  overflow:    hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mod-del-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           22px;
+  height:          22px;
+  border-radius:   50%;
+  font-size:       0.85rem;
+  color:           var(--clr-text-2);
+  background:      transparent;
+  border:          none;
+  flex-shrink:     0;
+  transition:      background var(--transition), color var(--transition);
+}
+
+.mod-del-btn:hover,
+.mod-del-btn:focus-visible {
+  background: var(--clr-error-bg, #ffebee);
+  color:      var(--clr-error);
+  outline:    none;
+}
+
+/* "+ Add" pill button — mirrors .mod-log-btn */
+.mod-add-btn {
+  display:      flex;
+  align-items:  center;
+  gap:          5px;
+  padding:      6px 13px;
+  border-radius: 20px;
+  font-size:    0.85rem;
+  font-weight:  600;
+  color:        var(--clr-accent);
+  border:       1.5px solid currentColor;
+  transition:   background var(--transition), color var(--transition);
+  flex-shrink:  0;
+  margin-top:   4px;
+  align-self:   flex-start;
+}
+
+.mod-add-btn:hover,
+.mod-add-btn:focus-visible {
+  background: var(--clr-accent-dim);
+  outline:    none;
+}
+
+.mod-add-btn:active {
+  background: var(--clr-accent);
+  color:      #fff;
+}
+
+/* Time row inside the entry form */
+.mod-form-time-row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 14px;
+}
+
+.mod-time-label {
+  font-size:   0.85rem;
+  color:       var(--clr-text-2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mod-time-input {
+  font-size:    0.88rem;
+  font-family:  inherit;
+  color:        var(--clr-text-2);
+  background:   var(--clr-surface);
+  border:       1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:      8px 10px;
+  min-width:    0;
+}
+
+.mod-time-input:focus {
+  outline:      2px solid var(--clr-accent);
+  outline-offset: 1px;
+  border-color: var(--clr-accent);
+  color:        var(--clr-text);
+}
+
 /* Validation error state (applied to qty input) */
 .input--error {
   border-color: var(--clr-error) !important;
