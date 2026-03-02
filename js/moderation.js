@@ -10,12 +10,16 @@
 const Moderation = (() => {
 
   let currentDate = null;
-  let editingId   = null;   // substance.id of row currently showing the form
+  // editingId: null | { subId: string, entryId: string|null }
+  //   entryId null   = adding a new entry
+  //   entryId string = editing an existing entry by its id
+  let editingId   = null;
   let saveTimer   = null;
 
   // form field state (kept in sync while the form is open)
   let fQty  = 1;
   let fUnit = '';
+  let fTime = '';   // HH:MM or '' if user skips
   let fNote = '';
 
   // ── Public ───────────────────────────────────────────────────────────────
@@ -42,54 +46,65 @@ const Moderation = (() => {
     }
 
     substances.forEach(sub => {
-      const entry = Data.getDay(currentDate).moderation[sub.id] ?? null;
-      list.appendChild(makeRow(sub, entry));
+      const entries = Data.getDay(currentDate).moderation[sub.id] ?? null;
+      list.appendChild(makeRow(sub, entries));
     });
   }
 
   // ── Row builder ───────────────────────────────────────────────────────────
 
-  function makeRow(sub, entry) {
+  function makeRow(sub, entries) {
     const wrap = document.createElement('div');
     wrap.className = 'mod-row';
 
-    if (editingId === sub.id) {
+    if (editingId?.subId === sub.id) {
       wrap.classList.add('mod-row--editing');
-      buildForm(wrap, sub, entry);
+      const editingEntry = editingId?.entryId
+        ? (entries ?? []).find(e => e.id === editingId.entryId) ?? null
+        : null;
+      buildForm(wrap, sub, editingEntry);
     } else {
-      buildDisplay(wrap, sub, entry);
+      buildDisplay(wrap, sub, entries);
     }
     return wrap;
   }
 
   // ── Display mode ──────────────────────────────────────────────────────────
 
-  function buildDisplay(wrap, sub, entry) {
-    const noteHtml = entry?.note
-      ? `<p class="mod-note">${escHtml(entry.note)}</p>`
-      : '';
+  function buildDisplay(wrap, sub, entries) {
+    const hasEntries = entries && entries.length > 0;
 
-    const rightHtml = entry
-      ? `<div class="mod-logged">
-           <span class="mod-quantity">${escHtml(fmtQty(entry.quantity))} ${escHtml(entry.unit)}</span>
-           <button class="mod-edit-btn" type="button" aria-label="Edit ${escHtml(sub.name)}">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                  width="14" height="14" aria-hidden="true">
-               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-             </svg>
-           </button>
-         </div>`
-      : `<button class="mod-log-btn" type="button" aria-label="Log ${escHtml(sub.name)}">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                width="14" height="14" aria-hidden="true">
-             <line x1="12" y1="5" x2="12" y2="19"/>
-             <line x1="5"  y1="12" x2="19" y2="12"/>
-           </svg>
-           Log
-         </button>`;
+    if (!hasEntries) {
+      wrap.innerHTML = `
+        <div class="mod-display">
+          <div class="mod-sub-info">
+            <span class="mod-badge" data-sub-id="${escHtml(sub.id)}" aria-hidden="true">
+              ${subEmoji(sub)}
+            </span>
+            <span class="mod-sub-name">${escHtml(sub.name)}</span>
+          </div>
+          <button class="mod-log-btn" type="button" aria-label="Log ${escHtml(sub.name)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5"  y1="12" x2="19" y2="12"/>
+            </svg>
+            Log
+          </button>
+        </div>`;
+      wrap.querySelector('.mod-log-btn').addEventListener('click', () => startEdit(sub, null));
+      return;
+    }
+
+    const total    = entries.reduce((s, e) => s + (e.quantity ?? 0), 0);
+    const unitStr  = entries[0]?.unit ?? sub.default_unit ?? '';
+    const lastTime = entries.map(e => e.time).filter(Boolean)
+                            .reduce((best, t) => t > best ? t : best, '');
+
+    const summaryHtml = entries.length === 1
+      ? `<span class="mod-quantity">${escHtml(fmtQty(entries[0].quantity))} ${escHtml(entries[0].unit)}</span>${lastTime ? `<span class="mod-entry-time"> · ${escHtml(lastTime)}</span>` : ''}`
+      : `<span class="mod-quantity">${escHtml(fmtQty(total))} ${escHtml(unitStr)} total</span>`;
 
     wrap.innerHTML = `
       <div class="mod-display">
@@ -99,23 +114,57 @@ const Moderation = (() => {
           </span>
           <span class="mod-sub-name">${escHtml(sub.name)}</span>
         </div>
-        ${rightHtml}
+        <div class="mod-logged">
+          ${summaryHtml}
+          <button class="mod-add-btn" type="button" aria-label="Add ${escHtml(sub.name)} entry">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5"  y1="12" x2="19" y2="12"/>
+            </svg>
+            Add
+          </button>
+        </div>
       </div>
-      ${noteHtml}
-    `;
+      <div class="mod-entry-list">
+        ${entries.map(e => `
+          <div class="mod-entry-row" data-entry-id="${escHtml(e.id)}">
+            <span class="mod-entry-qty">${escHtml(fmtQty(e.quantity))} ${escHtml(e.unit)}</span>
+            ${e.time ? `<span class="mod-entry-time">${escHtml(e.time)}</span>` : ''}
+            ${e.note ? `<span class="mod-entry-note">${escHtml(e.note)}</span>` : ''}
+            <button class="mod-edit-btn" type="button" data-entry-id="${escHtml(e.id)}"
+                    aria-label="Edit entry">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   width="13" height="13" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="mod-del-btn" type="button" data-entry-id="${escHtml(e.id)}"
+                    aria-label="Remove entry">×</button>
+          </div>`).join('')}
+      </div>`;
 
-    if (entry) {
-      wrap.querySelector('.mod-edit-btn').addEventListener('click', () => startEdit(sub, entry));
-    } else {
-      wrap.querySelector('.mod-log-btn').addEventListener('click', () => startEdit(sub, null));
-    }
+    wrap.querySelector('.mod-add-btn').addEventListener('click', () => startEdit(sub, null));
+    wrap.querySelectorAll('.mod-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const entry = entries.find(e => e.id === btn.dataset.entryId);
+        if (entry) startEdit(sub, entry);
+      });
+    });
+    wrap.querySelectorAll('.mod-del-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeEntry(sub, btn.dataset.entryId));
+    });
   }
 
   // ── Edit form ─────────────────────────────────────────────────────────────
 
   function buildForm(wrap, sub, existingEntry) {
-    const clearHtml = existingEntry
-      ? `<button class="mod-clear-btn" type="button" aria-label="Clear ${escHtml(sub.name)} entry">Clear</button>`
+    const isEdit     = !!existingEntry;
+    const removeHtml = isEdit
+      ? `<button class="mod-clear-btn" type="button" aria-label="Remove entry">Remove</button>`
       : '';
 
     wrap.innerHTML = `
@@ -125,7 +174,14 @@ const Moderation = (() => {
             ${subEmoji(sub)}
           </span>
           <span class="mod-sub-name">${escHtml(sub.name)}</span>
-          ${clearHtml}
+          ${removeHtml}
+        </div>
+
+        <div class="mod-form-time-row">
+          <label class="mod-time-label">Time</label>
+          <input id="mod-time-input" class="mod-time-input" type="time"
+                 value="${escHtml(fTime)}"
+                 aria-label="Time (optional)">
         </div>
 
         <div class="mod-form-qty-row">
@@ -167,34 +223,28 @@ const Moderation = (() => {
       </div>
     `;
 
-    // Steppers
     wrap.querySelectorAll('.mod-stepper').forEach(btn => {
       btn.addEventListener('click', () => {
         const inp = wrap.querySelector('#mod-qty-input');
         let v = parseFloat(inp.value) || 0;
         v = btn.dataset.op === 'inc' ? v + 1 : Math.max(0.5, v - 1);
-        v = Math.round(v * 2) / 2;   // snap to nearest 0.5
+        v = Math.round(v * 2) / 2;
         inp.value = v;
         fQty = v;
       });
     });
 
-    wrap.querySelector('#mod-qty-input').addEventListener('input', e => {
-      fQty = parseFloat(e.target.value) || 0;
-    });
-    wrap.querySelector('#mod-unit-input').addEventListener('input', e => {
-      fUnit = e.target.value;
-    });
-    wrap.querySelector('#mod-note-input').addEventListener('input', e => {
-      fNote = e.target.value;
-    });
+    wrap.querySelector('#mod-time-input').addEventListener('input', e => { fTime = e.target.value; });
+    wrap.querySelector('#mod-qty-input').addEventListener('input',  e => { fQty  = parseFloat(e.target.value) || 0; });
+    wrap.querySelector('#mod-unit-input').addEventListener('input', e => { fUnit = e.target.value; });
+    wrap.querySelector('#mod-note-input').addEventListener('input', e => { fNote = e.target.value; });
 
     wrap.querySelector('.mod-cancel-btn').addEventListener('click', cancelEdit);
     wrap.querySelector('.mod-save-btn').addEventListener('click', () => saveEntry(sub));
-    wrap.querySelector('.mod-clear-btn')?.addEventListener('click', () => clearEntry(sub));
+    wrap.querySelector('.mod-clear-btn')?.addEventListener('click', () => {
+      if (existingEntry) removeEntry(sub, existingEntry.id);
+    });
 
-    // Scroll form into view — do NOT focus the qty input automatically,
-    // so the keyboard doesn't open until the user explicitly taps it.
     requestAnimationFrame(() => {
       wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
@@ -203,12 +253,12 @@ const Moderation = (() => {
   // ── Edit state transitions ────────────────────────────────────────────────
 
   function startEdit(sub, existingEntry) {
-    // Pre-fill form state from existing entry or defaults
-    fQty  = existingEntry ? existingEntry.quantity : 1;
-    fUnit = existingEntry ? existingEntry.unit : (sub.default_unit ?? '');
+    fQty  = existingEntry ? existingEntry.quantity  : 1;
+    fUnit = existingEntry ? existingEntry.unit       : (sub.default_unit ?? '');
+    fTime = existingEntry ? (existingEntry.time ?? '') : nowHHMM();
     fNote = existingEntry?.note ?? '';
 
-    editingId = sub.id;
+    editingId = { subId: sub.id, entryId: existingEntry?.id ?? null };
     render();
   }
 
@@ -218,13 +268,14 @@ const Moderation = (() => {
   }
 
   function saveEntry(sub) {
-    // Read current values straight from DOM (in case user typed without triggering input events)
     const qtyEl  = document.getElementById('mod-qty-input');
     const unitEl = document.getElementById('mod-unit-input');
+    const timeEl = document.getElementById('mod-time-input');
     const noteEl = document.getElementById('mod-note-input');
 
     const qty  = parseFloat(qtyEl?.value ?? fQty);
     const unit = (unitEl?.value ?? fUnit).trim() || sub.default_unit;
+    const time = (timeEl?.value ?? fTime).trim() || null;
     const note = (noteEl?.value ?? fNote).trim();
 
     if (!qty || qty <= 0) {
@@ -232,19 +283,46 @@ const Moderation = (() => {
       return;
     }
 
-    Data.getDay(currentDate).moderation[sub.id] = {
-      quantity: Math.round(qty * 2) / 2,   // normalize to 0.5 precision
-      unit:     unit,
-      note:     note,
-    };
+    const mod = Data.getDay(currentDate).moderation;
+
+    if (editingId?.entryId) {
+      const arr = mod[sub.id] ?? [];
+      const idx = arr.findIndex(e => e.id === editingId.entryId);
+      if (idx !== -1) {
+        arr[idx] = {
+          ...arr[idx],
+          quantity: Math.round(qty * 2) / 2,
+          unit,
+          time,
+          note,
+        };
+        mod[sub.id] = arr;
+      }
+    } else {
+      const arr = Array.isArray(mod[sub.id]) ? mod[sub.id] : [];
+      arr.push({
+        id:       crypto.randomUUID(),
+        quantity: Math.round(qty * 2) / 2,
+        unit,
+        time,
+        note,
+      });
+      mod[sub.id] = arr;
+    }
 
     editingId = null;
     render();
     scheduleSave();
   }
 
-  function clearEntry(sub) {
-    Data.getDay(currentDate).moderation[sub.id] = null;
+  function removeEntry(sub, entryId) {
+    const mod = Data.getDay(currentDate).moderation;
+    const arr = mod[sub.id];
+    if (!Array.isArray(arr)) return;
+
+    mod[sub.id] = arr.filter(e => e.id !== entryId);
+    if (mod[sub.id].length === 0) mod[sub.id] = null;
+
     editingId = null;
     render();
     scheduleSave();
@@ -291,21 +369,6 @@ const Moderation = (() => {
     return n % 1 === 0 ? String(n) : String(n);
   }
 
-  function fmtDateLabel(dateStr) {
-    const today = Data.today();
-    if (dateStr === today)                  return 'Today';
-    if (dateStr === shiftDate(today, -1))   return 'Yesterday';
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-  }
-
-  function shiftDate(dateStr, days) {
-    const d = new Date(dateStr + 'T12:00:00');
-    d.setDate(d.getDate() + days);
-    return d.toISOString().slice(0, 10);
-  }
-
   function escHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, c =>
@@ -331,6 +394,12 @@ const Moderation = (() => {
     if (n.includes('tobacco') || n.includes('cigarette') || n.includes('nicotine'))               return '🚬';
     if (n.includes('sugar') || n.includes('sweet'))                                               return '🍬';
     return sub.name.charAt(0).toUpperCase();
+  }
+
+  /** Current time as 'HH:MM' string. */
+  function nowHHMM() {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
