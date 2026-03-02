@@ -3,7 +3,7 @@
  *
  * Renders into the static #section-moderation shell in index.html.
  * Reads/writes Data.getDay(date).moderation
- *   key: substance id  →  { quantity, unit, note }  |  null
+ *   key: substance id  →  [{ id, quantity, unit, time, note }]  |  null
  * Substance list comes from Data.getSettings().moderation_substances
  *   [{ id, name, default_unit }, …]
  */

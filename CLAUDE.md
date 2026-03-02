@@ -80,7 +80,10 @@ All data lives in `health-tracker-data.json` in Google Drive.
       },
 
       "moderation": {
-        "alcohol":  { "quantity": 2, "unit": "drinks",   "note": "wine with dinner" },
+        "alcohol": [
+          { "id": "<uuid>", "quantity": 2, "unit": "drinks", "time": "19:00", "note": "wine with dinner" },
+          { "id": "<uuid>", "quantity": 1, "unit": "drink",  "time": "21:30", "note": "" }
+        ],
         "cannabis": null
       },
 
@@ -174,7 +177,10 @@ SHA-256 of `"ht-v1-" + pin`. Stored in the Drive JSON. Never stored in plaintext
 Key = habit name string, value = boolean. Add new habits via `settings.habits` array.
 
 ### `days[date].moderation`
-Key = substance `id` from `settings.moderation_substances`. Value = object or `null` (not logged).
+Key = substance `id` from `settings.moderation_substances`. Value = array of entries or `null` (nothing logged today).
+Each entry: `{ id, quantity, unit, time (HH:MM|null), note }`.
+`time` defaults to the current clock time when logging — editable. Used for caffeine/alcohol timing correlation with sleep.
+Existing entries are migrated to single-element arrays on load (lossless, `time: null`).
 
 ### `days[date].symptoms[]`
 - `issue_id`: References a key in `ongoing_issues`. `null` = one-off entry.
