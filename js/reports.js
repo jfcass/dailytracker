@@ -10,7 +10,7 @@
  */
 const Reports = (() => {
 
-  let period      = '30d';
+  let period      = Data.getSettings?.()?.default_report_period ?? '7d';
   let customStart = null;   // 'YYYY-MM-DD'
   let customEnd   = null;   // 'YYYY-MM-DD'
   const chartRegistry = new Map();
@@ -1250,6 +1250,8 @@ const Reports = (() => {
   }
 
   function init() {
+    period = Data.getSettings().default_report_period ?? '7d';
+
     const wrap = document.getElementById('rpt-period-wrap');
     if (!wrap) return;
 
