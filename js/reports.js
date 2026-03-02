@@ -585,6 +585,21 @@ const Reports = (() => {
     }
   }
 
+  // Note: moderation values are arrays after migrateModeration() runs on load.
+  /** Sum quantity across a moderation entries array. Returns 0 for null/empty. */
+  function modTotal(entries) {
+    if (!entries || !entries.length) return 0;
+    return entries.reduce((sum, e) => sum + (e.quantity ?? 0), 0);
+  }
+
+  /** Return the latest HH:MM time string across entries, or null if none set. (Used in future correlation view.) */
+  function modLastTime(entries) {
+    if (!entries || !entries.length) return null;
+    const times = entries.map(e => e.time).filter(Boolean);
+    if (!times.length) return null;
+    return times.reduce((latest, t) => t > latest ? t : latest);
+  }
+
   // ── Moderation section ────────────────────────────────────────────────────────
 
   function buildModerationSection(dates) {
@@ -598,8 +613,9 @@ const Reports = (() => {
     const statsRows = substances.map(sub => {
       let daysLogged = 0, totalQty = 0;
       dates.forEach(date => {
-        const entry = daysData[date]?.moderation?.[sub.id];
-        if (entry) { daysLogged++; totalQty += (entry.quantity ?? 0); }
+        const entries = daysData[date]?.moderation?.[sub.id];
+        const qty = modTotal(entries);
+        if (qty > 0) { daysLogged++; totalQty += qty; }
       });
       return `<div class="rpt-mod-stat-row">
         <span class="rpt-mod-name">${escHtml(sub.name)}</span>
@@ -629,8 +645,8 @@ const Reports = (() => {
       }
       const bucket = weekMap.get(wk);
       substances.forEach(sub => {
-        const entry = daysData[date]?.moderation?.[sub.id];
-        if (entry) bucket.subs[sub.id] = (bucket.subs[sub.id] ?? 0) + (entry.quantity ?? 0);
+        const qty = modTotal(daysData[date]?.moderation?.[sub.id]);
+        if (qty > 0) bucket.subs[sub.id] = (bucket.subs[sub.id] ?? 0) + qty;
       });
     });
 
