@@ -185,6 +185,25 @@ const Data = (() => {
     return d;
   }
 
+  function migrateModeration(d) {
+    Object.values(d.days ?? {}).forEach(day => {
+      const mod = day.moderation ?? {};
+      Object.keys(mod).forEach(subId => {
+        const entry = mod[subId];
+        // null = nothing logged; Array = already migrated — skip both
+        if (!entry || Array.isArray(entry)) return;
+        mod[subId] = [{
+          id:       crypto.randomUUID(),
+          quantity: entry.quantity ?? null,
+          unit:     entry.unit     ?? '',
+          time:     null,
+          note:     entry.note     ?? '',
+        }];
+      });
+    });
+    return d;
+  }
+
   function migrateData(d) {
     const habits = d.settings?.habits ?? [];
 
@@ -207,6 +226,7 @@ const Data = (() => {
       d.settings.moderation_substances = subs;
     }
 
+    migrateModeration(d);
     return d;
   }
 
