@@ -4,8 +4,8 @@
  * Renders into the static #section-bowel shell in index.html.
  * Reads/writes Data.getDay(date).bowel  →  [{ id, time, quality, notes }, …]
  *
- * Quality scale (Bristol-inspired):
- *   1 = Lumpy   2 = Cracked   3 = Normal   4 = Mushy   5 = Watery
+ * Quality scale (Bristol Stool Scale, 7 types):
+ *   1 = Hard   2 = Lumpy   3 = Cracked   4 = Normal   5 = Soft   6 = Mushy   7 = Watery
  */
 const Bowel = (() => {
 
@@ -17,8 +17,8 @@ const Bowel = (() => {
   let fQuality = 0;
   let fNotes   = '';
 
-  const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
-  const QUALITY_COLORS = ['', '#8B6240', '#C09040', '#1ABEA5', '#E89020', '#E05030'];
+  const QUALITY_LABELS = ['', 'Hard', 'Lumpy', 'Cracked', 'Normal', 'Soft', 'Mushy', 'Watery'];
+  const QUALITY_COLORS = ['', '#7B3F10', '#9B6030', '#C09040', '#1ABEA5', '#8BC34A', '#E89020', '#E05030'];
 
   // ── Public ───────────────────────────────────────────────────────────────
 

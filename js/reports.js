@@ -455,15 +455,15 @@ const Reports = (() => {
 
   function buildBowelSection(dates) {
     const daysData       = Data.getData().days ?? {};
-    const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
+    const QUALITY_LABELS = ['', 'Hard', 'Lumpy', 'Cracked', 'Normal', 'Soft', 'Mushy', 'Watery'];
 
     let totalMovements = 0, daysWithMovements = 0;
-    const qualityCounts = [0, 0, 0, 0, 0, 0];
+    const qualityCounts = [0, 0, 0, 0, 0, 0, 0, 0];
 
     dates.forEach(date => {
       const entries = daysData[date]?.bowel ?? [];
       if (entries.length) { daysWithMovements++; totalMovements += entries.length; }
-      entries.forEach(e => { if (e.quality >= 1 && e.quality <= 5) qualityCounts[e.quality]++; });
+      entries.forEach(e => { if (e.quality >= 1 && e.quality <= 7) qualityCounts[e.quality]++; });
     });
 
     if (!totalMovements) {
@@ -503,20 +503,20 @@ const Reports = (() => {
 
   function renderBowelCharts(dates) {
     const daysData       = Data.getData().days ?? {};
-    const QUALITY_LABELS = ['', 'Lumpy', 'Cracked', 'Normal', 'Mushy', 'Watery'];
-    const QUALITY_COLORS = ['', '#8B6240', '#C09040', '#1ABEA5', '#E89020', '#E05030'];
+    const QUALITY_LABELS = ['', 'Hard', 'Lumpy', 'Cracked', 'Normal', 'Soft', 'Mushy', 'Watery'];
+    const QUALITY_COLORS = ['', '#7B3F10', '#9B6030', '#C09040', '#1ABEA5', '#8BC34A', '#E89020', '#E05030'];
     const textClr        = cssVar('--clr-text-2');
     const gridClr        = cssVar('--clr-border');
 
     // Distribution chart (Watery→Hard to match log form order)
     if (document.getElementById('rpt-bowel-dist-chart')) {
-      const qualityCounts = [0, 0, 0, 0, 0, 0];
+      const qualityCounts = [0, 0, 0, 0, 0, 0, 0, 0];
       dates.forEach(date =>
         (daysData[date]?.bowel ?? []).forEach(e => {
-          if (e.quality >= 1 && e.quality <= 5) qualityCounts[e.quality]++;
+          if (e.quality >= 1 && e.quality <= 7) qualityCounts[e.quality]++;
         })
       );
-      const order  = [5, 4, 3, 2, 1];
+      const order  = [7, 6, 5, 4, 3, 2, 1];
       createChart('rpt-bowel-dist-chart', {
         type: 'bar',
         data: {
