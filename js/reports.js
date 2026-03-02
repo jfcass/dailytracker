@@ -14,6 +14,7 @@ const Reports = (() => {
   let customStart = null;   // 'YYYY-MM-DD'
   let customEnd   = null;   // 'YYYY-MM-DD'
   const chartRegistry = new Map();
+  let collapsedSections = new Set();   // section keys toggled closed (session-only)
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -716,26 +717,56 @@ const Reports = (() => {
 
   function buildGratitudesSection(dates) {
     const { streak, totalDays } = buildGratitudeStreak(dates);
-    return `<div class="rpt-section">
-      <h3 class="rpt-section-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             width="16" height="16" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        Gratitudes
-      </h3>
-      <div class="rpt-stat-row">
-        <div class="rpt-stat-card">
-          <div class="rpt-stat-value">${streak}</div>
-          <div class="rpt-stat-label">day streak</div>
-        </div>
-        <div class="rpt-stat-card">
-          <div class="rpt-stat-value">${totalDays}</div>
-          <div class="rpt-stat-label">days logged this period</div>
-        </div>
+    if (!totalDays) {
+      return rptSection('Gratitudes', gratitudeIcon(), `<p class="rpt-empty">No gratitudes logged in this period.</p>`);
+    }
+    const pct  = dates.length ? Math.round(totalDays / dates.length * 100) : 0;
+    const body = `<div class="rpt-stats-grid">
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${streak}</span>
+        <span class="rpt-stat-label">Current streak</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${totalDays}</span>
+        <span class="rpt-stat-label">Days logged</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${pct}%</span>
+        <span class="rpt-stat-label">Completion</span>
       </div>
     </div>`;
+    return rptSection('Gratitudes', gratitudeIcon(), body);
+  }
+
+  // ── Daily Notes section ───────────────────────────────────────────────────────
+
+  function buildDailyNotesSection(dates) {
+    const daysData   = Data.getData().days ?? {};
+    const daysLogged = dates.filter(d => (daysData[d]?.note ?? '').trim()).length;
+    if (!daysLogged) {
+      return rptSection('Daily Notes', notesIcon(), `<p class="rpt-empty">No daily notes in this period.</p>`);
+    }
+    const pct = dates.length ? Math.round(daysLogged / dates.length * 100) : 0;
+    // Streak: consecutive days from end of period backwards
+    let streak = 0;
+    for (let i = dates.length - 1; i >= 0; i--) {
+      if ((daysData[dates[i]]?.note ?? '').trim()) { streak++; } else { break; }
+    }
+    const body = `<div class="rpt-stats-grid">
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${streak}</span>
+        <span class="rpt-stat-label">Current streak</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${daysLogged}</span>
+        <span class="rpt-stat-label">Days logged</span>
+      </div>
+      <div class="rpt-stat">
+        <span class="rpt-stat-value">${pct}%</span>
+        <span class="rpt-stat-label">Completion</span>
+      </div>
+    </div>`;
+    return rptSection('Daily Notes', notesIcon(), body);
   }
 
   // ── Reading section ───────────────────────────────────────────────────────────
@@ -849,9 +880,11 @@ const Reports = (() => {
   // ── Section shell helper ──────────────────────────────────────────────────────
 
   function rptSection(title, icon, bodyHtml, padBody = true) {
+    const key = title.toLowerCase().split(/[\s&]+/)[0]; // 'Mood & Energy' → 'mood'
     return `<div class="report-section">
-      <div class="report-section-header">
+      <div class="report-section-header report-section-header--toggle" data-rpt-key="${key}">
         <h2 class="report-section-title">${icon}${escHtml(title)}</h2>
+        <span class="rpt-section-chevron" aria-hidden="true">▾</span>
       </div>
       <div class="${padBody ? 'report-section-body' : ''}">${bodyHtml}</div>
     </div>`;
@@ -894,6 +927,12 @@ const Reports = (() => {
   }
   function biometricsIcon() {
     return svgIcon('<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>');
+  }
+  function gratitudeIcon() {
+    return svgIcon('<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>');
+  }
+  function notesIcon() {
+    return svgIcon('<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>');
   }
 
   // ── Sleep section ─────────────────────────────────────────────────────────────
@@ -1211,18 +1250,21 @@ const Reports = (() => {
 
     const dates = getDatesInPeriod();
 
+    // Order mirrors Today tab (Habits → Mood → Digestion → Health → Moderation →
+    // Gratitudes → Daily Notes), then passive/Fitbit sections below.
     el.innerHTML =
-        buildSleepSection(dates)
-      + buildActivitySection(dates)
-      + buildBiometricsSection(dates)
+        buildHabitsSection(dates)
       + buildMoodSection(dates)
-      + buildHabitsSection(dates)
+      + buildBowelSection(dates)
       + buildHealthSection(dates)
       + buildModerationSection(dates)
-      + buildMedicationsSection(dates)
-      + buildBowelSection(dates)
+      + buildGratitudesSection(dates)
+      + buildDailyNotesSection(dates)
+      + buildSleepSection(dates)
+      + buildActivitySection(dates)
+      + buildBiometricsSection(dates)
       + buildReadingSection(dates)
-      + buildGratitudesSection(dates);
+      + buildMedicationsSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {
@@ -1234,6 +1276,39 @@ const Reports = (() => {
       renderModerationChart(dates);
       renderBowelCharts(dates);
       renderReadingChart(dates);
+
+      // Re-apply collapsed state (charts must render before we hide their sections)
+      collapsedSections.forEach(key => {
+        const header = el.querySelector(`.report-section-header--toggle[data-rpt-key="${key}"]`);
+        if (!header) return;
+        const section = header.closest('.report-section');
+        const body    = section.querySelector(':scope > div:last-child');
+        section.classList.add('report-section--collapsed');
+        const chevron = header.querySelector('.rpt-section-chevron');
+        if (chevron) chevron.classList.add('rpt-section-chevron--closed');
+        if (body) body.hidden = true;
+      });
+
+      // Wire up section toggle click handlers
+      el.querySelectorAll('.report-section-header--toggle[data-rpt-key]').forEach(header => {
+        header.addEventListener('click', () => {
+          const key     = header.dataset.rptKey;
+          const section = header.closest('.report-section');
+          const body    = section.querySelector(':scope > div:last-child');
+          const chevron = header.querySelector('.rpt-section-chevron');
+          if (collapsedSections.has(key)) {
+            collapsedSections.delete(key);
+            section.classList.remove('report-section--collapsed');
+            if (chevron) chevron.classList.remove('rpt-section-chevron--closed');
+            if (body) body.hidden = false;
+          } else {
+            collapsedSections.add(key);
+            section.classList.add('report-section--collapsed');
+            if (chevron) chevron.classList.add('rpt-section-chevron--closed');
+            if (body) body.hidden = true;
+          }
+        });
+      });
     });
   }
 

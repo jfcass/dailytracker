@@ -3927,6 +3927,28 @@ button {
   padding: 12px 16px 16px;
 }
 
+/* ── Collapsible report sections ─────────────────────────────────────── */
+.report-section-header--toggle {
+  cursor:          pointer;
+  user-select:     none;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+}
+.rpt-section-chevron {
+  font-size:   0.7rem;
+  color:       var(--clr-text-2);
+  transition:  transform 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.rpt-section-chevron--closed {
+  transform: rotate(-90deg);
+}
+.report-section--collapsed .report-section-header {
+  border-bottom: none;
+}
+
 /* Section label */
 .rpt-section-label {
   font-size:    0.78rem;
