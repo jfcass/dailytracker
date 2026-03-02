@@ -12,6 +12,53 @@ const Mood = (() => {
   const MOOD_LABELS   = ['', 'Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
   const ENERGY_LABELS = ['', 'Exhausted', 'Low', 'Moderate', 'Good', 'High'];
 
+  // ── Notes streak helpers ─────────────────────────────────────────────────
+  function shiftDate(dateStr, days) {
+    const d = new Date(dateStr + 'T12:00:00'); // noon avoids DST edge cases
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function formatStreakLabel(n) {
+    if (n < 365) return String(n);
+    const years = Math.floor(n / 365);
+    const rem   = n % 365;
+    return rem === 0 ? `${years}y` : `${years}y ${rem}d`;
+  }
+
+  function calcNotesStreak() {
+    const allDays  = Data.getData().days ?? {};
+    const today    = Data.today();
+    const todayHas = !!(allDays[today]?.note ?? '').trim();
+    let date = todayHas ? today : shiftDate(today, -1);
+    let n    = 0;
+    for (let i = 0; i < 3650; i++) {
+      const hasEntry = !!(allDays[date]?.note ?? '').trim();
+      if (hasEntry) { n++; date = shiftDate(date, -1); }
+      else          { break; }
+    }
+    return n;
+  }
+
+  function updateNotesStreakBadge() {
+    const el = document.getElementById('notes-streak');
+    if (!el) return;
+    const streak = calcNotesStreak();
+    if (streak === 0) {
+      el.hidden      = true;
+      el.className   = 'habit-streak';
+      el.textContent = '';
+    } else if (streak === 1) {
+      el.hidden      = false;
+      el.className   = 'habit-streak habit-streak--one';
+      el.textContent = '1';
+    } else {
+      el.hidden      = false;
+      el.className   = 'habit-streak';
+      el.textContent = '🔥 ' + formatStreakLabel(streak);
+    }
+  }
+
   // ── Data helpers ──────────────────────────────────────────────────────────────
 
   function getMoodData() {
@@ -58,6 +105,8 @@ const Mood = (() => {
       noteEl.value = getNote();
       _autoResizeNote(noteEl);
     }
+
+    updateNotesStreakBadge();
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────────
@@ -114,6 +163,7 @@ const Mood = (() => {
       if (!el) return;
       Data.getDay(currentDate).note = el.value;
       saveNote();
+      updateNotesStreakBadge();
     }, 600);
   }
 
