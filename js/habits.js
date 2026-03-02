@@ -73,6 +73,8 @@ const Habits = (() => {
         if (gymPanelOpen) panel.innerHTML = buildGymPanel(name, day);
         wrapper.appendChild(panel);
         list.appendChild(wrapper);
+      } else if (name.toLowerCase() === 'meditation') {
+        list.appendChild(makeMeditationRow(name, day.habits[name] === true));
       } else {
         list.appendChild(makeRow(name, day.habits[name] === true));
       }
@@ -108,6 +110,38 @@ const Habits = (() => {
 
     btn.addEventListener('click', () => toggle(name));
     return btn;
+  }
+
+  // ── Meditation row (shows "Open Calm" deep-link button) ──────────────────
+  function makeMeditationRow(name, checked) {
+    const streak = calcStreak(name);
+    let badge = '';
+    if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
+    else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
+
+    const div = document.createElement('div');
+    div.className = 'habit-row habit-row--reading' + (checked ? ' habit-row--checked' : '');
+    div.setAttribute('role', 'listitem');
+
+    div.innerHTML = `
+      <button class="habit-check-btn" type="button"
+              aria-pressed="${checked}"
+              aria-label="${checked ? 'Mark Meditation undone' : 'Mark Meditation done'}">
+        <div class="habit-check" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"
+               width="13" height="13">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+      </button>
+      <span class="habit-name">${escHtml(name)}</span>
+      ${badge}
+      <a class="habit-calm-btn" href="calm://" aria-label="Open Calm app" title="Open Calm">🧘</a>
+    `;
+
+    div.querySelector('.habit-check-btn').addEventListener('click', () => toggle(name));
+    return div;
   }
 
   // ── Reading row (expandable) ─────────────────────────────────────────────

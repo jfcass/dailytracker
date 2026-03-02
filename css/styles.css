@@ -2352,6 +2352,24 @@ button {
   opacity:      0.88;
 }
 
+/* ── Meditation: Calm app link ───────────────────────────────────────────── */
+.habit-calm-btn {
+  margin-left:     auto;
+  font-size:       1.1rem;
+  text-decoration: none;
+  padding:         3px 8px;
+  border-radius:   8px;
+  background:      var(--clr-surface-2);
+  color:           var(--clr-text);
+  line-height:     1;
+  flex-shrink:     0;
+  transition:      background var(--transition);
+}
+.habit-calm-btn:hover,
+.habit-calm-btn:active {
+  background: var(--clr-accent-dim);
+}
+
 /* Inline reading panel inside habits section */
 .book-habits-inline {
   border-top:    1px solid var(--clr-border);
