@@ -194,9 +194,6 @@
 
         <button id="app-today-btn" class="app-today-btn" type="button" hidden>Today</button>
 
-        <!-- Weather chip — populated by weather.js -->
-        <div id="weather-strip" class="weather-strip-inline" hidden aria-live="polite"></div>
-
         <button id="app-next-day" class="date-nav__btn" type="button" aria-label="Next day" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
@@ -205,6 +202,9 @@
           </svg>
         </button>
       </div>
+
+      <!-- ── Conditions bar: weather + pollen (populated by weather.js) ── -->
+      <div id="conditions-bar" class="conditions-bar" hidden aria-live="polite"></div>
 
       <!-- ── Section: Habit Tracker (Phase 2) ─────────────────────────── -->
       <section id="section-habits" class="tracker-section" aria-label="Habit Tracker">
