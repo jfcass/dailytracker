@@ -93,6 +93,19 @@ const Weather = (() => {
     return               { label: 'Very High', cls: 'pollen--very-high' };
   }
 
+  // ── AQI level ──────────────────────────────────────────────────────────────
+
+  /** Maps US EPA AQI to display label + CSS class. */
+  function aqiLevel(aqi) {
+    if (aqi == null) return null;
+    if (aqi <= 50)  return { label: 'Good',             cls: 'aqi--good' };
+    if (aqi <= 100) return { label: 'Moderate',         cls: 'aqi--moderate' };
+    if (aqi <= 150) return { label: 'Sensitive Groups', cls: 'aqi--sensitive' };
+    if (aqi <= 200) return { label: 'Unhealthy',        cls: 'aqi--unhealthy' };
+    if (aqi <= 300) return { label: 'Very Unhealthy',   cls: 'aqi--very-unhealthy' };
+    return                 { label: 'Hazardous',        cls: 'aqi--hazardous' };
+  }
+
   // ── UV level label ────────────────────────────────────────────────────────
 
   function uvLevel(v) {
@@ -147,11 +160,19 @@ const Weather = (() => {
       chipHtml('🌿', 'Weed',  state.pollen_weed),
     ].filter(Boolean).join('');
 
+    // AQI chip — show Moderate+ only (aqi_us >= 51)
+    const aqiChip = (() => {
+      if (state.aqi_us == null || state.aqi_us <= 50) return '';
+      const lvl = aqiLevel(state.aqi_us);
+      return `<span class="aqi-chip ${lvl.cls}">AQI ${state.aqi_us}: ${lvl.label}</span>`;
+    })();
+
     el.innerHTML = `
       <div class="conditions-summary">
         <span class="conditions-emoji" aria-hidden="true">${cond.emoji}</span>
         <span class="conditions-temp">${tempStr}</span>
         ${pollenChips}
+        ${aqiChip}
         <span class="conditions-toggle" aria-hidden="true">${isExpanded ? '∨' : '›'}</span>
       </div>
       <div class="conditions-detail"${isExpanded ? '' : ' hidden'}>
@@ -182,6 +203,17 @@ const Weather = (() => {
         <span class="conditions-metric">
           <span class="conditions-metric-val">${state.humidity_pct}%</span>
           <span class="conditions-metric-label">Humidity</span>
+        </span>`);
+    }
+    if (state.aqi_us != null) {
+      const lvl     = aqiLevel(state.aqi_us);
+      const pm25Str = state.pm25 != null
+        ? ` · PM2.5 ${Math.round(state.pm25 * 10) / 10} µg/m³`
+        : '';
+      metrics.push(`
+        <span class="conditions-metric">
+          <span class="conditions-metric-val aqi-metric-val ${lvl.cls}">AQI ${state.aqi_us}${pm25Str}</span>
+          <span class="conditions-metric-label">Air Quality</span>
         </span>`);
     }
 

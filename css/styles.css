@@ -4793,6 +4793,49 @@ button {
   .pollen-chip.pollen--very-high { background: #3d0808; color: var(--clr-error); }
 }
 
+/* ── AQI chips ───────────────────────────────────────────────────────────────── */
+.aqi-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.aqi--good           { background: #c8e6c9; color: #1b5e20; }
+.aqi--moderate       { background: #fff9c4; color: #f57f17; }
+.aqi--sensitive      { background: #ffe0b2; color: #e65100; }
+.aqi--unhealthy      { background: #ffcccc; color: #b71c1c; }
+.aqi--very-unhealthy { background: #e1bee7; color: #4a148c; }
+.aqi--hazardous      { background: #880e4f; color: #fff;    }
+
+/* metric val — text color only, no background */
+.aqi-metric-val.aqi--good           { color: #2e7d32; }
+.aqi-metric-val.aqi--moderate       { color: #f57f17; }
+.aqi-metric-val.aqi--sensitive      { color: #e65100; }
+.aqi-metric-val.aqi--unhealthy      { color: #b71c1c; }
+.aqi-metric-val.aqi--very-unhealthy { color: #6a1b9a; }
+.aqi-metric-val.aqi--hazardous      { color: #880e4f; }
+
+@media (prefers-color-scheme: dark) {
+  .aqi--good           { background: #1b3a1e; color: #81c784; }
+  .aqi--moderate       { background: #3d3000; color: #ffd54f; }
+  .aqi--sensitive      { background: #3e1f00; color: #ffb74d; }
+  .aqi--unhealthy      { background: #3b0000; color: #ef9a9a; }
+  .aqi--very-unhealthy { background: #2a0040; color: #ce93d8; }
+  .aqi--hazardous      { background: #560027; color: #f8bbd0; }
+
+  .aqi-metric-val.aqi--good           { color: #81c784; }
+  .aqi-metric-val.aqi--moderate       { color: #ffd54f; }
+  .aqi-metric-val.aqi--sensitive      { color: #ffb74d; }
+  .aqi-metric-val.aqi--unhealthy      { color: #ef9a9a; }
+  .aqi-metric-val.aqi--very-unhealthy { color: #ce93d8; }
+  .aqi-metric-val.aqi--hazardous      { color: #f8bbd0; }
+}
+
 /* kept — reused for loading state */
 .weather-emoji {
   font-size:   1.1rem;
