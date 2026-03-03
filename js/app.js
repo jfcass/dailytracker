@@ -144,6 +144,7 @@ const App = (() => {
 
     applyCollapsedState();
     applyVisibility();
+    initSwipe();
   }
 
   // ── Section visibility (show/hide in settings) ───────────────────────────────
@@ -172,6 +173,47 @@ const App = (() => {
       if (btn) btn.hidden = hidden.has(`tab-${tab}`);
       if (hidden.has(`tab-${tab}`) && currentTab === tab) switchTab('today');
     });
+  }
+
+  // ── Swipe-to-navigate ────────────────────────────────────────────────────────
+
+  function getVisibleTabs() {
+    return [...document.querySelectorAll('.bottom-nav-btn:not([hidden])')]
+      .map(btn => btn.dataset.tab);
+  }
+
+  function initSwipe() {
+    const el = document.getElementById('screen-app');
+    if (!el) return;
+
+    let startX = 0, startY = 0, startTarget = null;
+
+    el.addEventListener('touchstart', e => {
+      startX      = e.touches[0].clientX;
+      startY      = e.touches[0].clientY;
+      startTarget = e.target;
+    }, { passive: true });
+
+    el.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+
+      // Need a clear horizontal swipe — at least 60px and wider than tall
+      if (Math.abs(dx) < 60) return;
+      if (Math.abs(dy) > Math.abs(dx) * 0.6) return;
+
+      // Don't trigger when the gesture started on a horizontally-scrollable element
+      if (startTarget?.closest(
+        '.health-chart-scroll, .rpt-heatmap, .rpt-chart-wrap, .conditions-bar'
+      )) return;
+
+      const tabs = getVisibleTabs();
+      const idx  = tabs.indexOf(currentTab);
+      if (idx === -1) return;
+
+      if (dx < 0 && idx < tabs.length - 1) switchTab(tabs[idx + 1]);
+      else if (dx > 0 && idx > 0)          switchTab(tabs[idx - 1]);
+    }, { passive: true });
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────────────
