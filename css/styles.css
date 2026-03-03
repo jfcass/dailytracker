@@ -4075,6 +4075,36 @@ button {
   border-bottom: none;
 }
 
+/* ── Health group: sub-sections ──────────────────────────────────────────── */
+.report-section-group-body {
+  /* transparent container — sub-sections provide their own dividers */
+}
+
+.report-section.report-section--sub {
+  border:        none;
+  border-top:    1px solid var(--clr-border);
+  border-radius: 0;
+  margin:        0;
+}
+
+/* Group header already has border-bottom; avoid doubling up on first sub */
+.report-section-group-body > .report-section--sub:first-child {
+  border-top: none;
+}
+
+.report-section.report-section--sub .report-section-header {
+  padding:     10px 16px;
+}
+
+.report-section.report-section--sub .report-section-title {
+  font-size:   0.88rem;
+  font-weight: 600;
+}
+
+.report-section.report-section--sub.report-section--collapsed .report-section-header {
+  border-bottom: none;
+}
+
 /* Section label */
 .rpt-section-label {
   font-size:    0.78rem;

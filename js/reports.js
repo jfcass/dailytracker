@@ -248,13 +248,13 @@ const Reports = (() => {
 
   // ── Health section ────────────────────────────────────────────────────────────
 
-  function buildHealthSection(dates) {
+  function buildHealthSection(dates, sub = false) {
     const issues   = Data.getData().issues ?? {};
     const daysData = Data.getData().days ?? {};
     const all      = Object.values(issues);
 
     if (!all.length) {
-      return rptSection('Health', healthIcon(), `<p class="rpt-empty">No health issues tracked.</p>`);
+      return rptSection('Issues', healthIcon(), `<p class="rpt-empty">No health issues tracked.</p>`, true, sub);
     }
 
     // Active issues first, then resolved; within each group sort by start date
@@ -288,7 +288,7 @@ const Reports = (() => {
       </div>`;
     }).join('');
 
-    return rptSection('Health', healthIcon(), issueBlocks, false);
+    return rptSection('Issues', healthIcon(), issueBlocks, false, sub);
   }
 
   function renderHealthCharts(dates) {
@@ -464,7 +464,7 @@ const Reports = (() => {
 
   // ── Digestion (bowel) section ─────────────────────────────────────────────────
 
-  function buildBowelSection(dates) {
+  function buildBowelSection(dates, sub = false) {
     const daysData       = Data.getData().days ?? {};
     const QUALITY_LABELS = ['', 'Hard', 'Lumpy', 'Cracked', 'Normal', 'Soft', 'Mushy', 'Watery'];
 
@@ -478,7 +478,7 @@ const Reports = (() => {
     });
 
     if (!totalMovements) {
-      return rptSection('Digestion', bowelIcon(), `<p class="rpt-empty">No bowel movements logged in this period.</p>`);
+      return rptSection('Digestion', bowelIcon(), `<p class="rpt-empty">No bowel movements logged in this period.</p>`, true, sub);
     }
 
     const avgPerDay       = (totalMovements / daysWithMovements).toFixed(1);
@@ -509,7 +509,7 @@ const Reports = (() => {
         ? `<p class="rpt-section-label">Frequency per week</p><div class="rpt-chart-wrap rpt-chart-wrap--short"><canvas id="rpt-bowel-freq-chart"></canvas></div>`
         : '');
 
-    return rptSection('Digestion', bowelIcon(), body);
+    return rptSection('Digestion', bowelIcon(), body, true, sub);
   }
 
   function renderBowelCharts(dates) {
@@ -922,9 +922,10 @@ const Reports = (() => {
 
   // ── Section shell helper ──────────────────────────────────────────────────────
 
-  function rptSection(title, icon, bodyHtml, padBody = true) {
+  function rptSection(title, icon, bodyHtml, padBody = true, sub = false) {
     const key = title.toLowerCase().split(/[\s&]+/)[0]; // 'Mood & Energy' → 'mood'
-    return `<div class="report-section">
+    const cls = 'report-section' + (sub ? ' report-section--sub' : '');
+    return `<div class="${cls}">
       <div class="report-section-header report-section-header--toggle" data-rpt-key="${key}">
         <h2 class="report-section-title">${icon}${escHtml(title)}</h2>
         <span class="rpt-section-chevron" aria-hidden="true">▾</span>
@@ -980,7 +981,7 @@ const Reports = (() => {
 
   // ── Sleep section ─────────────────────────────────────────────────────────────
 
-  function buildSleepSection(dates) {
+  function buildSleepSection(dates, sub = false) {
     const daysData = Data.getData().days ?? {};
 
     const points = dates.flatMap(date => {
@@ -999,7 +1000,7 @@ const Reports = (() => {
     });
 
     if (!points.length)
-      return rptSection('Sleep', sleepIcon(), `<p class="rpt-empty">No sleep data in this period.</p>`);
+      return rptSection('Sleep', sleepIcon(), `<p class="rpt-empty">No sleep data in this period.</p>`, true, sub);
 
     const avgHours = avg(points.map(p => p.hours));
     const avgEff   = avg(points.map(p => p.eff));
@@ -1021,7 +1022,7 @@ const Reports = (() => {
            <div class="rpt-chart-wrap"><canvas id="rpt-sleep-hours-chart"></canvas></div>`
       }`;
 
-    return rptSection('Sleep', sleepIcon(), body);
+    return rptSection('Sleep', sleepIcon(), body, true, sub);
   }
 
   function renderSleepCharts(dates) {
@@ -1100,7 +1101,7 @@ const Reports = (() => {
 
   // ── Activity section ──────────────────────────────────────────────────────────
 
-  function buildActivitySection(dates) {
+  function buildActivitySection(dates, sub = false) {
     const daysData = Data.getData().days ?? {};
 
     const points = dates.flatMap(date => {
@@ -1114,7 +1115,7 @@ const Reports = (() => {
     });
 
     if (!points.length)
-      return rptSection('Activity', activityIcon(), `<p class="rpt-empty">No activity data in this period.</p>`);
+      return rptSection('Activity', activityIcon(), `<p class="rpt-empty">No activity data in this period.</p>`, true, sub);
 
     const avgSteps  = avg(points.map(p => p.steps));
     const avgActive = avg(points.map(p => p.active));
@@ -1140,7 +1141,7 @@ const Reports = (() => {
       <p class="rpt-section-label">Active minutes</p>
       <div class="rpt-chart-wrap rpt-chart-wrap--short"><canvas id="rpt-activity-active-chart"></canvas></div>`;
 
-    return rptSection('Activity', activityIcon(), body);
+    return rptSection('Activity', activityIcon(), body, true, sub);
   }
 
   function renderActivityCharts(dates) {
@@ -1203,7 +1204,7 @@ const Reports = (() => {
 
   // ── Biometrics section ────────────────────────────────────────────────────────
 
-  function buildBiometricsSection(dates) {
+  function buildBiometricsSection(dates, sub = false) {
     const daysData = Data.getData().days ?? {};
 
     const points = dates.flatMap(date => {
@@ -1217,7 +1218,7 @@ const Reports = (() => {
     });
 
     if (!points.length)
-      return rptSection('Biometrics', biometricsIcon(), `<p class="rpt-empty">No biometric data in this period.</p>`);
+      return rptSection('Biometrics', biometricsIcon(), `<p class="rpt-empty">No biometric data in this period.</p>`, true, sub);
 
     const avgHR = avg(points.map(p => p.hr));
     const avgHV = avg(points.map(p => p.hv));
@@ -1233,7 +1234,7 @@ const Reports = (() => {
       </div>
       <div class="rpt-chart-wrap rpt-chart-wrap--tall"><canvas id="rpt-biometrics-chart"></canvas></div>`;
 
-    return rptSection('Biometrics', biometricsIcon(), body);
+    return rptSection('Biometrics', biometricsIcon(), body, true, sub);
   }
 
   function renderBiometricsChart(dates) {
@@ -1284,6 +1285,25 @@ const Reports = (() => {
     });
   }
 
+  // ── Health group (Issues + Digestion + Sleep + Activity + Biometrics) ────────
+
+  function buildHealthGroup(dates) {
+    const subsHtml =
+        buildHealthSection(dates, true)
+      + buildBowelSection(dates, true)
+      + buildSleepSection(dates, true)
+      + buildActivitySection(dates, true)
+      + buildBiometricsSection(dates, true);
+
+    return `<div class="report-section">
+      <div class="report-section-header report-section-header--toggle" data-rpt-key="health">
+        <h2 class="report-section-title">${healthIcon()}Health</h2>
+        <span class="rpt-section-chevron" aria-hidden="true">▾</span>
+      </div>
+      <div class="report-section-group-body">${subsHtml}</div>
+    </div>`;
+  }
+
   // ── Main render ───────────────────────────────────────────────────────────────
 
   // Renders only the chart sections — period bar is persistent (built in init)
@@ -1293,21 +1313,15 @@ const Reports = (() => {
 
     const dates = getDatesInPeriod();
 
-    // Order mirrors Today tab (Habits → Mood → Digestion → Health → Moderation →
-    // Gratitudes → Daily Notes), then passive/Fitbit sections below.
     el.innerHTML =
         buildHabitsSection(dates)
       + buildReadingSection(dates)
       + buildMoodSection(dates)
-      + buildBowelSection(dates)
-      + buildHealthSection(dates)
+      + buildHealthGroup(dates)
       + buildMedicationsSection(dates)
       + buildModerationSection(dates)
       + buildGratitudesSection(dates)
-      + buildDailyNotesSection(dates)
-      + buildSleepSection(dates)
-      + buildActivitySection(dates)
-      + buildBiometricsSection(dates);
+      + buildDailyNotesSection(dates);
 
     // Charts need the canvas elements to exist in DOM first
     requestAnimationFrame(() => {

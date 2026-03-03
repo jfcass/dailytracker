@@ -85,7 +85,7 @@ const Bowel = (() => {
       <div class="bwl-display">
         <span class="bwl-quality-chip" style="--q-clr: ${color}">${escHtml(label)}</span>
         <div class="bwl-meta">
-          ${entry.time  ? `<span class="bwl-time">${escHtml(entry.time)}</span>` : ''}
+          ${entry.time  ? `<span class="bwl-time">${escHtml(fmt12h(entry.time))}</span>` : ''}
           ${entry.notes ? `<span class="bwl-note">${escHtml(entry.notes)}</span>` : ''}
         </div>
         <div class="bwl-row-actions">
@@ -250,6 +250,15 @@ const Bowel = (() => {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  }
+
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [hStr, mStr] = hhmm.split(':');
+    const h = parseInt(hStr, 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${mStr} ${period}`;
   }
 
   // ── Public API ────────────────────────────────────────────────────────────

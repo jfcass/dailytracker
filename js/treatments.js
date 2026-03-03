@@ -88,8 +88,8 @@ const Treatments = (() => {
       : escHtml(t.dose || '');
     const timeRange = t.start_time
       ? t.end_time
-        ? `${escHtml(t.start_time)} – ${escHtml(t.end_time)}`
-        : escHtml(t.start_time)
+        ? `${escHtml(fmt12h(t.start_time))} – ${escHtml(fmt12h(t.end_time))}`
+        : escHtml(fmt12h(t.start_time))
       : '';
     const intentSnip = t.intention
       ? escHtml(t.intention.slice(0, 70)) + (t.intention.length > 70 ? '…' : '')
@@ -118,8 +118,8 @@ const Treatments = (() => {
       : escHtml(t.dose || '');
     const timeRange = t.start_time
       ? t.end_time
-        ? `${escHtml(t.start_time)} – ${escHtml(t.end_time)}`
-        : escHtml(t.start_time)
+        ? `${escHtml(fmt12h(t.start_time))} – ${escHtml(fmt12h(t.end_time))}`
+        : escHtml(fmt12h(t.start_time))
       : '';
 
     const bpReadings = getBPForTreatment(id);
@@ -133,7 +133,7 @@ const Treatments = (() => {
         <div class="tx-bp-row">
           <span class="tx-bp-reading">${escHtml(String(r.systolic))}/${escHtml(String(r.diastolic))}</span>
           ${r.pulse != null ? `<span class="tx-bp-pulse">${escHtml(String(r.pulse))} bpm</span>` : ''}
-          ${r.time ? `<span class="tx-bp-time">${escHtml(r.time)}</span>` : ''}
+          ${r.time ? `<span class="tx-bp-time">${escHtml(fmt12h(r.time))}</span>` : ''}
           ${r.date !== t.date ? `<span class="tx-bp-date-label">${escHtml(fmtDate(r.date))}</span>` : ''}
           ${r.notes ? `<span class="tx-bp-notes">${escHtml(r.notes)}</span>` : ''}
           <span class="tx-bp-actions">
@@ -581,6 +581,15 @@ const Treatments = (() => {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  }
+
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [hStr, mStr] = hhmm.split(':');
+    const h = parseInt(hStr, 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${mStr} ${period}`;
   }
 
   let saveTimer = null;

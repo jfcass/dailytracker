@@ -36,6 +36,15 @@ const HealthLog = (() => {
       .replace(/"/g, '&quot;');
   }
 
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [hStr, mStr] = hhmm.split(':');
+    const h = parseInt(hStr, 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${mStr} ${period}`;
+  }
+
   function fmtDate(dateStr) {
     if (!dateStr) return '';
     const [y, mo, d] = dateStr.split('-').map(Number);
@@ -154,7 +163,7 @@ const HealthLog = (() => {
         stackY     -= segH;
         const color = SEV_CHART_COLORS[sev] ?? '#6b7280';
         const cat   = e.chips[0] ?? '';
-        const tip   = `${fmtDate(date)}${e.time ? ' · ' + e.time : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${cat ? '\n' + cat : ''}${e.note ? '\n' + e.note : ''}`;
+        const tip   = `${fmtDate(date)}${e.time ? ' · ' + fmt12h(e.time) : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${cat ? '\n' + cat : ''}${e.note ? '\n' + e.note : ''}`;
         bars += `<rect x="${x}" y="${stackY}" width="${barW}" height="${segH}" fill="${color}" opacity="0.88"><title>${escHtml(tip)}</title></rect>`;
       });
 
@@ -286,7 +295,7 @@ const HealthLog = (() => {
         const ctxColor = BP_CTX_COLORS[e.context] ?? 'var(--clr-text-2)';
         return `<div class="hl-bp-entry">
           <span class="hl-bp-date">${fmtDate(e.date)}</span>
-          ${e.time ? `<span class="hl-bp-time">${escHtml(e.time)}</span>` : ''}
+          ${e.time ? `<span class="hl-bp-time">${escHtml(fmt12h(e.time))}</span>` : ''}
           <span class="hl-bp-reading">${escHtml(String(e.systolic))}/${escHtml(String(e.diastolic))}</span>
           ${e.pulse != null && e.pulse !== '' ? `<span class="hl-bp-pulse">${escHtml(String(e.pulse))} bpm</span>` : ''}
           <span class="hl-bp-ctx-badge" style="--ctx-clr:${ctxColor}">${escHtml(e.context ?? '')}</span>
@@ -511,7 +520,7 @@ const HealthLog = (() => {
         const label  = BWL_LABELS[e.quality] ?? '';
         return `<div class="hl-dig-entry">
           <span class="hl-dig-date">${fmtDate(e.date)}</span>
-          ${e.time ? `<span class="hl-dig-time">${escHtml(e.time)}</span>` : ''}
+          ${e.time ? `<span class="hl-dig-time">${escHtml(fmt12h(e.time))}</span>` : ''}
           <span class="hl-dig-quality-chip" style="--q-clr:${color}">${escHtml(label)}</span>
           ${e.notes ? `<span class="hl-dig-notes">${escHtml(e.notes)}</span>` : ''}
         </div>`;
@@ -570,7 +579,7 @@ const HealthLog = (() => {
               ? ` <span class="hl-med-dose-chip">${escHtml(d.dose)}</span>`
               : '';
             const ts      = new Date(d.iso_timestamp);
-            const timeStr = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const timeStr = ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             const dateStr = fmtDate(d.date);
             const noteStr = d.notes ? ` · ${escHtml(d.notes)}` : '';
             return `<div class="hl-med-dose-entry">
@@ -694,7 +703,7 @@ const HealthLog = (() => {
                  <span class="health-issue-dot" style="background:${color}"></span>
                  <span class="symp-hist-chip-cat">${escHtml(cat)}</span>
                  <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">${s.severity}</span>
-                 ${s.time ? `<span class="symp-hist-chip-time">${escHtml(s.time)}</span>` : ''}
+                 ${s.time ? `<span class="symp-hist-chip-time">${escHtml(fmt12h(s.time))}</span>` : ''}
                </button>`
             : canNav
             ? `<button class="symp-hist-chip-body" title="${tip}"

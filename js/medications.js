@@ -116,7 +116,7 @@ const Medications = (() => {
 
   function makeDoseCard(dose, med, allRecentDoses) {
     const ts        = new Date(dose.iso_timestamp);
-    const timeStr   = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr   = ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
     const isoDate   = dose.iso_timestamp.slice(0, 10);
     const isToday   = isoDate === currentDate;
     const dayLabel  = isToday ? '' : 'yesterday · ';

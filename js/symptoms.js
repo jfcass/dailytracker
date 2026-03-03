@@ -358,7 +358,7 @@ const Symptoms = (() => {
     const issueBadge = linked
       ? `<span class="symp-issue-badge" style="--badge-color:${catColor(linked.category)}">${escHtml(linked.name)}</span>`
       : '';
-    const timeBadge  = s.time ? `<span class="symp-time-badge">${escHtml(s.time)}</span>` : '';
+    const timeBadge  = s.time ? `<span class="symp-time-badge">${escHtml(fmt12h(s.time))}</span>` : '';
 
     return `
       <div class="health-issue-card">
@@ -703,7 +703,7 @@ const Symptoms = (() => {
               <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:0.72rem; padding:2px 6px">
                 ${s.severity}
               </span>
-              ${s.time ? `<span class="symp-hist-chip-time">${escHtml(s.time)}</span>` : ''}
+              ${s.time ? `<span class="symp-hist-chip-time">${escHtml(fmt12h(s.time))}</span>` : ''}
             </button>
             <button class="symp-hist-chip-del"
                     title="Delete this entry"
@@ -725,7 +725,7 @@ const Symptoms = (() => {
       return `
         <div class="symp-find-related-row">
           <div class="symp-find-related-info">
-            <span class="health-detail-log-date">${label}${s.time ? ` · ${s.time}` : ''}</span>
+            <span class="health-detail-log-date">${label}${s.time ? ` · ${fmt12h(s.time)}` : ''}</span>
             <span class="health-sev-badge" style="--sev-bg:${bg};--sev-clr:${clr}; font-size:11px; padding:2px 6px">${s.severity}</span>
             ${s.description ? `<span class="symp-find-related-desc">${escHtml(truncate(s.description, 50))}</span>` : ''}
           </div>
@@ -810,7 +810,7 @@ const Symptoms = (() => {
         const segH  = Math.max(2, Math.round((sev / totalSev) * totalBarH));
         stackY     -= segH;
         const color = SEV_CHART_COLORS[sev] ?? '#6b7280';
-        const tip   = `${fmtDate(date)}${s.time ? ' · ' + s.time : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${s.description ? '\n' + s.description : ''}`;
+        const tip   = `${fmtDate(date)}${s.time ? ' · ' + fmt12h(s.time) : ''}\nSeverity: ${sev} (${SEV_LABELS[sev]})${s.description ? '\n' + s.description : ''}`;
         bars += `<rect x="${x}" y="${stackY}" width="${barW}" height="${segH}" fill="${color}" opacity="0.88"><title>${escHtml(tip)}</title></rect>`;
       });
 
@@ -1395,6 +1395,15 @@ const Symptoms = (() => {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  }
+
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [hStr, mStr] = hhmm.split(':');
+    const h = parseInt(hStr, 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${mStr} ${period}`;
   }
 
   // ── Public API ────────────────────────────────────────────────────────────

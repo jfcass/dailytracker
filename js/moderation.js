@@ -103,7 +103,7 @@ const Moderation = (() => {
                             .reduce((best, t) => t > best ? t : best, '');
 
     const summaryHtml = entries.length === 1
-      ? `<span class="mod-quantity">${escHtml(fmtQty(entries[0].quantity))} ${escHtml(entries[0].unit)}</span>${lastTime ? `<span class="mod-entry-time"> · ${escHtml(lastTime)}</span>` : ''}`
+      ? `<span class="mod-quantity">${escHtml(fmtQty(entries[0].quantity))} ${escHtml(entries[0].unit)}</span>${lastTime ? `<span class="mod-entry-time"> · ${escHtml(fmt12h(lastTime))}</span>` : ''}`
       : `<span class="mod-quantity">${escHtml(fmtQty(total))} ${escHtml(unitStr)} total</span>`;
 
     wrap.innerHTML = `
@@ -131,7 +131,7 @@ const Moderation = (() => {
         ${entries.map(e => `
           <div class="mod-entry-row" data-entry-id="${escHtml(e.id)}">
             <span class="mod-entry-qty">${escHtml(fmtQty(e.quantity))} ${escHtml(e.unit)}</span>
-            ${e.time ? `<span class="mod-entry-time">${escHtml(e.time)}</span>` : ''}
+            ${e.time ? `<span class="mod-entry-time">${escHtml(fmt12h(e.time))}</span>` : ''}
             ${e.note ? `<span class="mod-entry-note">${escHtml(e.note)}</span>` : ''}
             <button class="mod-edit-btn" type="button" data-entry-id="${escHtml(e.id)}"
                     aria-label="Edit entry">
@@ -374,6 +374,15 @@ const Moderation = (() => {
     return String(s).replace(/[&<>"']/g, c =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
     );
+  }
+
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [hStr, mStr] = hhmm.split(':');
+    const h = parseInt(hStr, 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${mStr} ${period}`;
   }
 
   function subEmoji(sub) {
