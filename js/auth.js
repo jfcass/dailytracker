@@ -8,6 +8,7 @@ const Auth = (() => {
   let tokenClient  = null;
   let accessToken  = null;
   let tokenExpiry  = 0;
+  let refreshTimer = null;
 
   // ── Initialization ──────────────────────────────────────────────────────────
 
@@ -62,12 +63,15 @@ const Auth = (() => {
         tokenExpiry  = Date.now() + response.expires_in * 1000 - 60_000;
         localStorage.setItem('ht_authed', 'true');
         fetchAndStoreEmail(accessToken);   // fire-and-forget; skip account picker next time
+        scheduleRefresh();                 // proactively renew 5 min before expiry
         resolve(accessToken);
       };
 
       // hint → pre-selects stored account so user never sees the account-list picker
       const hint   = localStorage.getItem('ht_email') || '';
-      const config = silent ? { prompt: '' } : {};
+      // prompt:'none' → fully silent if Google browser session is active (no UI at all)
+      // omitting prompt → shows account chooser (used for explicit sign-in)
+      const config = silent ? { prompt: 'none' } : {};
       if (hint) config.hint = hint;
       tokenClient.requestAccessToken(config);
     });
@@ -96,7 +100,22 @@ const Auth = (() => {
       .catch(() => {});
   }
 
+  /**
+   * Schedule a silent token refresh 5 minutes before the current token expires.
+   * Keeps the session alive indefinitely while the app is open.
+   */
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    const delay = tokenExpiry - Date.now() - 5 * 60_000;
+    if (delay > 0) {
+      refreshTimer = setTimeout(() => {
+        requestToken(true).catch(() => {}); // best-effort; failure is non-fatal
+      }, delay);
+    }
+  }
+
   function signOut() {
+    clearTimeout(refreshTimer);
     if (accessToken) {
       google.accounts.oauth2.revoke(accessToken, () => {});
     }

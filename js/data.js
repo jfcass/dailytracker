@@ -265,7 +265,19 @@ const Data = (() => {
 
   async function save() {
     if (!data) return;
-    await writeFile(data);
+    try {
+      await writeFile(data);
+    } catch (err) {
+      // If the token expired mid-session, try a silent re-auth and retry once
+      const isAuthErr = err.message?.includes('Not authenticated')
+                     || err.message?.includes('401');
+      if (isAuthErr) {
+        await Auth.requestToken(true);   // silent; throws if Google session also gone
+        await writeFile(data);           // retry
+      } else {
+        throw err;
+      }
+    }
   }
 
   // ── PIN helpers ──────────────────────────────────────────────────────────────
