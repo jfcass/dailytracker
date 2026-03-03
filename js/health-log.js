@@ -477,8 +477,8 @@ const HealthLog = (() => {
 
   // ── Section: Digestion ─────────────────────────────────────────────────────────────────────
 
-  const BWL_COLORS = { 1: '#8B6240', 2: '#C09040', 3: '#1ABEA5', 4: '#E89020', 5: '#E05030' };
-  const BWL_LABELS = { 1: 'Hard', 2: 'Firm', 3: 'Normal', 4: 'Soft', 5: 'Watery' };
+  const BWL_COLORS = { 1: '#7B3F10', 2: '#9B6030', 3: '#C09040', 4: '#1ABEA5', 5: '#8BC34A', 6: '#E89020', 7: '#E05030' };
+  const BWL_LABELS = { 1: 'Hard', 2: 'Lumpy', 3: 'Cracked', 4: 'Normal', 5: 'Soft', 6: 'Mushy', 7: 'Watery' };
 
   function renderDigestionSection() {
     const allDays = Data.getData().days ?? {};
