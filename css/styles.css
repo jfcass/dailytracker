@@ -5153,6 +5153,16 @@ button {
   flex-shrink: 0;
 }
 
+.stg-group-label {
+  font-size:      .72rem;
+  font-weight:    600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color:          var(--clr-text-2);
+  margin:         12px 0 2px;
+}
+.stg-group-label:first-child { margin-top: 2px; }
+
 .stg-toggle-group {
   display: flex;
   gap:     4px;

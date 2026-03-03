@@ -22,6 +22,7 @@ const Data = (() => {
       theme: 'system',
       weather_unit: 'auto',
       default_report_period: '7d',
+      hidden_sections: [],
     },
     days:           {},
     issues:         {},

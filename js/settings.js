@@ -48,6 +48,7 @@ const Settings = (() => {
     wrap.appendChild(buildPrnMedsCard());
     wrap.appendChild(buildTreatmentMedsCard());
     wrap.appendChild(buildCategoriesCard());
+    wrap.appendChild(buildVisibilityCard());
     wrap.appendChild(buildDisplayCard());
     wrap.appendChild(buildAccountCard());
     wrap.appendChild(buildFitbitCard());
@@ -385,6 +386,81 @@ const Settings = (() => {
     cats.splice(idx, 1);
     render(); scheduleSave();
     if (typeof Symptoms !== 'undefined') Symptoms.render();
+  }
+
+  // ── Visibility Card ───────────────────────────────────────────────────────────
+
+  function buildVisibilityCard() {
+    const s      = Data.getSettings();
+    const hidden = new Set(s.hidden_sections ?? []);
+
+    const { card, body } = makeCard(`
+      <span class="stg-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Sections
+      </span>
+    `, 'visibility');
+
+    function makeRow(key, label) {
+      const isHidden = hidden.has(key);
+      const row = document.createElement('div');
+      row.className = 'stg-pref-row';
+      row.innerHTML = `
+        <span class="stg-pref-label">${escHtml(label)}</span>
+        <div class="stg-toggle-group" role="group" aria-label="${escHtml(label)} visibility">
+          <button class="stg-toggle-btn${!isHidden ? ' stg-toggle-btn--active' : ''}"
+                  data-act="show" type="button">Show</button>
+          <button class="stg-toggle-btn${isHidden  ? ' stg-toggle-btn--active' : ''}"
+                  data-act="hide" type="button">Hide</button>
+        </div>
+      `;
+      row.querySelectorAll('.stg-toggle-btn').forEach(btn =>
+        btn.addEventListener('click', () => toggleSectionVis(key, btn.dataset.act === 'hide'))
+      );
+      return row;
+    }
+
+    function makeGroupLabel(text) {
+      const el = document.createElement('p');
+      el.className = 'stg-group-label';
+      el.textContent = text;
+      return el;
+    }
+
+    body.appendChild(makeGroupLabel('Today Tab'));
+    [
+      ['habits',     'Habits'],
+      ['mood',       'Mood & Energy'],
+      ['symptoms',   'Symptoms'],
+      ['moderation', 'Moderation'],
+      ['bowel',      'Bowel'],
+      ['gratitudes', 'Gratitudes'],
+      ['note',       'Daily Note'],
+    ].forEach(([k, l]) => body.appendChild(makeRow(k, l)));
+
+    body.appendChild(makeGroupLabel('Other Tabs'));
+    [
+      ['tab-health-log',  'Health Log'],
+      ['tab-treatments',  'Treatments'],
+      ['tab-library',     'Library'],
+      ['tab-reports',     'Reports'],
+    ].forEach(([k, l]) => body.appendChild(makeRow(k, l)));
+
+    return card;
+  }
+
+  function toggleSectionVis(key, hide) {
+    const s      = Data.getSettings();
+    const hidden = new Set(s.hidden_sections ?? []);
+    if (hide) hidden.add(key); else hidden.delete(key);
+    s.hidden_sections = [...hidden];
+    scheduleSave();
+    App.applyVisibility();
+    render();
   }
 
   // ── Display Card ─────────────────────────────────────────────────────────────

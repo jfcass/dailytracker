@@ -143,6 +143,35 @@ const App = (() => {
     if (typeof Fitbit !== 'undefined') Fitbit.sync();
 
     applyCollapsedState();
+    applyVisibility();
+  }
+
+  // ── Section visibility (show/hide in settings) ───────────────────────────────
+
+  function applyVisibility() {
+    const hidden = new Set(Data.getSettings().hidden_sections ?? []);
+
+    // Today tab sections
+    const sectionMap = {
+      habits:     'section-habits',
+      mood:       'section-mood',
+      symptoms:   'section-symptoms',
+      moderation: 'section-moderation',
+      bowel:      'section-bowel',
+      gratitudes: 'section-gratitudes',
+      note:       'section-note',
+    };
+    Object.entries(sectionMap).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = hidden.has(key);
+    });
+
+    // Tab nav buttons — hide button; redirect if on a now-hidden tab
+    ['health-log', 'treatments', 'library', 'reports'].forEach(tab => {
+      const btn = document.querySelector(`.bottom-nav-btn[data-tab="${tab}"]`);
+      if (btn) btn.hidden = hidden.has(`tab-${tab}`);
+      if (hidden.has(`tab-${tab}`) && currentTab === tab) switchTab('today');
+    });
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────────────
@@ -253,7 +282,7 @@ const App = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, showScreen, showMain, switchTab, toggleSection };
+  return { init, showScreen, showMain, switchTab, toggleSection, applyVisibility };
 })();
 
 // Kick off on DOM ready
