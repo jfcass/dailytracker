@@ -155,7 +155,11 @@ All data lives in `health-tracker-data.json` in Google Drive.
         "pollen_ash":     1,
         "pollen_pine":    0,
         "pollen_juniper": 0,
-        "pollen_ragweed": 0
+        "pollen_ragweed": 0,
+        "aqi_us":         42,
+        "aqi_category":   "Good",
+        "pm25":           8.2,
+        "o3_ppb":         35.4
       }
 
     }
@@ -234,6 +238,12 @@ Fetched automatically for today via Open-Meteo (forecast/UV/pressure/humidity) a
   `pollen_ash`, `pollen_pine`, `pollen_juniper`, `pollen_ragweed`: species-level UPI (0–5).
   UPI scale: 0=None · 1=Very Low · 2=Low · 3=Medium · 4=High · 5=Very High.
   Source: Google Pollen API (`GOOGLE_POLLEN_KEY` in config.js). US coverage only for these species.
+- `aqi_us`: US EPA AQI integer (0–500). Scale: 0–50 Good · 51–100 Moderate · 101–150 Sensitive Groups ·
+  151–200 Unhealthy · 201–300 Very Unhealthy · 301–500 Hazardous.
+- `aqi_category`: Category string from API (e.g. `"Good"`, `"Moderate"`).
+- `pm25`: PM2.5 concentration µg/m³. `null` if unavailable.
+- `o3_ppb`: Ozone concentration ppb. `null` if unavailable.
+  Source: Google Air Quality API (same `GOOGLE_POLLEN_KEY`; enable "Air Quality API" in Cloud Console).
 
 ### `medications`
 Master medication list. Daily `medications_taken` entries reference these via `medication_id`.
