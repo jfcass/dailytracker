@@ -166,6 +166,9 @@
 
     <div id="tab-today" class="tab-view tab-view--active app-main">
 
+      <!-- ── Conditions bar: weather + pollen (populated by weather.js) ── -->
+      <div id="conditions-bar" class="conditions-bar" hidden aria-live="polite"></div>
+
       <!-- ── Shared date navigator (controls all sections) ────────────── -->
       <div class="app-date-bar">
         <button id="app-prev-day" class="date-nav__btn" type="button" aria-label="Previous day">
@@ -202,9 +205,6 @@
           </svg>
         </button>
       </div>
-
-      <!-- ── Conditions bar: weather + pollen (populated by weather.js) ── -->
-      <div id="conditions-bar" class="conditions-bar" hidden aria-live="polite"></div>
 
       <!-- ── Section: Habit Tracker (Phase 2) ─────────────────────────── -->
       <section id="section-habits" class="tracker-section" aria-label="Habit Tracker">
