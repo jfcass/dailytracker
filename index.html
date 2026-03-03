@@ -241,6 +241,43 @@
 
       </section>
 
+      <!-- ── Section: Moderation Tracker (Phase 3) ───────────────────── -->
+      <section id="section-moderation" class="tracker-section" aria-label="Moderation Tracker">
+
+        <!-- Header: title left, 7-day dots right -->
+        <div class="section-header" onclick="App.toggleSection('section-moderation')">
+          <h2 class="section-title">
+            <!-- Sliders icon — represents "control / moderation" -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 width="16" height="16" aria-hidden="true">
+              <line x1="4"  y1="21" x2="4"  y2="14"/>
+              <line x1="4"  y1="10" x2="4"  y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/>
+              <line x1="12" y1="8"  x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/>
+              <line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1"  y1="14" x2="7"  y2="14"/>
+              <line x1="9"  y1="8"  x2="15" y2="8"/>
+              <line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+            Moderation
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </h2>
+        </div>
+
+        <!-- Dynamic substance rows — populated by moderation.js -->
+        <div id="mod-list" class="mod-list" role="list" aria-label="Substances"></div>
+
+        <!-- Inline save status -->
+        <div id="mod-save-status" class="save-status" aria-live="polite"></div>
+
+      </section>
+
       <!-- ── Section: Mood & Energy ──────────────────────────────────── -->
       <section id="section-mood" class="tracker-section" aria-label="Mood & Energy">
 
@@ -390,43 +427,6 @@
 
       </section>
 
-      <!-- ── Section: Moderation Tracker (Phase 3) ───────────────────── -->
-      <section id="section-moderation" class="tracker-section" aria-label="Moderation Tracker">
-
-        <!-- Header: title left, 7-day dots right -->
-        <div class="section-header" onclick="App.toggleSection('section-moderation')">
-          <h2 class="section-title">
-            <!-- Sliders icon — represents "control / moderation" -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 width="16" height="16" aria-hidden="true">
-              <line x1="4"  y1="21" x2="4"  y2="14"/>
-              <line x1="4"  y1="10" x2="4"  y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="12"/>
-              <line x1="12" y1="8"  x2="12" y2="3"/>
-              <line x1="20" y1="21" x2="20" y2="16"/>
-              <line x1="20" y1="12" x2="20" y2="3"/>
-              <line x1="1"  y1="14" x2="7"  y2="14"/>
-              <line x1="9"  y1="8"  x2="15" y2="8"/>
-              <line x1="17" y1="16" x2="23" y2="16"/>
-            </svg>
-            Moderation
-            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                 width="14" height="14" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </h2>
-        </div>
-
-        <!-- Dynamic substance rows — populated by moderation.js -->
-        <div id="mod-list" class="mod-list" role="list" aria-label="Substances"></div>
-
-        <!-- Inline save status -->
-        <div id="mod-save-status" class="save-status" aria-live="polite"></div>
-
-      </section>
-
       <!-- ── Section: Gratitudes ───────────────────────────────────── -->
       <section id="section-gratitudes" class="tracker-section" aria-label="Gratitudes">
 
@@ -530,28 +530,6 @@
         Today
       </button>
 
-      <button class="bottom-nav-btn" data-tab="treatments"
-              type="button" onclick="App.switchTab('treatments')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             width="22" height="22" aria-hidden="true">
-          <path d="M9 3h6v8l4 8H5l4-8V3z"/>
-          <line x1="6" y1="3" x2="18" y2="3"/>
-          <line x1="9" y1="12" x2="15" y2="12"/>
-        </svg>
-        Treatments
-      </button>
-
-      <button class="bottom-nav-btn" data-tab="health-log"
-              type="button" onclick="App.switchTab('health-log')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             width="22" height="22" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
-        Health Log
-      </button>
-
       <button class="bottom-nav-btn" data-tab="library"
               type="button" onclick="App.switchTab('library')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -573,6 +551,28 @@
           <line x1="6"  y1="20" x2="6"  y2="14"/>
         </svg>
         Reports
+      </button>
+
+      <button class="bottom-nav-btn" data-tab="health-log"
+              type="button" onclick="App.switchTab('health-log')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        Health Log
+      </button>
+
+      <button class="bottom-nav-btn" data-tab="treatments"
+              type="button" onclick="App.switchTab('treatments')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22" aria-hidden="true">
+          <path d="M9 3h6v8l4 8H5l4-8V3z"/>
+          <line x1="6" y1="3" x2="18" y2="3"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        Treatments
       </button>
 
     </nav>
