@@ -4656,16 +4656,144 @@ button {
   color: var(--clr-text-2);
 }
 
-/* ── Weather chip (inside the date bar) ─────────────────────────────────────── */
-.weather-strip-inline {
+/* ── Conditions bar (weather + pollen, collapsible) ─────────────────────────── */
+.conditions-bar {
+  background:    var(--clr-surface-2);
+  border-bottom: 1px solid var(--clr-border);
+  cursor:        pointer;
+  user-select:   none;
+  overflow:      hidden;
+}
+.conditions-bar[hidden] { display: none; }
+
+.conditions-summary {
   display:     flex;
   align-items: center;
-  gap:         3px;
-  flex-shrink: 0;
-  white-space: nowrap;
+  gap:         0.5rem;
+  padding:     0.35rem 1rem;
+  flex-wrap:   wrap;
 }
-.weather-strip-inline[hidden] { display: none; }
 
+.conditions-emoji {
+  font-size:   1.1rem;
+  line-height: 1;
+}
+
+.conditions-temp {
+  font-size:   0.8rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+
+.conditions-toggle {
+  margin-left: auto;
+  font-size:   0.75rem;
+  color:       var(--clr-text-2);
+  flex-shrink: 0;
+}
+
+/* ── Expanded detail panel ───────────────────────────────────────────────────── */
+.conditions-detail {
+  padding:    0.5rem 1rem 0.6rem;
+  border-top: 1px solid var(--clr-border);
+}
+.conditions-detail[hidden] { display: none; }
+
+.conditions-full-label {
+  font-size:     0.8rem;
+  font-weight:   600;
+  color:         var(--clr-text);
+  margin-bottom: 0.5rem;
+}
+
+.conditions-metrics {
+  display:        flex;
+  gap:            1.25rem;
+  flex-wrap:      wrap;
+  margin-bottom:  0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom:  1px solid var(--clr-border);
+}
+
+.conditions-metric {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.1rem;
+}
+
+.conditions-metric-val {
+  font-size:   0.8rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+
+.conditions-uv-label {
+  font-style:  normal;
+  font-weight: 500;
+  color:       var(--clr-text-2);
+}
+
+.conditions-metric-label {
+  font-size: 0.7rem;
+  color:     var(--clr-text-2);
+}
+
+.conditions-pollen {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.25rem;
+  margin-top:     0.25rem;
+}
+
+.pollen-row {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  flex-wrap:   wrap;
+  font-size:   0.78rem;
+}
+
+.pollen-row-icon {
+  font-size:   0.9rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pollen-species       { color: var(--clr-text-2); }
+.pollen-species strong { font-weight: 600; }
+
+.conditions-no-pollen {
+  font-size: 0.75rem;
+  color:     var(--clr-text-2);
+  margin:    0.25rem 0 0;
+}
+
+/* ── Pollen level color modifiers ────────────────────────────────────────────── */
+.pollen--low       { color: var(--clr-text-2); }
+.pollen--moderate  { color: #d4910b; }
+.pollen--high      { color: #e05c00; }
+.pollen--very-high { color: var(--clr-error); }
+
+/* ── Pollen chips (collapsed summary row) ────────────────────────────────────── */
+.pollen-chip {
+  font-size:     0.7rem;
+  font-weight:   600;
+  padding:       0.15rem 0.4rem;
+  border-radius: 3px;
+  line-height:   1.4;
+  white-space:   nowrap;
+}
+.pollen-chip.pollen--moderate  { background: #fef3cd; color: #d4910b; }
+.pollen-chip.pollen--high      { background: #ffe4cc; color: #e05c00; }
+.pollen-chip.pollen--very-high { background: #fde8e8; color: var(--clr-error); }
+
+@media (prefers-color-scheme: dark) {
+  .pollen-chip.pollen--moderate  { background: #3d2e08; color: #f0b429; }
+  .pollen-chip.pollen--high      { background: #3d1e08; color: #ff8c42; }
+  .pollen-chip.pollen--very-high { background: #3d0808; color: var(--clr-error); }
+}
+
+/* kept — reused for loading state */
 .weather-emoji {
   font-size:   1.1rem;
   line-height: 1;
