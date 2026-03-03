@@ -204,6 +204,24 @@ const Data = (() => {
     return d;
   }
 
+  function migrateWeather(d) {
+    // Convert old { temp_c, temp_f, code } records to new expanded schema.
+    // Idempotent — skips days that already have temp_max_c or no weather at all.
+    Object.values(d.days ?? {}).forEach(day => {
+      const w = day.weather;
+      if (!w || w.temp_max_c != null) return;   // already migrated or missing
+      if (!('temp_c' in w)) return;             // unexpected shape — leave alone
+      day.weather = {
+        temp_max_c: w.temp_c,
+        temp_max_f: w.temp_f,
+        temp_min_c: null,
+        temp_min_f: null,
+        code:       w.code,
+      };
+    });
+    return d;
+  }
+
   function migrateData(d) {
     const habits = d.settings?.habits ?? [];
 
@@ -227,6 +245,7 @@ const Data = (() => {
     }
 
     migrateModeration(d);
+    migrateWeather(d);
     return d;
   }
 
