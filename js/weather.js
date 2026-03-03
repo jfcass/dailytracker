@@ -2,16 +2,19 @@
  * weather.js — Conditions bar (weather + pollen)
  *
  * A collapsible strip below the date nav. Renders into #conditions-bar.
- * Fetches via browser Geolocation + Open-Meteo (free, no key needed):
- *   • Forecast API   → temp max/min, weather code, UV, hourly pressure & humidity
- *   • Air Quality API → hourly pollen for 5 species (daily max taken)
+ * Fetches via browser Geolocation + two APIs:
+ *   • Open-Meteo Forecast API  → temp max/min, weather code, UV, hourly pressure & humidity
+ *   • Google Pollen API (v1)   → species-level UPI (0–5) for US pollen species
  *
  * Saves to Data.getDay(date).weather so past dates show saved conditions.
  *
  * Schema: days[date].weather = {
  *   temp_max_c, temp_max_f, temp_min_c, temp_min_f,
  *   code, pressure_hpa, pressure_trend, uv_index, humidity_pct,
- *   alder_pollen, birch_pollen, grass_pollen, mugwort_pollen, ragweed_pollen
+ *   pollen_tree, pollen_grass, pollen_weed,          ← type-level UPI
+ *   pollen_alder, pollen_birch, pollen_oak, pollen_maple,
+ *   pollen_elm, pollen_cottonwood, pollen_ash, pollen_pine,
+ *   pollen_juniper, pollen_ragweed                   ← species-level UPI
  * }
  */
 const Weather = (() => {
@@ -76,22 +79,17 @@ const Weather = (() => {
 
   // ── Pollen levels ─────────────────────────────────────────────────────────
 
-  // Short label for collapsed chip
-  function pollenLevel(v) {
-    if (v == null) return null;
-    if (v < 10)  return { label: 'Low',       cls: 'pollen--low' };
-    if (v < 30)  return { label: 'Mod',        cls: 'pollen--moderate' };
-    if (v < 100) return { label: 'High',       cls: 'pollen--high' };
-    return              { label: 'Very High',  cls: 'pollen--very-high' };
-  }
-
-  // Full label for expanded detail
-  function pollenLevelFull(v) {
-    if (v == null) return null;
-    if (v < 10)  return { label: 'Low',       cls: 'pollen--low' };
-    if (v < 30)  return { label: 'Moderate',  cls: 'pollen--moderate' };
-    if (v < 100) return { label: 'High',      cls: 'pollen--high' };
-    return              { label: 'Very High', cls: 'pollen--very-high' };
+  /**
+   * Maps UPI value (0–5) to display label + CSS class.
+   * Returns null if upi is null/undefined.
+   */
+  function pollenLevel(upi) {
+    if (upi == null) return null;
+    if (upi <= 1) return { label: 'Very Low', cls: 'pollen--low' };
+    if (upi === 2) return { label: 'Low',      cls: 'pollen--low' };
+    if (upi === 3) return { label: 'Medium',   cls: 'pollen--moderate' };
+    if (upi === 4) return { label: 'High',     cls: 'pollen--high' };
+    return               { label: 'Very High', cls: 'pollen--very-high' };
   }
 
   // ── UV level label ────────────────────────────────────────────────────────
@@ -135,24 +133,17 @@ const Weather = (() => {
     const tempStr    = fmtTemp(state);
     const isExpanded = el.classList.contains('conditions-bar--expanded');
 
-    // ── Collapsed pollen chips (Moderate+) ──
-    const treeVal  = Math.max(state.alder_pollen  ?? 0, state.birch_pollen   ?? 0);
-    const grassVal = state.grass_pollen ?? 0;
-    const weedVal  = Math.max(state.mugwort_pollen ?? 0, state.ragweed_pollen ?? 0);
-
-    const treeLevel  = pollenLevel(treeVal  > 0 ? treeVal  : null);
-    const grassLevel = pollenLevel(grassVal > 0 ? grassVal : null);
-    const weedLevel  = pollenLevel(weedVal  > 0 ? weedVal  : null);
-
-    function chipHtml(emoji, label, level) {
-      if (!level || level.cls === 'pollen--low') return '';
+    // Use Google type-level UPI for summary chips; show Medium+ only (upi >= 3)
+    function chipHtml(emoji, label, upi) {
+      if (upi == null || upi < 3) return '';
+      const level = pollenLevel(upi);
       return `<span class="pollen-chip ${level.cls}">${emoji} ${label}: ${level.label}</span>`;
     }
 
     const pollenChips = [
-      chipHtml('🌳', 'Tree',  treeLevel),
-      chipHtml('🌾', 'Grass', grassLevel),
-      chipHtml('🌿', 'Weed',  weedLevel),
+      chipHtml('🌳', 'Tree',  state.pollen_tree),
+      chipHtml('🌾', 'Grass', state.pollen_grass),
+      chipHtml('🌿', 'Weed',  state.pollen_weed),
     ].filter(Boolean).join('');
 
     el.innerHTML = `
@@ -193,43 +184,54 @@ const Weather = (() => {
         </span>`);
     }
 
-    // ── Pollen rows ──
+    // ── Pollen rows — grouped by category, user's allergens first ──
     const pollenRows = [];
 
-    const hasTree = state.alder_pollen != null || state.birch_pollen != null;
-    if (hasTree) {
-      const a = pollenLevelFull(state.alder_pollen);
-      const b = pollenLevelFull(state.birch_pollen);
+    // Trees: user's allergens (alder, birch, oak, maple) + other US species
+    const treeSpecies = [
+      { code: 'pollen_alder',      label: 'Alder',      mine: true  },
+      { code: 'pollen_birch',      label: 'Birch',      mine: true  },
+      { code: 'pollen_oak',        label: 'Oak',        mine: true  },
+      { code: 'pollen_maple',      label: 'Maple',      mine: true  },  // Box Elder = maple
+      { code: 'pollen_elm',        label: 'Elm',        mine: false },
+      { code: 'pollen_cottonwood', label: 'Cottonwood', mine: false },
+      { code: 'pollen_ash',        label: 'Ash',        mine: false },
+      { code: 'pollen_pine',       label: 'Pine',       mine: false },
+      { code: 'pollen_juniper',    label: 'Juniper',    mine: false },
+    ].filter(s => state[s.code] != null);
+
+    if (treeSpecies.length) {
+      const chips = treeSpecies.map(s => {
+        const lvl = pollenLevel(state[s.code]);
+        const bold = s.mine ? ' font-weight:600' : '';
+        return `<span class="pollen-species ${lvl?.cls ?? ''}" style="${bold}">${s.label}: <strong>${lvl?.label ?? '—'}</strong></span>`;
+      }).join('');
       pollenRows.push(`
         <div class="pollen-row">
           <span class="pollen-row-icon" aria-hidden="true">🌳</span>
-          <span class="pollen-species ${a?.cls ?? ''}">Alder: <strong>${a?.label ?? '—'}</strong></span>
-          <span class="pollen-species ${b?.cls ?? ''}">Birch: <strong>${b?.label ?? '—'}</strong></span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${chips}</div>
         </div>`);
     }
 
-    if (state.grass_pollen != null) {
-      const g = pollenLevelFull(state.grass_pollen);
+    if (state.pollen_grass != null) {
+      const lvl = pollenLevel(state.pollen_grass);
       pollenRows.push(`
         <div class="pollen-row">
           <span class="pollen-row-icon" aria-hidden="true">🌾</span>
-          <span class="pollen-species ${g?.cls ?? ''}">Grass: <strong>${g?.label ?? '—'}</strong></span>
+          <span class="pollen-species ${lvl?.cls ?? ''}" style="font-weight:600">Grass: <strong>${lvl?.label ?? '—'}</strong></span>
         </div>`);
     }
 
-    const hasWeed = state.mugwort_pollen != null || state.ragweed_pollen != null;
-    if (hasWeed) {
-      const m = pollenLevelFull(state.mugwort_pollen);
-      const r = pollenLevelFull(state.ragweed_pollen);
+    if (state.pollen_ragweed != null) {
+      const lvl = pollenLevel(state.pollen_ragweed);
       pollenRows.push(`
         <div class="pollen-row">
           <span class="pollen-row-icon" aria-hidden="true">🌿</span>
-          <span class="pollen-species ${m?.cls ?? ''}">Mugwort: <strong>${m?.label ?? '—'}</strong></span>
-          <span class="pollen-species ${r?.cls ?? ''}">Ragweed: <strong>${r?.label ?? '—'}</strong></span>
+          <span class="pollen-species ${lvl?.cls ?? ''}">Ragweed: <strong>${lvl?.label ?? '—'}</strong></span>
         </div>`);
     }
 
-    const noPollen = !hasTree && state.grass_pollen == null && !hasWeed;
+    const noPollenData = state.pollen_tree == null && state.pollen_grass == null && state.pollen_weed == null;
 
     return `
       <div class="conditions-full-label">${cond.emoji} ${cond.label}</div>
@@ -238,7 +240,7 @@ const Weather = (() => {
           : ''}
       ${pollenRows.length
           ? `<div class="conditions-pollen">${pollenRows.join('')}</div>`
-          : noPollen
+          : noPollenData
             ? '<p class="conditions-no-pollen">Pollen data unavailable</p>'
             : ''}
     `;
