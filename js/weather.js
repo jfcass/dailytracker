@@ -15,6 +15,7 @@
  *   pollen_alder, pollen_birch, pollen_oak, pollen_maple,
  *   pollen_elm, pollen_cottonwood, pollen_ash, pollen_pine,
  *   pollen_juniper, pollen_ragweed                   ← species-level UPI
+ *   aqi_us, aqi_category, pm25, o3_ppb               ← Google Air Quality API
  * }
  */
 const Weather = (() => {
@@ -321,15 +322,52 @@ const Weather = (() => {
     };
   }
 
+  async function fetchAirQuality(lat, lon) {
+    const key = CONFIG?.GOOGLE_POLLEN_KEY ?? '';
+    if (!key) throw new Error('no-pollen-key');
+    const url = `https://airquality.googleapis.com/v1/currentConditions:lookup`
+      + `?key=${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        location:          { latitude: lat, longitude: lon },
+        extraComputations: ['LOCAL_AQI', 'POLLUTANT_CONCENTRATION'],
+      }),
+    });
+    if (!res.ok) throw new Error(`google-air-quality ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Parses a Google Air Quality API response into flat fields.
+   * aqi_us       — US EPA AQI integer (0–500)
+   * aqi_category — "Good" | "Moderate" | "Unhealthy for Sensitive Groups" | etc.
+   * pm25         — PM2.5 concentration µg/m³
+   * o3_ppb       — Ozone concentration ppb
+   */
+  function parseAirQuality(data) {
+    const aqiUs = (data.indexes    ?? []).find(i => i.code === 'usa_epa');
+    const pm25  = (data.pollutants ?? []).find(p => p.code === 'pm25');
+    const o3    = (data.pollutants ?? []).find(p => p.code === 'o3');
+    return {
+      aqi_us:       aqiUs?.aqi                ?? null,
+      aqi_category: aqiUs?.category           ?? null,
+      pm25:         pm25?.concentration?.value ?? null,
+      o3_ppb:       o3?.concentration?.value   ?? null,
+    };
+  }
+
   async function fetchAndSave(dateStr) {
     render('loading');
     try {
       const pos = await geolocate();
       const { latitude: lat, longitude: lon } = pos.coords;
 
-      const [forecastResult, pollenResult] = await Promise.allSettled([
+      const [forecastResult, pollenResult, aqResult] = await Promise.allSettled([
         fetchForecast(lat, lon),
         fetchGooglePollen(lat, lon),
+        fetchAirQuality(lat, lon),
       ]);
 
       if (forecastResult.status === 'rejected') throw forecastResult.reason;
@@ -361,6 +399,14 @@ const Weather = (() => {
         console.warn('Pollen fetch failed:', pollenResult.reason);
       }
 
+      // ── Air quality — Google Air Quality API ──
+      let aqData = {};
+      if (aqResult.status === 'fulfilled') {
+        aqData = parseAirQuality(aqResult.value);
+      } else {
+        console.warn('Air quality fetch failed:', aqResult.reason);
+      }
+
       const w = {
         temp_max_c:     Math.round(tempMaxC * 10) / 10,
         temp_max_f:     Math.round((tempMaxC * 9 / 5 + 32) * 10) / 10,
@@ -372,6 +418,7 @@ const Weather = (() => {
         uv_index:       uvIndex  != null ? Math.round(uvIndex)  : null,
         humidity_pct:   humidityNoon != null ? Math.round(humidityNoon) : null,
         ...pollenData,
+        ...aqData,
       };
 
       // Persist to today's day record (best-effort — don't block UI)
