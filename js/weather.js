@@ -269,21 +269,54 @@ const Weather = (() => {
     return res.json();
   }
 
-  async function fetchAirQuality(lat, lon) {
-    const url = `https://air-quality-api.open-meteo.com/v1/air-quality`
-      + `?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}`
-      + `&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen`
-      + `&timezone=auto&forecast_days=1`;
+  async function fetchGooglePollen(lat, lon) {
+    const key = CONFIG?.GOOGLE_POLLEN_KEY ?? '';
+    if (!key) throw new Error('no-pollen-key');
+    const url = `https://pollen.googleapis.com/v1/forecast:lookup`
+      + `?key=${encodeURIComponent(key)}`
+      + `&location.latitude=${lat.toFixed(4)}`
+      + `&location.longitude=${lon.toFixed(4)}`
+      + `&days=1`;
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`open-meteo air-quality ${res.status}`);
+    if (!res.ok) throw new Error(`google-pollen ${res.status}`);
     return res.json();
   }
 
-  /** Return max value in array, ignoring nulls. Returns null if array is empty/all-null. */
-  function dailyMax(arr) {
-    if (!arr || !arr.length) return null;
-    const nums = arr.filter(v => v != null);
-    return nums.length ? Math.max(...nums) : null;
+  /**
+   * Parses a Google Pollen API response into flat UPI fields.
+   * Type-level (TREE/GRASS/WEED) → pollen_tree / pollen_grass / pollen_weed
+   * Species-level                 → pollen_alder, pollen_birch, etc.
+   * Returns {} if the response has no dailyInfo.
+   */
+  function parseGooglePollen(data) {
+    const day = data.dailyInfo?.[0];
+    if (!day) return {};
+
+    const typeMap = {};
+    (day.pollenTypeInfo ?? []).forEach(t => {
+      typeMap[t.code] = t.indexInfo?.value ?? null;
+    });
+
+    const speciesMap = {};
+    (day.plantInfo ?? []).forEach(p => {
+      speciesMap[p.code] = p.indexInfo?.value ?? null;
+    });
+
+    return {
+      pollen_tree:       typeMap.TREE        ?? null,
+      pollen_grass:      typeMap.GRASS       ?? null,
+      pollen_weed:       typeMap.WEED        ?? null,
+      pollen_alder:      speciesMap.ALDER      ?? null,
+      pollen_birch:      speciesMap.BIRCH      ?? null,
+      pollen_oak:        speciesMap.OAK        ?? null,
+      pollen_maple:      speciesMap.MAPLE      ?? null,
+      pollen_elm:        speciesMap.ELM        ?? null,
+      pollen_cottonwood: speciesMap.COTTONWOOD ?? null,
+      pollen_pine:       speciesMap.PINE       ?? null,
+      pollen_ash:        speciesMap.ASH        ?? null,
+      pollen_juniper:    speciesMap.JUNIPER    ?? null,
+      pollen_ragweed:    speciesMap.RAGWEED    ?? null,
+    };
   }
 
   async function fetchAndSave(dateStr) {
@@ -292,9 +325,9 @@ const Weather = (() => {
       const pos = await geolocate();
       const { latitude: lat, longitude: lon } = pos.coords;
 
-      const [forecastResult, aqResult] = await Promise.allSettled([
+      const [forecastResult, pollenResult] = await Promise.allSettled([
         fetchForecast(lat, lon),
-        fetchAirQuality(lat, lon),
+        fetchGooglePollen(lat, lon),
       ]);
 
       if (forecastResult.status === 'rejected') throw forecastResult.reason;
@@ -318,19 +351,12 @@ const Weather = (() => {
         else if (delta < -1) pressureTrend = 'falling';
       }
 
-      // ── Pollen — daily max across all hourly values ──
+      // ── Pollen — Google Pollen API (UPI 0–5 per species) ──
       let pollenData = {};
-      if (aqResult.status === 'fulfilled') {
-        const h = aqResult.value.hourly;
-        pollenData = {
-          alder_pollen:   dailyMax(h.alder_pollen),
-          birch_pollen:   dailyMax(h.birch_pollen),
-          grass_pollen:   dailyMax(h.grass_pollen),
-          mugwort_pollen: dailyMax(h.mugwort_pollen),
-          ragweed_pollen: dailyMax(h.ragweed_pollen),
-        };
+      if (pollenResult.status === 'fulfilled') {
+        pollenData = parseGooglePollen(pollenResult.value);
       } else {
-        console.warn('Pollen fetch failed:', aqResult.reason);
+        console.warn('Pollen fetch failed:', pollenResult.reason);
       }
 
       const w = {
