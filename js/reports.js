@@ -682,47 +682,6 @@ const Reports = (() => {
     });
   }
 
-  // ── Medications section ───────────────────────────────────────────────────────
-
-  function buildMedicationsSection(dates) {
-    const meds     = Data.getData().medications ?? {};
-    const daysData = Data.getData().days ?? {};
-    const active   = Object.values(meds).filter(m => m.active && !m.as_needed);
-
-    if (!active.length) {
-      return rptSection('Medications', medIcon(), `<p class="rpt-empty">No scheduled medications.</p>`);
-    }
-
-    const rows = active.map(med => {
-      let taken = 0, expected = 0;
-      dates.forEach(date => {
-        if (med.start_date && date < med.start_date) return;
-        if (med.end_date   && date > med.end_date)   return;
-        expected++;
-        const record = (daysData[date]?.medications_taken ?? []).find(r => r.medication_id === med.id);
-        if (record?.taken) taken++;
-      });
-      const pct = expected > 0 ? Math.round((taken / expected) * 100) : 0;
-      let barColor = 'var(--clr-error)';
-      if (pct >= 90)      barColor = 'var(--clr-accent)';
-      else if (pct >= 70) barColor = '#8bc34a';
-      else if (pct >= 50) barColor = '#ffc107';
-
-      return `<div class="rpt-med-row">
-        <div class="rpt-med-name">${escHtml(med.name)}${med.dose ? ` <span class="rpt-med-dose">${escHtml(med.dose)}</span>` : ''}</div>
-        <div class="rpt-med-adherence">
-          <div class="rpt-bar-wrap">
-            <div class="rpt-bar-fill" style="width:${pct}%;background:${barColor}"></div>
-          </div>
-          <span class="rpt-adhere-pct">${pct}%</span>
-          <span class="rpt-adhere-detail">${taken}/${expected}d</span>
-        </div>
-      </div>`;
-    }).join('');
-
-    return rptSection('Medications', medIcon(), rows);
-  }
-
   // ── Streak helpers ───────────────────────────────────────────────────────────
 
   // Returns the longest unbroken run of days (within `dates`) where hasEntry()
@@ -950,9 +909,6 @@ const Reports = (() => {
   }
   function modIcon() {
     return svgIcon('<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>');
-  }
-  function medIcon() {
-    return svgIcon('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>');
   }
   function bookIcon() {
     return svgIcon('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>');
@@ -1318,7 +1274,6 @@ const Reports = (() => {
       + buildReadingSection(dates)
       + buildMoodSection(dates)
       + buildHealthGroup(dates)
-      + buildMedicationsSection(dates)
       + buildModerationSection(dates)
       + buildGratitudesSection(dates)
       + buildDailyNotesSection(dates);
