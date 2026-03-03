@@ -143,11 +143,19 @@ All data lives in `health-tracker-data.json` in Google Drive.
         "pressure_trend": "rising",
         "uv_index":       6,
         "humidity_pct":   55,
-        "alder_pollen":   12.5,
-        "birch_pollen":   45.0,
-        "grass_pollen":   8.0,
-        "mugwort_pollen": 0.0,
-        "ragweed_pollen": 0.1
+        "pollen_tree":    3,
+        "pollen_grass":   1,
+        "pollen_weed":    0,
+        "pollen_alder":   4,
+        "pollen_birch":   2,
+        "pollen_oak":     3,
+        "pollen_maple":   2,
+        "pollen_elm":     1,
+        "pollen_cottonwood": 0,
+        "pollen_ash":     1,
+        "pollen_pine":    0,
+        "pollen_juniper": 0,
+        "pollen_ragweed": 0
       }
 
     }
@@ -217,12 +225,15 @@ Persistent/recurring issues. Daily symptom entries reference these via `issue_id
 Duration = `start_date` → `end_date` (or today if `end_date` is null and not resolved).
 
 ### `days[date].weather`
-Fetched automatically for today via Open-Meteo (no API key). Saved on fetch so past dates display
-historical conditions. `null` if never fetched for that date.
+Fetched automatically for today via Open-Meteo (forecast/UV/pressure/humidity) and Google Pollen API
+(species-level pollen). Saved on fetch so past dates display historical conditions. `null` if never fetched.
 - `code`: WMO weather code (mapped to emoji + label in weather.js).
-- `pressure_trend`: `"rising"` | `"steady"` | `"falling"` (noon vs 6am intra-day delta, > 1 hPa threshold).
-- Pollen values in grains/m³ (daily max). Thresholds: Low < 10, Moderate 10–30, High 30–100, Very High > 100.
-- `alder_pollen` / `birch_pollen` → "Tree" category; `mugwort_pollen` / `ragweed_pollen` → "Weed" proxy.
+- `pressure_trend`: `"rising"` | `"steady"` | `"falling"` (noon vs 6am delta, >1 hPa threshold).
+- `pollen_tree` / `pollen_grass` / `pollen_weed`: Google type-level UPI (0–5). Used for collapsed chips.
+- `pollen_alder`, `pollen_birch`, `pollen_oak`, `pollen_maple`, `pollen_elm`, `pollen_cottonwood`,
+  `pollen_ash`, `pollen_pine`, `pollen_juniper`, `pollen_ragweed`: species-level UPI (0–5).
+  UPI scale: 0=None · 1=Very Low · 2=Low · 3=Medium · 4=High · 5=Very High.
+  Source: Google Pollen API (`GOOGLE_POLLEN_KEY` in config.js). US coverage only for these species.
 
 ### `medications`
 Master medication list. Daily `medications_taken` entries reference these via `medication_id`.
