@@ -131,7 +131,24 @@ All data lives in `health-tracker-data.json` in Google Drive.
           "dose_override": null,
           "notes":         ""
         }
-      ]
+      ],
+
+      "weather": {
+        "temp_max_c":     23.5,
+        "temp_max_f":     74.3,
+        "temp_min_c":     14.2,
+        "temp_min_f":     57.6,
+        "code":           2,
+        "pressure_hpa":   1013.2,
+        "pressure_trend": "rising",
+        "uv_index":       6,
+        "humidity_pct":   55,
+        "alder_pollen":   12.5,
+        "birch_pollen":   45.0,
+        "grass_pollen":   8.0,
+        "mugwort_pollen": 0.0,
+        "ragweed_pollen": 0.1
+      }
 
     }
   },
@@ -198,6 +215,14 @@ Existing entries are migrated to single-element arrays on load (lossless, `time:
 ### `ongoing_issues`
 Persistent/recurring issues. Daily symptom entries reference these via `issue_id`.
 Duration = `start_date` → `end_date` (or today if `end_date` is null and not resolved).
+
+### `days[date].weather`
+Fetched automatically for today via Open-Meteo (no API key). Saved on fetch so past dates display
+historical conditions. `null` if never fetched for that date.
+- `code`: WMO weather code (mapped to emoji + label in weather.js).
+- `pressure_trend`: `"rising"` | `"steady"` | `"falling"` (noon vs 6am intra-day delta, > 1 hPa threshold).
+- Pollen values in grains/m³ (daily max). Thresholds: Low < 10, Moderate 10–30, High 30–100, Very High > 100.
+- `alder_pollen` / `birch_pollen` → "Tree" category; `mugwort_pollen` / `ragweed_pollen` → "Weed" proxy.
 
 ### `medications`
 Master medication list. Daily `medications_taken` entries reference these via `medication_id`.
