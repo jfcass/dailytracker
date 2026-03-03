@@ -16,5 +16,5 @@ const CONFIG = Object.freeze({
   FITBIT_API:       'https://fitbit-proxy.jfcass.workers.dev/1/user/-',
   FITBIT_TOKEN_URL: 'https://api.fitbit.com/oauth2/token',
   FITBIT_AUTH_URL:  'https://www.fitbit.com/oauth2/authorize',
-  GOOGLE_POLLEN_KEY: '',   // Google Pollen API key — get one at console.cloud.google.com
+  GOOGLE_POLLEN_KEY: 'AIzaSyD6YmmqvpXkWDMH6Es1biooiHTN2iBKN9s',   // Google Pollen API key — get one at console.cloud.google.com
 });
