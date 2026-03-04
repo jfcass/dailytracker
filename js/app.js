@@ -219,6 +219,10 @@ const App = (() => {
   // ── Boot ─────────────────────────────────────────────────────────────────────
 
   async function init() {
+    // Remove stale keys from the old GIS-based auth (no longer used)
+    localStorage.removeItem('ht_authed');
+    localStorage.removeItem('ht_email');
+
     // Detect Fitbit OAuth callback (?code=... in URL after Fitbit redirect)
     const _fitbitParams = new URLSearchParams(window.location.search);
     const _fitbitCode   = _fitbitParams.get('code');
@@ -229,52 +233,46 @@ const App = (() => {
       history.replaceState({}, '', window.location.pathname);
     }
 
-    // Wire up sign-in button
-    document.getElementById('btn-signin').addEventListener('click', handleSignIn);
-
-    // Wire up sign-out link (on PIN screen)
-    document.getElementById('btn-pin-signout')?.addEventListener('click', handleSignOut);
-
-    // Returning users: show loading screen while we attempt silent re-auth
-    // (avoids the sign-in screen flash on every visit)
-    const wasAuthed = localStorage.getItem('ht_authed') === 'true';
-    if (wasAuthed) {
-      showScreen('screen-loading');
-      setLoadingMsg('Signing in…');
-    } else {
-      showScreen('screen-auth');
+    // Check for auth_error query param returned from Worker after failed OAuth
+    const _authError = _fitbitParams.get('auth_error');
+    if (_authError) {
+      history.replaceState({}, '', window.location.pathname);
     }
 
-    // Initialise GIS (waits for the external script to load)
+    // Wire up buttons
+    document.getElementById('btn-signin').addEventListener('click', handleSignIn);
+    document.getElementById('btn-pin-signout')?.addEventListener('click', handleSignOut);
+    document.getElementById('btn-reconnect')?.addEventListener('click', handleReconnect);
+
+    // Listen for mid-session auth expiry (dispatched by auth.js)
+    document.addEventListener('ht-auth-expired', () => showReconnectBanner());
+
+    // Always show loading screen while we check for an existing session
+    showScreen('screen-loading');
+    setLoadingMsg('Signing in…');
+
     await Auth.init();
 
-    // Try silent auth — skips any Google UI if the browser session is still live
     const silentOk = await Auth.tryAutoAuth();
     if (silentOk) {
       await loadData();
     } else {
-      // Silent auth failed (session expired, cookie blocked, etc.) — show sign-in
+      if (_authError) setAuthError(authErrorMessage(_authError));
       showScreen('screen-auth');
     }
   }
 
-  async function handleSignIn() {
+  function handleSignIn() {
     const btn = document.getElementById('btn-signin');
     btn.disabled = true;
     setAuthError('');
+    Auth.startSignIn();   // full-page redirect to Worker /auth → Google → back to app
+    // Page will navigate away; no need to re-enable the button
+  }
 
-    try {
-      showScreen('screen-loading');
-      setLoadingMsg('Connecting to Google…');
-      await Auth.requestToken(false);
-      await loadData();
-    } catch (err) {
-      console.error('Sign-in error:', err);
-      setAuthError('Sign-in failed. Please try again.');
-      showScreen('screen-auth');
-    } finally {
-      btn.disabled = false;
-    }
+  async function handleSignOut() {
+    await Auth.signOut();
+    showScreen('screen-auth');
   }
 
   async function loadData() {
@@ -310,9 +308,29 @@ const App = (() => {
     }
   }
 
-  function handleSignOut() {
-    Auth.signOut();
-    showScreen('screen-auth');
+  function showReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.hidden = false;
+  }
+
+  function hideReconnectBanner() {
+    const banner = document.getElementById('reconnect-banner');
+    if (banner) banner.hidden = true;
+  }
+
+  function handleReconnect() {
+    hideReconnectBanner();
+    Auth.startSignIn();
+  }
+
+  function authErrorMessage(code) {
+    const messages = {
+      no_refresh_token:      'Sign-in failed: please revoke app access in your Google Account settings and try again.',
+      token_exchange_failed: 'Sign-in failed: could not connect to Google. Please try again.',
+      invalid_state:         'Sign-in failed: security check failed. Please try again.',
+      missing_params:        'Sign-in failed. Please try again.',
+    };
+    return messages[code] ?? 'Sign-in failed. Please try again.';
   }
 
   function setAuthError(msg) {
@@ -324,7 +342,7 @@ const App = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, showScreen, showMain, switchTab, toggleSection, applyVisibility };
+  return { init, showScreen, showMain, switchTab, toggleSection, applyVisibility, showReconnectBanner };
 })();
 
 // Kick off on DOM ready
