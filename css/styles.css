@@ -7159,6 +7159,7 @@ button {
 }
 
 /* ── Reconnect banner ────────────────────────────────────────────────────── */
+.reconnect-banner[hidden] { display: none; }
 .reconnect-banner {
   position: fixed;
   bottom: calc(env(safe-area-inset-bottom) + 4rem);
