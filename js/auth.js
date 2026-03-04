@@ -92,6 +92,8 @@ const Auth = (() => {
       const data = await res.json();
       accessToken = data.access_token;
       tokenExpiry = Date.now() + data.expires_in * 1000 - 60_000;
+      // Hide the reconnect banner whenever we successfully get a token
+      document.getElementById('reconnect-banner')?.setAttribute('hidden', '');
       scheduleRefresh();
       return accessToken;
 
