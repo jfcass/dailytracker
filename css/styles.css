@@ -7157,3 +7157,34 @@ button {
   letter-spacing: 0.03em;
   white-space:    nowrap;
 }
+
+/* ── Reconnect banner ────────────────────────────────────────────────────── */
+.reconnect-banner {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom) + 4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-error);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 9999;
+  font-size: 0.9rem;
+  color: var(--clr-text);
+  white-space: nowrap;
+}
+
+.reconnect-banner__btn {
+  background: var(--clr-error);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}

@@ -579,9 +579,6 @@
 
   </div>
 
-  <!-- Google Identity Services — loaded async; auth.js polls for readiness -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/data.js"></script>
@@ -604,6 +601,12 @@
   <script src="js/fitbit-auth.js"></script>
   <script src="js/fitbit.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- Session expired banner (shown when 30-day session expires mid-use) -->
+  <div id="reconnect-banner" class="reconnect-banner" hidden>
+    <span>Session expired.</span>
+    <button id="btn-reconnect" class="reconnect-banner__btn">Sign in again</button>
+  </div>
 
 </body>
 </html>
