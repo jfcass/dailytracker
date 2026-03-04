@@ -1,37 +1,42 @@
 /**
- * auth.js — Google Identity Services (GIS) OAuth token management
+ * auth.js — Google Auth via ht-auth Cloudflare Worker
  *
- * Uses the token model (implicit-style) via GIS.
- * Scope: drive.file — only accesses files this app created.
+ * Replaces the GIS token model. OAuth handled server-side by the Worker.
+ * The browser holds only an HttpOnly session cookie (set by Worker) and
+ * a short-lived access_token in memory.
+ *
+ * Public API (unchanged from previous version):
+ *   init()          — set up visibilitychange listener
+ *   requestToken()  — get a valid access_token (calls Worker)
+ *   tryAutoAuth()   — silent check for existing session (used on app load)
+ *   getToken()      — return cached token or null (synchronous)
+ *   isTokenValid()  — true if token is cached and not expired
+ *   signOut()       — clear session (calls Worker /logout)
+ *   startSignIn()   — redirect to Worker /auth to begin OAuth flow
  */
 const Auth = (() => {
-  let tokenClient  = null;
   let accessToken  = null;
   let tokenExpiry  = 0;
   let refreshTimer = null;
 
+  const WORKER = CONFIG.AUTH_WORKER;
+
   // ── Initialization ──────────────────────────────────────────────────────────
 
-  /** Wait for the GIS script to finish loading, then create the token client. */
   function init() {
-    return new Promise(resolve => {
-      const tryInit = () => {
-        if (window.google?.accounts?.oauth2) {
-          tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: CONFIG.CLIENT_ID,
-            scope:     CONFIG.SCOPES,
-            callback:  '',            // set per-request below
-          });
-          resolve();
-        } else {
-          setTimeout(tryInit, 50);
-        }
-      };
-      tryInit();
+    // On mobile, the OS suspends background tabs and kills setTimeout timers.
+    // When the user returns to the tab, re-check the token immediately.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !isTokenValid()) {
+        requestToken(true).catch(() => {
+          // Silent failure: next Drive operation will surface the error
+        });
+      }
     });
+    return Promise.resolve();
   }
 
-  // ── Token management ────────────────────────────────────────────────────────
+  // ── Token state ──────────────────────────────────────────────────────────────
 
   function isTokenValid() {
     return !!accessToken && Date.now() < tokenExpiry;
@@ -41,91 +46,90 @@ const Auth = (() => {
     return isTokenValid() ? accessToken : null;
   }
 
+  // ── Token acquisition ────────────────────────────────────────────────────────
+
   /**
-   * Request an access token.
-   * @param {boolean} silent  true → suppress account chooser UI if possible
-   * @returns {Promise<string>} resolves with the access token
+   * Get a valid access_token from the Worker.
+   * The Worker reads the session cookie, refreshes via stored refresh_token if needed,
+   * and returns a fresh access_token — no user interaction required.
+   *
+   * @param {boolean} silent  true = return null on failure instead of redirecting
+   * @returns {Promise<string|null>}
    */
-  function requestToken(silent = false) {
-    return new Promise((resolve, reject) => {
-      if (isTokenValid()) {
-        resolve(accessToken);
-        return;
+  async function requestToken(silent = false) {
+    if (isTokenValid()) return accessToken;
+
+    try {
+      const res = await fetch(`${WORKER}/token`, { credentials: 'include' });
+
+      if (!res.ok) {
+        // 401 = no session or session expired
+        if (!silent) startSignIn();
+        else document.dispatchEvent(new CustomEvent('ht-auth-expired'));
+        return null;
       }
 
-      tokenClient.callback = response => {
-        if (response.error) {
-          reject(new Error(response.error));
-          return;
-        }
-        accessToken  = response.access_token;
-        // Subtract 60 s as a buffer before real expiry
-        tokenExpiry  = Date.now() + response.expires_in * 1000 - 60_000;
-        localStorage.setItem('ht_authed', 'true');
-        fetchAndStoreEmail(accessToken);   // fire-and-forget; skip account picker next time
-        scheduleRefresh();                 // proactively renew 5 min before expiry
-        resolve(accessToken);
-      };
+      const data = await res.json();
+      accessToken = data.access_token;
+      tokenExpiry = Date.now() + data.expires_in * 1000 - 60_000;
+      scheduleRefresh();
+      return accessToken;
 
-      // hint → pre-selects stored account so user never sees the account-list picker
-      const hint   = localStorage.getItem('ht_email') || '';
-      // prompt:'none' → fully silent if Google browser session is active (no UI at all)
-      // omitting prompt → shows account chooser (used for explicit sign-in)
-      const config = silent ? { prompt: 'none' } : {};
-      if (hint) config.hint = hint;
-      tokenClient.requestAccessToken(config);
-    });
-  }
-
-  /**
-   * Try to get a token without showing any UI (best-effort).
-   * Returns false if the user hasn't signed in before, or if the silent
-   * attempt fails.
-   */
-  async function tryAutoAuth() {
-    if (localStorage.getItem('ht_authed') !== 'true') return false;
-    try {
-      await requestToken(true);
-      return true;
     } catch {
-      return false;
+      // Network error — don't redirect, surface through Drive call failures
+      return null;
     }
   }
 
-  /** Fetch account email from tokeninfo and store for future hint use. */
-  function fetchAndStoreEmail(token) {
-    fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`)
-      .then(r => r.json())
-      .then(info => { if (info.email) localStorage.setItem('ht_email', info.email); })
-      .catch(() => {});
+  /**
+   * Called on app load to check for an existing session without any UI.
+   * Returns true if a valid session exists (session cookie → KV → refresh_token).
+   */
+  async function tryAutoAuth() {
+    const token = await requestToken(true);
+    return !!token;
   }
 
   /**
+   * Redirect the browser to the Worker's /auth endpoint to start the OAuth flow.
+   * The Worker handles Google consent, token exchange, and redirects back to the app.
+   */
+  function startSignIn() {
+    window.location.href = `${WORKER}/auth`;
+  }
+
+  // ── Token refresh ─────────────────────────────────────────────────────────────
+
+  /**
    * Schedule a silent token refresh 5 minutes before the current token expires.
-   * Keeps the session alive indefinitely while the app is open.
+   * If the timer is killed by the OS (mobile), the visibilitychange listener
+   * will catch it when the user returns to the tab.
    */
   function scheduleRefresh() {
     clearTimeout(refreshTimer);
     const delay = tokenExpiry - Date.now() - 5 * 60_000;
     if (delay > 0) {
       refreshTimer = setTimeout(() => {
-        requestToken(true).catch(() => {}); // best-effort; failure is non-fatal
+        requestToken(true).catch(() => {});
       }, delay);
     }
   }
 
-  function signOut() {
+  // ── Sign out ──────────────────────────────────────────────────────────────────
+
+  async function signOut() {
     clearTimeout(refreshTimer);
-    if (accessToken) {
-      google.accounts.oauth2.revoke(accessToken, () => {});
-    }
     accessToken = null;
     tokenExpiry = 0;
-    localStorage.removeItem('ht_authed');
-    localStorage.removeItem('ht_email');
+    try {
+      await fetch(`${WORKER}/logout`, {
+        method:      'POST',
+        credentials: 'include',
+      });
+    } catch { /* best effort */ }
   }
 
-  // ── Public API ───────────────────────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, requestToken, tryAutoAuth, getToken, isTokenValid, signOut };
+  return { init, requestToken, tryAutoAuth, getToken, isTokenValid, signOut, startSignIn };
 })();
