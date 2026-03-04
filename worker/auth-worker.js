@@ -129,16 +129,22 @@ async function handleCallback(request, env) {
     'Path=/',
   ].join('; ');
 
+  // Pass session ID in the URL hash fragment so the app can store it in
+  // localStorage and send it as a Bearer token — avoids cross-site cookie
+  // restrictions (Chrome Privacy Sandbox / third-party cookie blocking).
+  const redirectUrl = new URL(appUrl);
+  redirectUrl.hash = `ht_session=${sessionId}`;
+
   return new Response(null, {
     status: 302,
-    headers: { Location: appUrl, 'Set-Cookie': cookie },
+    headers: { Location: redirectUrl.toString(), 'Set-Cookie': cookie },
   });
 }
 
 // ── /token ───────────────────────────────────────────────────────────────────
 
 async function handleToken(request, env, origin) {
-  const sessionId = getSessionCookie(request);
+  const sessionId = getSessionCookie(request) || getBearerToken(request);
   if (!sessionId) {
     return corsHeaders(jsonResponse({ error: 'no_session' }, 401), origin);
   }
@@ -193,7 +199,7 @@ async function handleToken(request, env, origin) {
 // ── /logout ──────────────────────────────────────────────────────────────────
 
 async function handleLogout(request, env, origin) {
-  const sessionId = getSessionCookie(request);
+  const sessionId = getSessionCookie(request) || getBearerToken(request);
   if (sessionId) {
     const raw = await env.SESSIONS.get(`session:${sessionId}`);
     if (raw) {
@@ -222,6 +228,11 @@ function getSessionCookie(request) {
   return match ? match[1] : null;
 }
 
+function getBearerToken(request) {
+  const auth = request.headers.get('Authorization') || '';
+  return auth.startsWith('Bearer ') ? auth.slice(7).trim() : null;
+}
+
 function jsonResponse(body, status) {
   return new Response(JSON.stringify(body), {
     status,
@@ -233,7 +244,7 @@ function corsHeaders(response, origin) {
   response.headers.set('Access-Control-Allow-Origin', origin);
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   return response;
 }
 

@@ -245,7 +245,12 @@ const App = (() => {
     document.getElementById('btn-reconnect')?.addEventListener('click', handleReconnect);
 
     // Listen for mid-session auth expiry (dispatched by auth.js)
-    document.addEventListener('ht-auth-expired', () => showReconnectBanner());
+    // Only show the banner when the user is already in the main app — not during boot
+    document.addEventListener('ht-auth-expired', () => {
+      if (document.getElementById('screen-app')?.classList.contains('screen--active')) {
+        showReconnectBanner();
+      }
+    });
 
     // Always show loading screen while we check for an existing session
     showScreen('screen-loading');

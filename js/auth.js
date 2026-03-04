@@ -2,11 +2,14 @@
  * auth.js — Google Auth via ht-auth Cloudflare Worker
  *
  * Replaces the GIS token model. OAuth handled server-side by the Worker.
- * The browser holds only an HttpOnly session cookie (set by Worker) and
- * a short-lived access_token in memory.
+ * The browser holds a session ID in localStorage (set from the redirect hash
+ * after OAuth) and a short-lived access_token in memory.
+ *
+ * Session ID is sent as `Authorization: Bearer <id>` to avoid relying on
+ * cross-site cookies, which Chrome blocks in Privacy Sandbox mode.
  *
  * Public API (unchanged from previous version):
- *   init()          — set up visibilitychange listener
+ *   init()          — set up visibilitychange listener, extract session from hash
  *   requestToken()  — get a valid access_token (calls Worker)
  *   tryAutoAuth()   — silent check for existing session (used on app load)
  *   getToken()      — return cached token or null (synchronous)
@@ -18,12 +21,22 @@ const Auth = (() => {
   let accessToken  = null;
   let tokenExpiry  = 0;
   let refreshTimer = null;
+  let sessionId    = localStorage.getItem('ht_session_id');
 
   const WORKER = CONFIG.AUTH_WORKER;
 
   // ── Initialization ──────────────────────────────────────────────────────────
 
   function init() {
+    // After OAuth, the Worker redirects back with #ht_session=<id> in the hash.
+    // Read it once, persist in localStorage, then strip it from the URL.
+    const hashMatch = window.location.hash.match(/^#ht_session=([^&]+)/);
+    if (hashMatch) {
+      sessionId = hashMatch[1];
+      localStorage.setItem('ht_session_id', sessionId);
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+
     // On mobile, the OS suspends background tabs and kills setTimeout timers.
     // When the user returns to the tab, re-check the token immediately.
     document.addEventListener('visibilitychange', () => {
@@ -50,8 +63,7 @@ const Auth = (() => {
 
   /**
    * Get a valid access_token from the Worker.
-   * The Worker reads the session cookie, refreshes via stored refresh_token if needed,
-   * and returns a fresh access_token — no user interaction required.
+   * Sends the session ID as a Bearer token (avoids cross-site cookie issues).
    *
    * @param {boolean} silent  true = return null on failure instead of redirecting
    * @returns {Promise<string|null>}
@@ -60,10 +72,18 @@ const Auth = (() => {
     if (isTokenValid()) return accessToken;
 
     try {
-      const res = await fetch(`${WORKER}/token`, { credentials: 'include' });
+      const headers = {};
+      if (sessionId) headers['Authorization'] = `Bearer ${sessionId}`;
+
+      const res = await fetch(`${WORKER}/token`, {
+        credentials: 'include',
+        headers,
+      });
 
       if (!res.ok) {
-        // 401 = no session or session expired
+        // 401 = no session or session expired — clear stale stored session
+        sessionId = null;
+        localStorage.removeItem('ht_session_id');
         if (!silent) startSignIn();
         else document.dispatchEvent(new CustomEvent('ht-auth-expired'));
         return null;
@@ -83,7 +103,7 @@ const Auth = (() => {
 
   /**
    * Called on app load to check for an existing session without any UI.
-   * Returns true if a valid session exists (session cookie → KV → refresh_token).
+   * Returns true if a valid session exists.
    */
   async function tryAutoAuth() {
     const token = await requestToken(true);
@@ -92,7 +112,8 @@ const Auth = (() => {
 
   /**
    * Redirect the browser to the Worker's /auth endpoint to start the OAuth flow.
-   * The Worker handles Google consent, token exchange, and redirects back to the app.
+   * The Worker handles Google consent, token exchange, and redirects back to the app
+   * with the session ID in the URL hash.
    */
   function startSignIn() {
     window.location.href = `${WORKER}/auth`;
@@ -121,10 +142,16 @@ const Auth = (() => {
     clearTimeout(refreshTimer);
     accessToken = null;
     tokenExpiry = 0;
+    const id = sessionId;
+    sessionId = null;
+    localStorage.removeItem('ht_session_id');
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (id) headers['Authorization'] = `Bearer ${id}`;
       await fetch(`${WORKER}/logout`, {
         method:      'POST',
         credentials: 'include',
+        headers,
       });
     } catch { /* best effort */ }
   }

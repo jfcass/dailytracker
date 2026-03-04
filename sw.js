@@ -27,11 +27,11 @@ self.addEventListener('activate', e =>
 );
 
 self.addEventListener('fetch', e => {
-  // Pass through Google API / OAuth / CDN requests — never cache these
+  // Pass through API / OAuth / CDN requests — never cache these
   const url = e.request.url;
   if (url.includes('googleapis.com') || url.includes('accounts.google.com') ||
       url.includes('fonts.') || url.includes('chart.js') ||
-      url.includes('fitbit.com')) return;
+      url.includes('fitbit.com') || url.includes('workers.dev')) return;
 
   // Bypass HTTP cache so GitHub Pages' max-age doesn't serve stale JS/CSS.
   // Pass e.request (not e.request.url) so mode/credentials/headers are preserved —
