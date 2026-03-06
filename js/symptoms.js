@@ -77,6 +77,7 @@ const Symptoms = (() => {
   // Category manager state
   let managingCategories = false;
   let editingCatIdx      = -1;
+  let editingCatType     = '';  // 'symptom' | 'issue' | ''
   let fCatEditName       = '';
 
   // ── Data helpers ──────────────────────────────────────────────────────────
@@ -1181,33 +1182,30 @@ const Symptoms = (() => {
   function toggleCatManager() {
     managingCategories = !managingCategories;
     editingCatIdx      = -1;
+    editingCatType     = '';
     fCatEditName       = '';
     const btn = document.getElementById('symp-cat-toggle');
     if (btn) btn.setAttribute('aria-expanded', String(managingCategories));
     renderCatPanel();
   }
 
-  function renderCatPanel() {
-    const panel = document.getElementById('symp-cat-panel');
-    if (!panel) return;
-    if (!managingCategories) { panel.hidden = true; panel.innerHTML = ''; return; }
-    panel.hidden = false;
-    const cats = Data.getSettings().symptom_categories ?? [];
-
-    const rows = cats.map((cat, idx) => {
+  // Helper to build category list rows for a given type
+  function buildCategoryRows(cats, type) {
+    return cats.map((cat, idx) => {
       const color = catColor(cat);
-      if (editingCatIdx === idx) {
+      const isEditing = editingCatIdx === idx && editingCatType === type;
+      if (isEditing) {
         return `
           <li class="symp-cat-item">
             <span class="symp-cat-item-dot" style="background:${color}" aria-hidden="true"></span>
-            <input class="symp-cat-name-input" id="symp-cat-rename-input"
+            <input class="symp-cat-name-input cat-rename-input-${type}"
                    value="${escHtml(fCatEditName)}" maxlength="40" aria-label="Rename category">
-            <button class="symp-cat-save-btn" type="button" data-idx="${idx}" aria-label="Save">
+            <button class="symp-cat-save-btn cat-save-btn-${type}" type="button" data-idx="${idx}" aria-label="Save">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
                    width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
             </button>
-            <button class="symp-cat-item-cancel-btn" type="button" aria-label="Cancel">
+            <button class="symp-cat-item-cancel-btn cat-cancel-btn-${type}" type="button" aria-label="Cancel">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                    width="13" height="13">
@@ -1221,7 +1219,7 @@ const Symptoms = (() => {
         <li class="symp-cat-item">
           <span class="symp-cat-item-dot" style="background:${color}" aria-hidden="true"></span>
           <span class="symp-cat-item-name">${escHtml(cat)}</span>
-          <button class="symp-cat-edit-btn" type="button" data-idx="${idx}" aria-label="Rename ${escHtml(cat)}">
+          <button class="symp-cat-edit-btn cat-edit-btn-${type}" type="button" data-idx="${idx}" aria-label="Rename ${escHtml(cat)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  width="13" height="13">
@@ -1229,7 +1227,7 @@ const Symptoms = (() => {
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <button class="symp-cat-del-btn" type="button" data-idx="${idx}" aria-label="Delete ${escHtml(cat)}">
+          <button class="symp-cat-del-btn cat-del-btn-${type}" type="button" data-idx="${idx}" aria-label="Delete ${escHtml(cat)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                  width="13" height="13">
@@ -1241,95 +1239,151 @@ const Symptoms = (() => {
           </button>
         </li>`;
     }).join('');
+  }
+
+  function renderCatPanel() {
+    const panel = document.getElementById('symp-cat-panel');
+    if (!panel) return;
+    if (!managingCategories) { panel.hidden = true; panel.innerHTML = ''; return; }
+    panel.hidden = false;
+
+    const symptomCats = Data.getSettings().symptom_categories ?? [];
+    const issueCats = Data.getSettings().issue_categories ?? [];
+
+    const symptomRows = buildCategoryRows(symptomCats, 'symptom');
+    const issueRows = buildCategoryRows(issueCats, 'issue');
 
     panel.innerHTML = `
       <div class="symp-cat-panel-header">
-        <span>Symptoms</span>
+        <span>Categories</span>
         <button class="symp-cat-done-btn" type="button">Done</button>
       </div>
-      <ul class="symp-cat-list">${rows}</ul>
-      <div class="symp-cat-add-row">
-        <input id="symp-new-cat-input" class="symp-cat-add-input"
-               type="text" maxlength="40" placeholder="New category…" aria-label="New category name">
-        <button class="symp-cat-add-confirm-btn" type="button">Add</button>
+
+      <div class="symp-cat-section">
+        <p class="symp-cat-section-title">Symptom Categories</p>
+        <ul class="symp-cat-list">${symptomRows}</ul>
+        <div class="symp-cat-add-row">
+          <input id="symp-new-cat-input-symptom" class="symp-cat-add-input cat-add-input-symptom"
+                 type="text" maxlength="40" placeholder="New category…" aria-label="New symptom category name">
+          <button class="symp-cat-add-confirm-btn cat-add-btn-symptom" type="button">Add</button>
+        </div>
+      </div>
+
+      <div class="symp-cat-section">
+        <p class="symp-cat-section-title">Issue Categories</p>
+        <ul class="symp-cat-list">${issueRows}</ul>
+        <div class="symp-cat-add-row">
+          <input id="symp-new-cat-input-issue" class="symp-cat-add-input cat-add-input-issue"
+                 type="text" maxlength="40" placeholder="New category…" aria-label="New issue category name">
+          <button class="symp-cat-add-confirm-btn cat-add-btn-issue" type="button">Add</button>
+        </div>
       </div>
     `;
 
     panel.querySelector('.symp-cat-done-btn').addEventListener('click', toggleCatManager);
 
-    panel.querySelectorAll('.symp-cat-edit-btn').forEach(btn => {
+    // Setup symptom category handlers
+    attachCategoryHandlers(symptomCats, 'symptom');
+
+    // Setup issue category handlers
+    attachCategoryHandlers(issueCats, 'issue');
+  }
+
+  // Helper to attach event listeners to category buttons
+  function attachCategoryHandlers(cats, type) {
+    const panel = document.getElementById('symp-cat-panel');
+    if (!panel) return;
+
+    // Edit buttons
+    panel.querySelectorAll(`.cat-edit-btn-${type}`).forEach(btn => {
       btn.addEventListener('click', () => {
         editingCatIdx = parseInt(btn.dataset.idx, 10);
-        fCatEditName  = cats[editingCatIdx];
+        editingCatType = type;
+        fCatEditName = cats[editingCatIdx];
         renderCatPanel();
         requestAnimationFrame(() => {
-          const inp = document.getElementById('symp-cat-rename-input');
+          const inp = document.querySelector(`.cat-rename-input-${type}`);
           if (inp) { inp.focus(); inp.select(); }
         });
       });
     });
 
-    panel.querySelectorAll('.symp-cat-del-btn').forEach(btn => {
-      btn.addEventListener('click', () => removeCategory(parseInt(btn.dataset.idx, 10)));
+    // Delete buttons
+    panel.querySelectorAll(`.cat-del-btn-${type}`).forEach(btn => {
+      btn.addEventListener('click', () => removeCategory(parseInt(btn.dataset.idx, 10), type));
     });
 
-    panel.querySelector('.symp-cat-save-btn')?.addEventListener('click', () => {
-      const inp = document.getElementById('symp-cat-rename-input');
+    // Save button
+    panel.querySelector(`.cat-save-btn-${type}`)?.addEventListener('click', () => {
+      const inp = document.querySelector(`.cat-rename-input-${type}`);
       fCatEditName = inp?.value ?? fCatEditName;
-      saveCatEdit();
+      saveCatEdit(type);
     });
 
-    panel.querySelector('.symp-cat-item-cancel-btn')?.addEventListener('click', () => {
-      editingCatIdx = -1; fCatEditName = ''; renderCatPanel();
+    // Cancel button
+    panel.querySelector(`.cat-cancel-btn-${type}`)?.addEventListener('click', () => {
+      editingCatIdx = -1; editingCatType = ''; fCatEditName = ''; renderCatPanel();
     });
 
-    const renameInp = document.getElementById('symp-cat-rename-input');
+    // Rename input
+    const renameInp = document.querySelector(`.cat-rename-input-${type}`);
     if (renameInp) {
       renameInp.addEventListener('input', e => { fCatEditName = e.target.value; });
       renameInp.addEventListener('keydown', e => {
-        if (e.key === 'Enter')  saveCatEdit();
-        if (e.key === 'Escape') { editingCatIdx = -1; fCatEditName = ''; renderCatPanel(); }
+        if (e.key === 'Enter')  saveCatEdit(type);
+        if (e.key === 'Escape') { editingCatIdx = -1; editingCatType = ''; fCatEditName = ''; renderCatPanel(); }
       });
     }
 
-    const addInp = panel.querySelector('#symp-new-cat-input');
-    panel.querySelector('.symp-cat-add-confirm-btn').addEventListener('click', () => addCategoryFromInput(addInp));
-    addInp?.addEventListener('keydown', e => { if (e.key === 'Enter') addCategoryFromInput(addInp); });
+    // Add button
+    const addInp = panel.querySelector(`.cat-add-input-${type}`);
+    panel.querySelector(`.cat-add-btn-${type}`)?.addEventListener('click', () => addCategoryFromInput(addInp, type));
+    addInp?.addEventListener('keydown', e => { if (e.key === 'Enter') addCategoryFromInput(addInp, type); });
   }
 
-  function saveCatEdit() {
-    const cats    = Data.getSettings().symptom_categories;
+  function saveCatEdit(type = 'symptom') {
+    const settings = Data.getSettings();
+    const cats = type === 'issue' ? settings.issue_categories : settings.symptom_categories;
     const oldName = cats[editingCatIdx];
     const newName = fCatEditName.trim();
     if (newName && newName !== oldName) {
       cats[editingCatIdx] = newName;
-      // Rename category on all symptoms and issues
-      Object.values(Data.getData().days ?? {}).forEach(day => {
-        (day.symptoms ?? []).forEach(s => {
-          if (s.category === oldName) s.category = newName;
+      // Rename category on all items in that list
+      if (type === 'symptom') {
+        Object.values(Data.getData().days ?? {}).forEach(day => {
+          (day.symptoms ?? []).forEach(s => {
+            if (s.category === oldName) s.category = newName;
+          });
         });
-      });
-      if (fCat === oldName) fCat = newName;
+        if (fCat === oldName) fCat = newName;
+      } else if (type === 'issue') {
+        Object.values(getIssues()).forEach(issue => {
+          if (issue.category === oldName) issue.category = newName;
+        });
+      }
       scheduleSave();
     }
-    editingCatIdx = -1; fCatEditName = '';
+    editingCatIdx = -1; editingCatType = ''; fCatEditName = '';
     renderCatPanel();
   }
 
-  function removeCategory(idx) {
-    const cats    = Data.getSettings().symptom_categories;
+  function removeCategory(idx, type = 'symptom') {
+    const settings = Data.getSettings();
+    const cats = type === 'issue' ? settings.issue_categories : settings.symptom_categories;
     const removed = cats[idx];
     cats.splice(idx, 1);
-    if (fCat === removed) fCat = cats[0] ?? '';
+    if (type === 'symptom' && fCat === removed) fCat = cats[0] ?? '';
     editingCatIdx = -1;
+    editingCatType = '';
     renderCatPanel();
     scheduleSave();
   }
 
-  function addCategoryFromInput(inp) {
+  function addCategoryFromInput(inp, type = 'symptom') {
     const name = (inp?.value ?? '').trim();
     if (!name) return;
-    const cats = Data.getSettings().symptom_categories;
+    const settings = Data.getSettings();
+    const cats = type === 'issue' ? settings.issue_categories : settings.symptom_categories;
     if (cats.includes(name)) { inp.classList.add('input--error'); return; }
     inp.classList.remove('input--error');
     cats.push(name);
@@ -1349,6 +1403,7 @@ const Symptoms = (() => {
     managingIssues         = false;
     issueDetailId          = null;
     editingCatIdx          = -1;
+    editingCatType         = '';
     pendingLinkSymptomId   = null;
     editingIssueId         = null;
     pendingEditFromDetail  = null;
