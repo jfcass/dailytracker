@@ -107,7 +107,7 @@ const Data = (() => {
   // ── Schema migration / merge ─────────────────────────────────────────────────
 
   function mergeWithDefaults(loaded) {
-    return {
+    const merged = {
       ...SCHEMA_DEFAULTS,
       ...loaded,
       settings: {
@@ -115,6 +115,13 @@ const Data = (() => {
         ...(loaded.settings ?? {}),
       },
     };
+
+    // Migration: Initialize issue_categories from symptom_categories if missing
+    if (!merged.settings.issue_categories && merged.settings.symptom_categories) {
+      merged.settings.issue_categories = [...merged.settings.symptom_categories];
+    }
+
+    return merged;
   }
 
   function migrateSymptoms(d) {
