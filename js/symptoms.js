@@ -62,6 +62,7 @@ const Symptoms = (() => {
   let issuePanelNewForm = false;
   let fIssName          = '';
   let fIssRemind        = false;
+  let fIssCat           = '';  // selected category for new issue
 
   // Cross-date edit / cross-date issue open (from health-log)
   let pendingEditFromDetail   = null;
@@ -607,11 +608,16 @@ const Symptoms = (() => {
 
     let newForm = '';
     if (issuePanelNewForm) {
+      const issueCategories = Data.getSettings().issue_categories ?? [];
       newForm = `
         <div class="health-form symp-new-issue-form">
           <div class="health-form-top">
             <span class="health-form-title">New Issue</span>
             <button class="health-cancel-btn" onclick="Symptoms._cancelNewIssue()">Cancel</button>
+          </div>
+          <div class="health-form-field">
+            <span class="health-form-label">Category</span>
+            <div class="health-form-cats">${buildIssCatPills(issueCategories, fIssCat)}</div>
           </div>
           <div class="health-form-field">
             <span class="health-form-label">Name <span class="health-req">*</span></span>
@@ -981,6 +987,8 @@ const Symptoms = (() => {
     issuePanelNewForm = true;
     fIssName          = '';
     fIssRemind        = false;
+    const issueCategories = Data.getSettings().issue_categories ?? [];
+    fIssCat           = issueCategories[0] ?? 'Other';
     renderIssuePanel();
     requestAnimationFrame(() => {
       const inp = document.getElementById('symp-new-issue-name');
@@ -1005,6 +1013,7 @@ const Symptoms = (() => {
     issues[issueId] = {
       id:           issueId,
       name,
+      category:     fIssCat || 'Other',
       remind_daily: fIssRemind,
       start_date:   currentDate,
       end_date:     null,
@@ -1157,6 +1166,15 @@ const Symptoms = (() => {
   function _setIssueLink(v)  { fIssueId = v || null; }
   function _setIssName(v)    { fIssName = v; }
   function _setIssRemind(v)  { fIssRemind = !!v; }
+  function _setIssCat(v)     {
+    fIssCat = v;
+    const buttons = document.querySelectorAll('.health-form-cat');
+    buttons.forEach(b => {
+      const on = b.dataset.cat === v;
+      b.classList.toggle('health-form-cat--active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
 
   // ── Category manager ──────────────────────────────────────────────────────
 
@@ -1421,6 +1439,6 @@ const Symptoms = (() => {
     _startIssEdit, _cancelIssEdit, _saveIssEdit, _deleteIssue,
     _setIssEditName, _setIssEditRemind, _setIssEditNotes,
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
-    _setIssName, _setIssRemind,
+    _setIssName, _setIssRemind, _setIssCat,
   };
 })();
