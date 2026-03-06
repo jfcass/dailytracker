@@ -420,6 +420,7 @@ const Symptoms = (() => {
   }
 
   function buildAddForm(prefillIssueId) {
+    // Symptom categories — for classifying daily symptoms
     const cats = Data.getSettings().symptom_categories ?? Object.keys(CAT_COLORS);
     return `
       <div class="health-form">
