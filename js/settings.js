@@ -332,7 +332,24 @@ const Settings = (() => {
       </span>
     `, 'categories');
 
-    const cats     = Data.getSettings().symptom_categories ?? [];
+    body.appendChild(buildCategorySection('Symptom Categories', 'symptom'));
+    body.appendChild(buildCategorySection('Issue Categories', 'issue'));
+
+    return card;
+  }
+
+  function buildCategorySection(title, type) {
+    const settings = Data.getSettings();
+    const cats = (type === 'issue' ? settings.issue_categories : settings.symptom_categories) ?? [];
+
+    const section = document.createElement('div');
+    section.className = 'stg-cat-section';
+
+    const heading = document.createElement('p');
+    heading.className = 'stg-cat-section-title';
+    heading.textContent = title;
+    section.appendChild(heading);
+
     const tagsWrap = document.createElement('div');
     tagsWrap.className = 'stg-tags';
 
@@ -346,32 +363,32 @@ const Settings = (() => {
         const tag = document.createElement('span');
         tag.className = 'stg-tag';
         tag.innerHTML = `${escHtml(cat)}<button class="stg-tag-remove" type="button" aria-label="Remove ${escHtml(cat)}">×</button>`;
-        tag.querySelector('.stg-tag-remove').addEventListener('click', () => removeCategory(cat));
+        tag.querySelector('.stg-tag-remove').addEventListener('click', () => removeCategory(cat, type));
         tagsWrap.appendChild(tag);
       });
     }
-
-    body.appendChild(tagsWrap);
+    section.appendChild(tagsWrap);
 
     const addRow = document.createElement('div');
     addRow.className = 'stg-add-row';
     addRow.innerHTML = `
       <input class="stg-text-input" type="text" placeholder="New category"
-             maxlength="30" aria-label="New health category">
+             maxlength="30" aria-label="New ${escHtml(title.toLowerCase())}">
       <button class="stg-add-btn" type="button">Add</button>
     `;
     const inp   = addRow.querySelector('input');
-    const doAdd = () => { if (addCategory(inp.value.trim())) { inp.value = ''; } inp.focus(); };
+    const doAdd = () => { if (addCategory(inp.value.trim(), type)) { inp.value = ''; } inp.focus(); };
     addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
-    body.appendChild(addRow);
+    section.appendChild(addRow);
 
-    return card;
+    return section;
   }
 
-  function addCategory(name) {
+  function addCategory(name, type = 'symptom') {
     if (!name) return false;
-    const cats = Data.getSettings().symptom_categories;
+    const settings = Data.getSettings();
+    const cats = type === 'issue' ? settings.issue_categories : settings.symptom_categories;
     if (cats.includes(name)) return false;
     cats.push(name);
     render(); scheduleSave();
@@ -379,8 +396,9 @@ const Settings = (() => {
     return true;
   }
 
-  function removeCategory(name) {
-    const cats = Data.getSettings().symptom_categories;
+  function removeCategory(name, type = 'symptom') {
+    const settings = Data.getSettings();
+    const cats = type === 'issue' ? settings.issue_categories : settings.symptom_categories;
     const idx  = cats.indexOf(name);
     if (idx === -1) return;
     cats.splice(idx, 1);

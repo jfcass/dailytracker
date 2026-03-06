@@ -5162,6 +5162,44 @@ button {
   color: var(--clr-error);
 }
 
+/* ── Category section headings (symptom vs issue split) ─────────────────── */
+.stg-cat-section {
+  border-top: 1px solid var(--clr-border);
+}
+.stg-cat-section:first-of-type {
+  border-top: none;
+}
+.stg-cat-section-title {
+  font-size:   0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color:       var(--clr-text-2);
+  padding:     10px 16px 4px;
+  margin:      0;
+}
+
+/* ── Category manager section headings (in symptoms panel) ───────────────── */
+.symp-cat-section {
+  border-top: 1px solid var(--clr-border);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+.symp-cat-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.symp-cat-section-title {
+  font-size:   0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color:       var(--clr-text-2);
+  padding:     4px 12px 2px;
+  margin:      0;
+}
+
 /* ── Preference rows (theme / temperature) ───────────────────────────────── */
 .stg-pref-row {
   display:         flex;
