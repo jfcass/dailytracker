@@ -67,12 +67,14 @@ const Symptoms = (() => {
   // Cross-date edit / cross-date issue open (from health-log)
   let pendingEditFromDetail   = null;
   let pendingOpenIssueDetail  = null; // issue id to open after date nav
+  let pendingNewIssue         = false; // open new issue form after tab switch
 
   // Issue edit state
   let editingIssueId  = null;
   let fIssEditName    = '';
   let fIssEditRemind  = false;
   let fIssEditNotes   = '';
+  let fIssEditCat     = '';  // selected category when editing an issue
 
   // Category manager state
   let managingCategories = false;
@@ -418,7 +420,11 @@ const Symptoms = (() => {
       const sel = i.id === currentIssueId ? ' selected' : '';
       opts.push(`<option value="${escHtml(i.id)}"${sel}>${escHtml(i.name)} (${escHtml(i.category)})</option>`);
     });
-    return `<select class="symp-issue-select" onchange="Symptoms._setIssueLink(this.value)" aria-label="Link to issue">${opts.join('')}</select>`;
+    return `
+      <div class="symp-issue-link-row">
+        <select class="symp-issue-select" onchange="Symptoms._setIssueLink(this.value)" aria-label="Link to issue">${opts.join('')}</select>
+        <button class="symp-new-issue-quick-btn" type="button" onclick="Symptoms._quickNewIssue()">+ New</button>
+      </div>`;
   }
 
   function buildAddForm(prefillIssueId) {
@@ -556,9 +562,14 @@ const Symptoms = (() => {
 
     function issueRow(issue) {
       if (editingIssueId === issue.id) {
+        const issEditCats = Data.getSettings().issue_categories ?? [];
         return `
           <div class="symp-issue-row symp-issue-row--editing">
             <div class="symp-iss-edit-form">
+              <div class="health-form-field">
+                <span class="health-form-label">Category</span>
+                <div class="health-form-cats">${buildIssCatPills(issEditCats, fIssEditCat, '_setIssEditCat')}</div>
+              </div>
               <div class="health-form-field">
                 <span class="health-form-label">Name <span class="health-req">*</span></span>
                 <input class="health-text-input" type="text" id="symp-iss-edit-name-${issue.id}"
@@ -659,13 +670,13 @@ const Symptoms = (() => {
     `;
   }
 
-  function buildIssCatPills(cats, current) {
+  function buildIssCatPills(cats, current, setter = '_setIssCat') {
     return cats.map(cat => {
       const color  = catColor(cat);
       const active = cat === current ? ' health-form-cat--active' : '';
       return `<button class="health-form-cat${active}" type="button"
                       data-cat="${escHtml(cat)}" style="--cat-color:${color}"
-                      onclick="Symptoms._setIssCat('${escHtml(cat)}')"
+                      onclick="Symptoms.${setter}('${escHtml(cat)}')"
                       aria-pressed="${cat === current}">${escHtml(cat)}</button>`;
     }).join('');
   }
@@ -1041,6 +1052,11 @@ const Symptoms = (() => {
     App.switchTab('today');
   }
 
+  function openNewIssueFromHealthLog() {
+    pendingNewIssue = true;
+    App.switchTab('today');
+  }
+
   function closeIssueDetail() {
     issueDetailId  = null;
     managingIssues = false;
@@ -1064,6 +1080,7 @@ const Symptoms = (() => {
     fIssEditName   = issue.name ?? '';
     fIssEditRemind = !!issue.remind_daily;
     fIssEditNotes  = issue.notes ?? '';
+    fIssEditCat    = issue.category ?? '';
     renderIssuePanel();
     requestAnimationFrame(() => {
       const inp = document.getElementById(`symp-iss-edit-name-${issueId}`);
@@ -1076,6 +1093,7 @@ const Symptoms = (() => {
     fIssEditName   = '';
     fIssEditRemind = false;
     fIssEditNotes  = '';
+    fIssEditCat    = '';
     renderIssuePanel();
   }
 
@@ -1085,12 +1103,14 @@ const Symptoms = (() => {
     const issue = getIssues()[issueId];
     if (!issue) return;
     issue.name         = name;
+    issue.category     = fIssEditCat || issue.category || 'Other';
     issue.remind_daily = fIssEditRemind;
     issue.notes        = fIssEditNotes;
     editingIssueId     = null;
     fIssEditName       = '';
     fIssEditRemind     = false;
     fIssEditNotes      = '';
+    fIssEditCat        = '';
     scheduleSave();
     render();
     renderIssuePanel();
@@ -1136,6 +1156,7 @@ const Symptoms = (() => {
   function _startEditFromDetail(id, dt)    { startEditFromDetail(id, dt); }
   function _deleteSymptomByDate(id, dt)    { deleteSymptomByDate(id, dt); }
   function _openIssueFromHealthLog(id, dt) { openIssueFromHealthLog(id, dt); }
+  function _openNewIssueFromHealthLog()    { openNewIssueFromHealthLog(); }
   function _startIssEdit(id)             { startIssEdit(id); }
   function _cancelIssEdit()              { cancelIssEdit(); }
   function _saveIssEdit(id)              { saveIssEdit(id); }
@@ -1162,11 +1183,26 @@ const Symptoms = (() => {
     });
   }
 
-  function _setDesc(v)       { fDesc = v; }
-  function _setTime(v)       { fTime = v; }
-  function _setIssueLink(v)  { fIssueId = v || null; }
-  function _setIssName(v)    { fIssName = v; }
-  function _setIssRemind(v)  { fIssRemind = !!v; }
+  function _setDesc(v)        { fDesc = v; }
+  function _setTime(v)        { fTime = v; }
+  function _setIssueLink(v)   { fIssueId = v || null; }
+  function _setIssName(v)     { fIssName = v; }
+  function _setIssRemind(v)   { fIssRemind = !!v; }
+  function _setIssEditCat(v)  { fIssEditCat = v; }
+
+  // Open issues panel with the new issue form ready (from symptom form or health log)
+  function quickNewIssue() {
+    managingIssues    = true;
+    issuePanelNewForm = true;
+    fIssName          = '';
+    fIssRemind        = false;
+    const issueCategories = Data.getSettings().issue_categories ?? [];
+    fIssCat           = issueCategories[0] ?? 'Other';
+    const btn = document.getElementById('symp-issues-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    renderIssuePanel();
+  }
+
   function _setIssCat(v)     {
     fIssCat = v;
     const buttons = document.querySelectorAll('.health-form-cat');
@@ -1397,6 +1433,7 @@ const Symptoms = (() => {
   function setDate(date) {
     const pendingEdit      = pendingEditFromDetail;
     const pendingIssueOpen = pendingOpenIssueDetail;
+    const pendingNew       = pendingNewIssue;
     formMode               = null;
     formSymptomId          = null;
     managingCategories     = false;
@@ -1408,11 +1445,15 @@ const Symptoms = (() => {
     editingIssueId         = null;
     pendingEditFromDetail  = null;
     pendingOpenIssueDetail = null;
+    pendingNewIssue        = false;
     currentDate            = date;
     if (pendingEdit) {
       startEdit(pendingEdit);
     } else if (pendingIssueOpen) {
       openIssueDetail(pendingIssueOpen);
+    } else if (pendingNew) {
+      render();
+      quickNewIssue();
     } else {
       render();
     }
@@ -1490,10 +1531,11 @@ const Symptoms = (() => {
     _toggleRemindDaily, _resolveIssue, _assignToIssue,
     _startNewIssue, _cancelNewIssue, _saveNewIssue,
     _openIssueDetail, _closeIssueDetail, _closeIssuePanel,
-    _startEditFromDetail, _deleteSymptomByDate, _openIssueFromHealthLog,
+    _startEditFromDetail, _deleteSymptomByDate, _openIssueFromHealthLog, _openNewIssueFromHealthLog,
     _startIssEdit, _cancelIssEdit, _saveIssEdit, _deleteIssue,
-    _setIssEditName, _setIssEditRemind, _setIssEditNotes,
+    _setIssEditName, _setIssEditRemind, _setIssEditNotes, _setIssEditCat,
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
     _setIssName, _setIssRemind, _setIssCat,
+    _quickNewIssue,
   };
 })();

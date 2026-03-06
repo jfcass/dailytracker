@@ -461,13 +461,16 @@ const HealthLog = (() => {
          onclick="HealthLog._toggleSection('issues')">
       <span class="hl-section-title">Issues</span>
       <div class="hl-section-header-right">
+        <button class="hl-add-issue-btn" type="button"
+                onclick="event.stopPropagation(); Symptoms._openNewIssueFromHealthLog()"
+                aria-label="Add new issue">+ New Issue</button>
         <span class="hl-section-chevron">▾</span>
       </div>
     </div>`;
 
     if (!isCollapsed) {
       if (!issues.length) {
-        html += `<p class="hl-empty">No ongoing issues yet. Add one from the Health section on Today.</p>`;
+        html += `<p class="hl-empty">No ongoing issues yet. Tap "+ New Issue" above to add one.</p>`;
       } else {
         if (active.length) {
           html += `<p class="hl-group-label">Active</p>`;

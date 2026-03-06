@@ -6379,9 +6379,15 @@ button {
   flex-shrink: 0;
 }
 
-/* Issue link dropdown */
+/* Issue link dropdown row (dropdown + "+ New" button) */
+.symp-issue-link-row {
+  display:   flex;
+  gap:       8px;
+  align-items: center;
+}
+
 .symp-issue-select {
-  width:         100%;
+  flex:          1 1 0;
   padding:       7px 10px;
   border:        1.5px solid var(--clr-border);
   border-radius: 8px;
@@ -6391,6 +6397,35 @@ button {
   cursor:        pointer;
   appearance:    auto;
 }
+
+.symp-new-issue-quick-btn {
+  flex-shrink:   0;
+  padding:       6px 12px;
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+  border:        1.5px solid var(--clr-accent);
+  border-radius: 8px;
+  font-size:     0.82rem;
+  font-weight:   600;
+  cursor:        pointer;
+  white-space:   nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.symp-new-issue-quick-btn:active { opacity: 0.75; }
+
+/* "+ New Issue" button in health log Issues section header */
+.hl-add-issue-btn {
+  padding:       4px 10px;
+  background:    var(--clr-accent-dim);
+  color:         var(--clr-accent);
+  border:        1.5px solid var(--clr-accent);
+  border-radius: 6px;
+  font-size:     0.78rem;
+  font-weight:   600;
+  cursor:        pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hl-add-issue-btn:active { opacity: 0.75; }
 
 .symp-link-form {
   background: var(--clr-surface-2) !important;
