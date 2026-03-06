@@ -19,6 +19,7 @@ const Data = (() => {
         { id: 'coffee',   name: 'Coffee',   default_unit: 'cups'     },
       ],
       symptom_categories: ['Headache', 'Fever', 'Fatigue', 'Nausea', 'Diarrhea', 'Other'],
+      issue_categories: ['Headache', 'Fever', 'Fatigue', 'Nausea', 'Diarrhea', 'Other'],
       theme: 'system',
       weather_unit: 'auto',
       default_report_period: '7d',
