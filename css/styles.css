@@ -4418,9 +4418,9 @@ button {
   width:            44px;
   height:           44px;
   border-radius:    50%;
-  border:           2px solid var(--mood-clr);
+  border:           2px solid var(--clr-border);
   background:       transparent;
-  color:            var(--mood-clr);
+  color:            var(--clr-text-2);
   font-size:        0.85rem;
   font-weight:      700;
   cursor:           pointer;
@@ -4428,22 +4428,23 @@ button {
   display:          flex;
   align-items:      center;
   justify-content:  center;
-  transition:       background var(--transition), color var(--transition);
+  transition:       background var(--transition), color var(--transition), border-color var(--transition);
   -webkit-tap-highlight-color: transparent;
 }
 
 .mood-btn--active {
-  background: var(--mood-clr);
-  color:      #fff;
+  background:   var(--clr-accent);
+  border-color: var(--clr-accent);
+  color:        #fff;
 }
 
 .mood-btn:active { opacity: 0.75; }
 
 .mood-row__value {
-  font-size:  0.85rem;
-  color:      var(--clr-text-2);
-  min-width:  60px;
-  font-style: italic;
+  font-size:   0.85rem;
+  font-weight: 600;
+  min-width:   60px;
+  transition:  color var(--transition);
 }
 
 /* ── Digestion / Bowel Tracker ──────────────────────────────────────────────── */

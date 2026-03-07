@@ -14,6 +14,39 @@ const Mood = (() => {
   const STRESS_LABELS = ['', 'Very Low', 'Low', 'Moderate', 'High', 'Very High'];
   const FOCUS_LABELS  = ['', 'Very Low', 'Low', 'Moderate', 'Good', 'High'];
 
+  // Colors for value labels — higher = greener for mood/energy/focus; inverted for stress
+  const VAL_COLORS      = ['', '#e57373', '#ff8a65', '#ffc107', '#8bc34a', '#4caf50'];
+  const VAL_COLORS_INV  = ['', '#4caf50', '#8bc34a', '#ffc107', '#ff8a65', '#e57373'];
+
+  function valColor(field, val) {
+    if (!val) return '';
+    return (field === 'stress' ? VAL_COLORS_INV : VAL_COLORS)[val] ?? '';
+  }
+
+  // Single wellness score: average of (mood, energy, 6-stress, focus) where present
+  const WELLNESS_THRESHOLDS = [
+    [1.5, 'Low'],
+    [2.5, 'Fair'],
+    [3.5, 'Moderate'],
+    [4.5, 'Good'],
+    [5,   'Excellent'],
+  ];
+  function calcWellness(mood, energy, stress, focus) {
+    const vals = [];
+    if (mood   != null) vals.push(mood);
+    if (energy != null) vals.push(energy);
+    if (stress != null) vals.push(6 - stress); // invert: low stress = good
+    if (focus  != null) vals.push(focus);
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+  function wellnessLabel(score) {
+    for (const [thresh, label] of WELLNESS_THRESHOLDS) {
+      if (score <= thresh) return label;
+    }
+    return 'Excellent';
+  }
+
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -93,27 +126,27 @@ const Mood = (() => {
       });
     });
 
-    // Value labels
+    // Value labels — text + semantic color (stress scale is inverted)
     const labelMap = {
-      'mood-value-label':   [MOOD_LABELS,   mood],
-      'energy-value-label': [ENERGY_LABELS, energy],
-      'stress-value-label': [STRESS_LABELS, stress],
-      'focus-value-label':  [FOCUS_LABELS,  focus],
+      'mood-value-label':   [MOOD_LABELS,   mood,   'mood'],
+      'energy-value-label': [ENERGY_LABELS, energy, 'energy'],
+      'stress-value-label': [STRESS_LABELS, stress, 'stress'],
+      'focus-value-label':  [FOCUS_LABELS,  focus,  'focus'],
     };
-    Object.entries(labelMap).forEach(([id, [labels, val]]) => {
+    Object.entries(labelMap).forEach(([id, [labels, val, field]]) => {
       const el = document.getElementById(id);
-      if (el) el.textContent = val ? labels[val] : '';
+      if (el) {
+        el.textContent  = val ? labels[val] : '';
+        el.style.color  = valColor(field, val);
+        el.style.fontStyle = val ? 'normal' : '';
+      }
     });
 
-    // Section badge — shows current readings at a glance
+    // Section badge — single Wellness composite score
     const badge = document.getElementById('mood-badge');
     if (badge) {
-      const parts = [];
-      if (mood)   parts.push(MOOD_LABELS[mood]);
-      if (energy) parts.push(ENERGY_LABELS[energy]);
-      if (stress) parts.push(STRESS_LABELS[stress] + ' stress');
-      if (focus)  parts.push(FOCUS_LABELS[focus] + ' focus');
-      badge.textContent = parts.join(' · ');
+      const w = calcWellness(mood, energy, stress, focus);
+      badge.textContent = w != null ? wellnessLabel(w) : '';
     }
 
     // Daily note — skip update while the user is actively typing
