@@ -29,8 +29,9 @@ const Medications = (() => {
   let editSkipped   = [];     // med IDs skipped in edit
   let editMeds      = [];     // snapshot of med IDs that were in the slot at log time
   let editExtras    = [];     // { medication_id, dose } added in edit
-  let editExtraMedId = '';
-  let editExtraDose  = '';
+  let editExtraMedId   = '';
+  let editExtraDose    = '';
+  let confirmingDelete = false;  // true while Delete confirmation is showing
 
   // PRN log form state
   let prnFormOpen   = false;
@@ -593,9 +594,10 @@ const Medications = (() => {
       ? [...slotData.meds]
       : getActiveMeds().filter(m => (m.slots ?? []).includes(slot)).map(m => m.id);
     editExtras     = [...(slotData.extras  ?? [])];
-    editExtraMedId = '';
-    editExtraDose  = '';
-    pendingLogSlot = null;   // close pending form if open
+    editExtraMedId   = '';
+    editExtraDose    = '';
+    confirmingDelete = false;
+    pendingLogSlot   = null;   // close pending form if open
     render();
   }
 
@@ -620,6 +622,17 @@ const Medications = (() => {
       extras:  [...editExtras],
     };
     editSlot = null;
+    scheduleSave();
+    render();
+  }
+
+  function deleteSlotLog() {
+    if (!editSlot) return;
+    const day = Data.getDay(currentDate);
+    if (!day.med_slots) day.med_slots = defaultSlots();
+    day.med_slots[editSlot] = { time: null, skipped: [], extras: [] };
+    editSlot         = null;
+    confirmingDelete = false;
     scheduleSave();
     render();
   }
