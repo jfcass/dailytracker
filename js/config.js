@@ -1,4 +1,4 @@
-const APP_VERSION = '2026.03.06';
+const APP_VERSION = '2026.03.07';
 
 const CONFIG = Object.freeze({
   CLIENT_ID:      '145577028186-85gl257hjuqbuu6qs80l5l8mueopam4q.apps.googleusercontent.com',

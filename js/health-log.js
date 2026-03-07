@@ -462,7 +462,7 @@ const HealthLog = (() => {
       <span class="hl-section-title">Issues</span>
       <div class="hl-section-header-right">
         <button class="hl-add-issue-btn" type="button"
-                onclick="event.stopPropagation(); Symptoms._openNewIssueFromHealthLog()"
+                onclick="event.stopPropagation(); Symptoms._openIssuesView('health-log', true)"
                 aria-label="Add new issue">+ New Issue</button>
         <span class="hl-section-chevron">▾</span>
       </div>
