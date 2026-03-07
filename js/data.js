@@ -322,8 +322,20 @@ const Data = (() => {
 
   async function forceSave() {
     if (!data) return;
-    lastConflictCheckAt = Date.now();  // reset the timer so next save doesn't re-check immediately
-    await writeFile(data);
+    try {
+      await writeFile(data);
+      lastConflictCheckAt = Date.now();  // only reset timer after successful write
+    } catch (err) {
+      const isAuthErr = err.message?.includes('Not authenticated')
+                     || err.message?.includes('401');
+      if (isAuthErr) {
+        await Auth.requestToken(true);
+        await writeFile(data);
+        lastConflictCheckAt = Date.now();
+      } else {
+        throw err;
+      }
+    }
   }
 
   // ── PIN helpers ──────────────────────────────────────────────────────────────
