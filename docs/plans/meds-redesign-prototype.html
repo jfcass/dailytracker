@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medications Redesign Prototype</title>
+<style>
+  /* ── Design tokens (matching the app) ── */
+  :root {
+    --clr-bg:         #0f1210;
+    --clr-surface:    #1a1f1a;
+    --clr-surface-2:  #222822;
+    --clr-surface-3:  #1e241e;
+    --clr-border:     #2a342a;
+    --clr-text:       #e2ebe2;
+    --clr-text-2:     #7a967a;
+    --clr-text-3:     #4a5e4a;
+    --clr-accent:     #4caf50;
+    --clr-accent-dim: #1b3a1d;
+    --clr-error:      #ef5350;
+    --clr-warn:       #ffa726;
+    --clr-ok:         #66bb6a;
+    --radius:         12px;
+    --radius-sm:      8px;
+    --font:           'Figtree', system-ui, sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--clr-bg);
+    color: var(--clr-text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding: 20px 16px 60px;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  /* ── Section wrapper ── */
+  .meds-section {
+    background: var(--clr-surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--clr-border);
+  }
+
+  .meds-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--clr-border);
+  }
+
+  .meds-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-2);
+  }
+
+  .meds-section-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .meds-status-pip {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--clr-accent);
+  }
+  .meds-status-pip--warn { background: var(--clr-warn); }
+  .meds-status-pip--idle { background: var(--clr-text-3); }
+
+  .meds-collapse-btn {
+    background: none;
+    border: none;
+    color: var(--clr-text-2);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    line-height: 1;
+    transition: transform 0.2s;
+  }
+  .meds-collapse-btn.open { transform: rotate(180deg); }
+
+  .meds-body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .meds-body.hidden { display: none; }
+
+  /* ── TODAY'S DOSES ── */
+  .meds-doses-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--clr-text-3);
+    margin-bottom: 8px;
+  }
+
+  .meds-slot-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Unlogged slot button */
+  .meds-slot-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: 10px 12px;
+    background: var(--clr-surface-2);
+    border: 1.5px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    color: var(--clr-text);
+    font-family: var(--font);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .meds-slot-btn:active {
+    background: var(--clr-accent-dim);
+    border-color: var(--clr-accent);
+  }
+  .meds-slot-btn .arrow {
+    font-size: 0.75rem;
+    color: var(--clr-text-2);
+  }
+
+  /* Logged slot chip */
+  .meds-slot-done {
+    flex: 1;
+    min-width: 90px;
+    padding: 10px 12px;
+    background: var(--clr-accent-dim);
+    border: 1.5px solid color-mix(in srgb, var(--clr-accent) 40%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--clr-text);
+    font-family: var(--font);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.15s;
+  }
+  .meds-slot-done:active {
+    border-color: var(--clr-accent);
+  }
+  .meds-slot-check {
+    color: var(--clr-accent);
+    font-size: 0.85rem;
+  }
+  .meds-slot-done-time {
+    font-size: 0.75rem;
+    color: var(--clr-text-2);
+    font-weight: 400;
+    margin-left: auto;
+  }
+
+  /* ── PRN LOG BUTTON ── */
+  .meds-prn-trigger {
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: 1.5px dashed var(--clr-border);
+    border-radius: var(--radius-sm);
+    color: var(--clr-text-2);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .meds-prn-trigger:hover,
+  .meds-prn-trigger.open {
+    border-color: var(--clr-accent);
+    color: var(--clr-text);
+    border-style: solid;
+  }
+  .meds-prn-trigger .plus {
+    font-size: 1rem;
+    color: var(--clr-accent);
+  }
+
+  /* PRN quick-pick panel */
+  .meds-prn-panel {
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideDown 0.15s ease;
+  }
+  .meds-prn-panel.hidden { display: none; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .meds-prn-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .meds-prn-chip {
+    padding: 6px 12px;
+    background: var(--clr-surface-3);
+    border: 1px solid var(--clr-border);
+    border-radius: 20px;
+    color: var(--clr-text);
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .meds-prn-chip:active {
+    background: var(--clr-accent-dim);
+    border-color: var(--clr-accent);
+  }
+
+  .meds-prn-other {
+    display: flex;
+    gap: 8px;
+  }
+  .meds-prn-select {
+    flex: 1;
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    color: var(--clr-text);
+    font-family: var(--font);
+    font-size: 0.82rem;
+    padding: 7px 10px;
+  }
+  .meds-prn-log-btn {
+    padding: 7px 14px;
+    background: var(--clr-accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── DOSING WINDOWS ── */
+  .meds-windows-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--clr-text-3);
+    margin-bottom: 8px;
+  }
+
+  .meds-window-card {
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .meds-window-card + .meds-window-card { margin-top: 6px; }
+
+  .meds-window-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .meds-window-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .meds-window-dose {
+    font-size: 0.78rem;
+    color: var(--clr-text-2);
+    margin-left: 4px;
+    font-weight: 400;
+  }
+  .meds-window-count {
+    font-size: 0.75rem;
+    color: var(--clr-text-2);
+    white-space: nowrap;
+  }
+
+  .meds-window-next {
+    font-size: 0.78rem;
+    color: var(--clr-text-2);
+  }
+  .meds-window-next strong {
+    color: var(--clr-ok);
+    font-weight: 600;
+  }
+  .meds-window-next.warn strong { color: var(--clr-warn); }
+
+  .meds-window-bar-wrap {
+    height: 4px;
+    background: var(--clr-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .meds-window-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--clr-ok);
+    transition: width 0.3s ease;
+  }
+  .meds-window-bar.warn { background: var(--clr-warn); }
+
+  /* Faded state — past min interval but within 24h */
+  .meds-window-card.faded {
+    opacity: 0.45;
+  }
+
+  /* ── LOGGED TODAY ── */
+  .meds-logged-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--clr-text);
+    font-family: var(--font);
+  }
+  .meds-logged-headline {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .meds-logged-chevron {
+    font-size: 0.75rem;
+    color: var(--clr-text-2);
+    transition: transform 0.2s;
+  }
+  .meds-logged-chevron.open { transform: rotate(180deg); }
+
+  .meds-logged-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .meds-logged-list.hidden { display: none; }
+
+  .meds-log-group-time {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--clr-text-3);
+    padding: 8px 0 4px;
+  }
+  .meds-log-group-time:first-child { padding-top: 0; }
+
+  .meds-log-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: var(--clr-surface-2);
+    border-radius: 6px;
+  }
+  .meds-log-entry + .meds-log-entry { margin-top: 2px; }
+
+  .meds-log-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .meds-log-dose {
+    font-size: 0.78rem;
+    color: var(--clr-text-2);
+  }
+  .meds-log-type {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: var(--clr-accent-dim);
+    color: var(--clr-accent);
+    text-transform: uppercase;
+  }
+  .meds-log-type.prn {
+    background: color-mix(in srgb, var(--clr-warn) 15%, transparent);
+    color: var(--clr-warn);
+  }
+  .meds-log-edit {
+    background: none;
+    border: 1px solid var(--clr-border);
+    border-radius: 5px;
+    color: var(--clr-text-2);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .meds-log-edit:active {
+    background: var(--clr-surface-3);
+  }
+
+  /* ── Demo toggle util ── */
+  .demo-note {
+    font-size: 0.75rem;
+    color: var(--clr-text-3);
+    text-align: center;
+    margin-bottom: 14px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<p class="demo-note">Prototype — tap elements to see interactions</p>
+
+<div class="meds-section">
+
+  <!-- Section header (collapsible) -->
+  <div class="meds-section-header" id="section-header">
+    <span class="meds-section-title">Medications</span>
+    <div class="meds-section-badge">
+      <span class="meds-status-pip meds-status-pip--warn" id="status-pip"></span>
+      <button class="meds-collapse-btn open" id="collapse-btn">▾</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="meds-body" id="meds-body">
+
+    <!-- TODAY'S DOSES -->
+    <div>
+      <div class="meds-doses-label">Today's Doses</div>
+      <div class="meds-slot-row">
+
+        <!-- AM — logged -->
+        <button class="meds-slot-done" id="slot-am">
+          <span class="meds-slot-check">✓</span>
+          AM
+          <span class="meds-slot-done-time">8:30am</span>
+        </button>
+
+        <!-- PM — unlogged -->
+        <button class="meds-slot-btn" id="slot-pm">
+          Log PM
+          <span class="arrow">→</span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- PRN BUTTON + PANEL -->
+    <div>
+      <button class="meds-prn-trigger" id="prn-trigger">
+        <span class="plus">＋</span>
+        Log as-needed med
+      </button>
+
+      <div class="meds-prn-panel hidden" id="prn-panel" style="margin-top:8px">
+        <div class="meds-prn-quick">
+          <button class="meds-prn-chip">Acetaminophen</button>
+          <button class="meds-prn-chip">Ibuprofen</button>
+          <button class="meds-prn-chip">Loratadine</button>
+        </div>
+        <div class="meds-prn-other">
+          <select class="meds-prn-select">
+            <option value="">Other med…</option>
+            <option>Melatonin</option>
+            <option>Antacid</option>
+          </select>
+          <button class="meds-prn-log-btn">Log</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOSING WINDOWS -->
+    <div>
+      <div class="meds-windows-label">Active Dosing Windows</div>
+
+      <!-- Within window — 2h since last dose, 6h to go -->
+      <div class="meds-window-card">
+        <div class="meds-window-top">
+          <div>
+            <span class="meds-window-name">Acetaminophen</span>
+            <span class="meds-window-dose">500mg</span>
+          </div>
+          <span class="meds-window-count">2 of 3 today</span>
+        </div>
+        <div class="meds-window-bar-wrap">
+          <div class="meds-window-bar" style="width: 25%"></div>
+        </div>
+        <div class="meds-window-next">
+          Taken 2h ago · <strong>next dose in 6h 00m</strong>
+        </div>
+      </div>
+
+      <!-- Past min interval — safe to take, faded -->
+      <div class="meds-window-card faded">
+        <div class="meds-window-top">
+          <div>
+            <span class="meds-window-name">Ibuprofen</span>
+            <span class="meds-window-dose">400mg</span>
+          </div>
+          <span class="meds-window-count">1 of 3 today</span>
+        </div>
+        <div class="meds-window-bar-wrap">
+          <div class="meds-window-bar" style="width: 92%"></div>
+        </div>
+        <div class="meds-window-next warn">
+          Taken 8h ago · <strong>safe to take again</strong>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- LOGGED TODAY -->
+    <div>
+      <button class="meds-logged-trigger" id="logged-trigger">
+        <span class="meds-logged-headline">8 Meds Logged Today</span>
+        <span class="meds-logged-chevron" id="logged-chevron">▾</span>
+      </button>
+
+      <div class="meds-logged-list hidden" id="logged-list">
+
+        <div class="meds-log-group-time">8:30am</div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Metformin</span>
+          <span class="meds-log-dose">500mg</span>
+          <span class="meds-log-type">AM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Lisinopril</span>
+          <span class="meds-log-dose">10mg</span>
+          <span class="meds-log-type">AM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Atorvastatin</span>
+          <span class="meds-log-dose">20mg</span>
+          <span class="meds-log-type">AM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+
+        <div class="meds-log-group-time">12:00pm</div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Vitamin D</span>
+          <span class="meds-log-dose">2000 IU</span>
+          <span class="meds-log-type">AM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+
+        <div class="meds-log-group-time">2:15pm</div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Acetaminophen</span>
+          <span class="meds-log-dose">500mg</span>
+          <span class="meds-log-type prn">PRN</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Ibuprofen</span>
+          <span class="meds-log-dose">400mg</span>
+          <span class="meds-log-type prn">PRN</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+
+        <div class="meds-log-group-time">6:00pm</div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Reminder Med A</span>
+          <span class="meds-log-dose">—</span>
+          <span class="meds-log-type" style="background:color-mix(in srgb,#4fc3f7 15%,transparent);color:#4fc3f7">REM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+        <div class="meds-log-entry">
+          <span class="meds-log-name">Reminder Med B</span>
+          <span class="meds-log-dose">—</span>
+          <span class="meds-log-type" style="background:color-mix(in srgb,#4fc3f7 15%,transparent);color:#4fc3f7">REM</span>
+          <button class="meds-log-edit">Edit</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- end .meds-body -->
+</div>
+
+<script>
+  // Collapsible section
+  const header = document.getElementById('section-header');
+  const body   = document.getElementById('meds-body');
+  const btn    = document.getElementById('collapse-btn');
+  header.addEventListener('click', () => {
+    const open = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', open);
+    btn.classList.toggle('open', !open);
+  });
+
+  // PRN panel toggle
+  const prnTrigger = document.getElementById('prn-trigger');
+  const prnPanel   = document.getElementById('prn-panel');
+  prnTrigger.addEventListener('click', () => {
+    const open = !prnPanel.classList.contains('hidden');
+    prnPanel.classList.toggle('hidden', open);
+    prnTrigger.classList.toggle('open', !open);
+  });
+
+  // Logged today toggle
+  const loggedTrigger = document.getElementById('logged-trigger');
+  const loggedList    = document.getElementById('logged-list');
+  const loggedChevron = document.getElementById('logged-chevron');
+  loggedTrigger.addEventListener('click', () => {
+    const open = !loggedList.classList.contains('hidden');
+    loggedList.classList.toggle('hidden', open);
+    loggedChevron.classList.toggle('open', !open);
+  });
+
+  // PM slot — demo pending state
+  const slotPm = document.getElementById('slot-pm');
+  let pmPending = false;
+  slotPm.addEventListener('click', () => {
+    if (!pmPending) {
+      slotPm.textContent = 'Confirm PM';
+      slotPm.style.background = 'var(--clr-accent-dim)';
+      slotPm.style.borderColor = 'var(--clr-accent)';
+      slotPm.style.color = 'var(--clr-text)';
+      pmPending = true;
+    } else {
+      // Simulate log
+      slotPm.outerHTML = `<button class="meds-slot-done" id="slot-pm-done">
+        <span class="meds-slot-check">✓</span>
+        PM
+        <span class="meds-slot-done-time">${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}</span>
+      </button>`;
+      document.getElementById('status-pip').className = 'meds-status-pip';
+    }
+  });
+
+  // AM slot — demo open edit
+  const slotAm = document.getElementById('slot-am');
+  slotAm.addEventListener('click', () => {
+    alert('→ Opens slot edit form (time, checkboxes, Delete button)');
+  });
+</script>
+</body>
+</html>
