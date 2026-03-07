@@ -682,5 +682,24 @@
     <button id="btn-reconnect" class="reconnect-banner__btn">Sign in again</button>
   </div>
 
+  <!-- Conflict modal — shown when Drive file was updated by another device -->
+  <div id="conflict-modal" class="conflict-modal" hidden aria-modal="true" role="dialog" aria-labelledby="conflict-title">
+    <div class="conflict-modal__card">
+      <h3 class="conflict-modal__title" id="conflict-title">Data Updated Elsewhere</h3>
+      <p class="conflict-modal__body">
+        This file was updated on another device since you opened the app here.
+        Your unsaved changes would overwrite that update.
+      </p>
+      <div class="conflict-modal__actions">
+        <button class="conflict-modal__btn conflict-modal__btn--reload" id="conflict-reload">
+          Reload latest
+        </button>
+        <button class="conflict-modal__btn conflict-modal__btn--force" id="conflict-force">
+          Keep my changes
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
