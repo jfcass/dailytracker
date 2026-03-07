@@ -3332,7 +3332,7 @@ button {
 }
 .health-delete-btn:hover { color: var(--clr-error); border-color: var(--clr-error); }
 
-/* Add button */
+/* Add button — ghost variant (default) */
 .health-add-btn {
   display:       block;
   width:         100%;
@@ -3353,6 +3353,22 @@ button {
   color:         var(--clr-accent);
   border-color:  var(--clr-accent);
 }
+
+/* Add button — solid filled variant (e.g. "Log symptom") */
+.health-add-btn--solid {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  margin:        8px 16px;
+  width:         calc(100% - 32px);
+}
+.health-add-btn--solid:hover {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border-color:  transparent;
+  opacity:       0.88;
+}
+.health-add-btn--solid:active { opacity: 0.75; }
 
 /* ── Health forms ─────────────────────────────────────────────────────────── */
 
@@ -7627,6 +7643,43 @@ button {
   justify-content: space-between;
 }
 .meds-slot-row--done:active { background: var(--clr-surface-2); }
+
+/* Pending-log time-confirm row */
+.meds-slot-row--pending {
+  flex-wrap:   wrap;
+  gap:         8px;
+  padding:     10px 16px;
+}
+.meds-slot-pending-label {
+  font-size:   0.88rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  flex-shrink: 0;
+}
+.meds-slot-pending-time {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  color:         var(--clr-text);
+  font-size:     0.88rem;
+  padding:       5px 8px;
+  flex-shrink:   0;
+}
+.meds-slot-pending-time:focus { border-color: var(--clr-accent); outline: none; }
+.meds-slot-confirm-btn {
+  padding:    6px 16px;
+  font-size:  0.85rem;
+}
+.meds-slot-cancel-btn {
+  background:    transparent;
+  border:        1px solid var(--clr-border);
+  border-radius: 16px;
+  color:         var(--clr-text-2);
+  font-size:     0.82rem;
+  padding:       6px 12px;
+  cursor:        pointer;
+}
+
 .meds-slot-done-label {
   font-size:   0.9rem;
   font-weight: 600;
@@ -7849,6 +7902,53 @@ button {
   font-size:  0.8rem;
   cursor:     pointer;
   text-decoration: underline;
+}
+
+/* Reminder: logged time button (tappable to edit) */
+.meds-reminder-time-done {
+  background:  none;
+  border:      none;
+  color:       var(--clr-accent);
+  font-size:   0.85rem;
+  font-weight: 500;
+  cursor:      pointer;
+  padding:     2px 0;
+  text-decoration: underline dotted;
+}
+
+/* Reminder: editing row */
+.meds-reminder-row--editing {
+  flex-wrap: wrap;
+  gap:       8px;
+  align-items: center;
+}
+.meds-reminder-time-input {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  padding:       5px 8px;
+}
+.meds-reminder-time-input:focus { border-color: var(--clr-accent); outline: none; }
+.meds-reminder-confirm-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 14px;
+  font-size:     0.8rem;
+  font-weight:   600;
+  padding:       5px 12px;
+  cursor:        pointer;
+}
+.meds-reminder-cancel-edit {
+  background:    none;
+  border:        1px solid var(--clr-border);
+  border-radius: 14px;
+  color:         var(--clr-text-2);
+  font-size:     0.78rem;
+  padding:       4px 10px;
+  cursor:        pointer;
 }
 
 /* Health Log: Medications link in header */

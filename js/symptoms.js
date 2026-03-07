@@ -292,16 +292,9 @@ const Symptoms = (() => {
       html += `<p class="section-empty">Nothing logged yet today.</p>`;
     }
 
-    // ── Quick-add field + detailed form button ──
+    // ── Log symptom button ──
     if (formMode === null && !pendingLinkSymptomId) {
-      html += `
-        <div class="symp-quick-add-row">
-          <input type="text" class="symp-quick-input" id="symp-quick-input"
-                 placeholder="Quick note a symptom…" aria-label="Quick add symptom"
-                 onkeydown="if(event.key==='Enter'){event.preventDefault();Symptoms._quickAddSymptom()}">
-          <button class="symp-quick-add-btn" onclick="Symptoms._quickAddSymptom()">Add</button>
-        </div>
-        <button class="health-add-btn symp-detailed-btn" onclick="Symptoms._startAdd()">+ Detailed entry</button>`;
+      html += `<button class="health-add-btn health-add-btn--solid" onclick="Symptoms._startAdd()">+ Log symptom</button>`;
     }
 
     el.innerHTML = html;

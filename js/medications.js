@@ -44,6 +44,14 @@ const Medications = (() => {
 
   let saveTimer     = null;
 
+  // Reminder edit state (time-input form before confirming + editing logged times)
+  let reminderEditId   = null;   // med id whose input row is open (null = none)
+  let reminderEditTime = '';     // HH:MM value in the input
+
+  // Slot pending-log state (time input shown before confirming the batch log)
+  let pendingLogSlot = null;     // 'am' | 'afternoon' | 'pm' | null
+  let pendingLogTime = '';       // HH:MM value in the input
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   function init() {
@@ -53,10 +61,12 @@ const Medications = (() => {
   }
 
   function setDate(date) {
-    currentDate   = date;
-    editSlot      = null;
-    prnFormOpen   = false;
-    prnEditDoseId = null;
+    currentDate      = date;
+    editSlot         = null;
+    pendingLogSlot   = null;
+    prnFormOpen      = false;
+    prnEditDoseId    = null;
+    reminderEditId   = null;
     render();
   }
 
@@ -97,14 +107,14 @@ const Medications = (() => {
       }
     });
 
+    // ── Med Reminders (above As-Needed) ──
+    if (reminderMeds.length) {
+      html += renderRemindersSection(reminderMeds, medRems);
+    }
+
     // ── PRN / As-Needed ──
     if (prnMeds.length) {
       html += renderPrnSection(prnMeds, dayData.prn_doses ?? []);
-    }
-
-    // ── Med Reminders ──
-    if (reminderMeds.length) {
-      html += renderRemindersSection(reminderMeds, medRems);
     }
 
     if (!html) {
@@ -121,6 +131,15 @@ const Medications = (() => {
   // ── Scheduled slot — not yet logged ───────────────────────────────────────
 
   function renderSlotButton(slot) {
+    if (pendingLogSlot === slot) {
+      return `<div class="meds-slot-row meds-slot-row--pending">
+        <span class="meds-slot-pending-label">${SLOT_LABELS[slot]}</span>
+        <input type="time" class="meds-slot-pending-time" id="meds-pending-time-${slot}"
+               value="${escHtml(pendingLogTime)}">
+        <button class="meds-slot-log-btn meds-slot-confirm-btn" data-confirm-log="${slot}">Log</button>
+        <button class="meds-slot-cancel-btn" data-cancel-log="${slot}">Cancel</button>
+      </div>`;
+    }
     return `<div class="meds-slot-row meds-slot-row--empty">
       <button class="meds-slot-log-btn" data-log-slot="${slot}">
         Log ${SLOT_LABELS[slot]}
@@ -141,7 +160,7 @@ const Medications = (() => {
     if (extraCount) meta += ` · ${extraCount} added`;
     return `<div class="meds-slot-row meds-slot-row--done" data-edit-slot="${slot}">
       <div class="meds-slot-done-label">${SLOT_LABELS[slot]}</div>
-      <div class="meds-slot-done-time">✓ ${escHtml(slotData.time)}${meta}</div>
+      <div class="meds-slot-done-time">✓ ${fmt12h(slotData.time)}${meta}</div>
     </div>`;
   }
 
@@ -370,13 +389,28 @@ const Medications = (() => {
   function renderRemindersSection(reminderMeds, medRems) {
     const rows = reminderMeds.map(m => {
       const timeTaken = medRems[m.id];
-      if (timeTaken) {
+
+      if (reminderEditId === m.id) {
+        // ── Time-input form (new log or editing existing) ──
+        return `<div class="meds-reminder-row meds-reminder-row--editing">
+          <span class="meds-reminder-name">${escHtml(m.name)}</span>
+          <input type="time" class="meds-reminder-time-input"
+                 id="rem-time-${escHtml(m.id)}"
+                 value="${escHtml(reminderEditTime)}">
+          <button class="meds-reminder-confirm-btn" data-reminder-confirm="${escHtml(m.id)}">✓ Save</button>
+          <button class="meds-reminder-cancel-edit" data-reminder-cancel-edit="${escHtml(m.id)}">Cancel</button>
+        </div>`;
+      } else if (timeTaken) {
+        // ── Logged — tap time to edit ──
         return `<div class="meds-reminder-row meds-reminder-row--done">
           <span class="meds-reminder-name">${escHtml(m.name)}</span>
-          <span class="meds-reminder-time">✓ ${escHtml(timeTaken)}</span>
+          <button class="meds-reminder-time-done" data-reminder-edit="${escHtml(m.id)}" title="Tap to edit time">
+            ✓ ${fmt12h(timeTaken)}
+          </button>
           <button class="meds-reminder-undo" data-reminder-undo="${escHtml(m.id)}">Undo</button>
         </div>`;
       } else {
+        // ── Not yet logged ──
         return `<div class="meds-reminder-row">
           <span class="meds-reminder-name">${escHtml(m.name)}</span>
           <button class="meds-reminder-btn" data-reminder-take="${escHtml(m.id)}">Mark taken</button>
@@ -392,9 +426,28 @@ const Medications = (() => {
   // ── Event wiring ───────────────────────────────────────────────────────────
 
   function wireEvents(el) {
-    // Log slot buttons
+    // Log slot buttons — open pending time-confirm form
     el.querySelectorAll('[data-log-slot]').forEach(btn => {
-      btn.addEventListener('click', () => logSlot(btn.dataset.logSlot));
+      btn.addEventListener('click', () => {
+        pendingLogSlot = btn.dataset.logSlot;
+        pendingLogTime = nowHHMM();
+        render();
+      });
+    });
+
+    // Pending-log: time input change
+    el.querySelectorAll('.meds-slot-pending-time').forEach(inp => {
+      inp.addEventListener('input', e => { pendingLogTime = e.target.value; });
+    });
+
+    // Pending-log: confirm
+    el.querySelectorAll('[data-confirm-log]').forEach(btn => {
+      btn.addEventListener('click', () => logSlot(btn.dataset.confirmLog, pendingLogTime || nowHHMM()));
+    });
+
+    // Pending-log: cancel
+    el.querySelectorAll('[data-cancel-log]').forEach(btn => {
+      btn.addEventListener('click', () => { pendingLogSlot = null; render(); });
     });
 
     // Tap logged slot to edit
@@ -474,10 +527,41 @@ const Medications = (() => {
       el.querySelector('#prn-f-submit')?.addEventListener('click', submitPrnLog);
     }
 
-    // Reminder buttons
+    // Reminder: "Mark taken" → open time-input form defaulting to now
     el.querySelectorAll('[data-reminder-take]').forEach(btn => {
-      btn.addEventListener('click', () => markReminderTaken(btn.dataset.reminderTake));
+      btn.addEventListener('click', () => {
+        reminderEditId   = btn.dataset.reminderTake;
+        reminderEditTime = nowHHMM();
+        render();
+      });
     });
+
+    // Reminder: tap logged time to edit
+    el.querySelectorAll('[data-reminder-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mid = btn.dataset.reminderEdit;
+        reminderEditId   = mid;
+        reminderEditTime = (Data.getDay(currentDate).med_reminders ?? {})[mid] ?? nowHHMM();
+        render();
+      });
+    });
+
+    // Reminder: time-input change
+    el.querySelectorAll('.meds-reminder-time-input').forEach(inp => {
+      inp.addEventListener('input', e => { reminderEditTime = e.target.value; });
+    });
+
+    // Reminder: confirm (save)
+    el.querySelectorAll('[data-reminder-confirm]').forEach(btn => {
+      btn.addEventListener('click', () => saveReminder(btn.dataset.reminderConfirm));
+    });
+
+    // Reminder: cancel edit
+    el.querySelectorAll('[data-reminder-cancel-edit]').forEach(btn => {
+      btn.addEventListener('click', () => { reminderEditId = null; render(); });
+    });
+
+    // Reminder: undo
     el.querySelectorAll('[data-reminder-undo]').forEach(btn => {
       btn.addEventListener('click', () => undoReminder(btn.dataset.reminderUndo));
     });
@@ -485,12 +569,12 @@ const Medications = (() => {
 
   // ── Slot actions ───────────────────────────────────────────────────────────
 
-  function logSlot(slot) {
-    const now = new Date();
-    const t   = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  function logSlot(slot, time) {
+    const t   = time || nowHHMM();
     const day = Data.getDay(currentDate);
     if (!day.med_slots) day.med_slots = defaultSlots();
     day.med_slots[slot] = { time: t, skipped: [], extras: [] };
+    pendingLogSlot = null;
     scheduleSave();
     render();
   }
@@ -498,12 +582,13 @@ const Medications = (() => {
   function openSlotEdit(slot) {
     const day      = Data.getDay(currentDate);
     const slotData = (day.med_slots ?? defaultSlots())[slot] ?? { time: null, skipped: [], extras: [] };
-    editSlot     = slot;
-    editTime     = slotData.time ?? nowHHMM();
-    editSkipped  = [...(slotData.skipped ?? [])];
-    editExtras   = [...(slotData.extras  ?? [])];
+    editSlot       = slot;
+    editTime       = slotData.time ?? nowHHMM();
+    editSkipped    = [...(slotData.skipped ?? [])];
+    editExtras     = [...(slotData.extras  ?? [])];
     editExtraMedId = '';
     editExtraDose  = '';
+    pendingLogSlot = null;   // close pending form if open
     render();
   }
 
@@ -590,10 +675,12 @@ const Medications = (() => {
 
   // ── Reminder actions ───────────────────────────────────────────────────────
 
-  function markReminderTaken(medId) {
+  function saveReminder(medId) {
+    if (!reminderEditTime) return;
     const day = Data.getDay(currentDate);
     if (!day.med_reminders) day.med_reminders = {};
-    day.med_reminders[medId] = nowHHMM();
+    day.med_reminders[medId] = reminderEditTime;
+    reminderEditId = null;
     scheduleSave();
     render();
   }
@@ -673,6 +760,16 @@ const Medications = (() => {
     if (h > 0 && r > 0) return `${h}h ${r}m`;
     if (h > 0)           return `${h}h`;
     return `${r}m`;
+  }
+
+  /** Convert "HH:MM" (24h) → "h:MMam/pm" for display */
+  function fmt12h(hhmm) {
+    if (!hhmm) return '';
+    const [h, m] = hhmm.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return hhmm;
+    const ampm = h >= 12 ? 'pm' : 'am';
+    const h12  = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
   }
 
   function shiftDate(dateStr, days) {
