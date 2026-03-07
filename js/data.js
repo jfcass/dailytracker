@@ -41,6 +41,10 @@ const Data = (() => {
   let fileId = null;
   let data   = null;
 
+  let lastKnownModifiedTime = null;   // ISO string from Drive; null until first load
+  let lastConflictCheckAt   = 0;      // epoch ms; throttles the pre-save metadata fetch
+  const CONFLICT_CHECK_INTERVAL_MS = 60_000;  // check at most once per minute
+
   // ── Drive helpers ────────────────────────────────────────────────────────────
 
   async function driveGet(path, params = {}) {
@@ -60,11 +64,13 @@ const Data = (() => {
   async function findFile() {
     const res  = await driveGet('/files', {
       q:      `name='${CONFIG.DATA_FILE_NAME}' and trashed=false`,
-      fields: 'files(id)',
+      fields: 'files(id,modifiedTime)',
       spaces: 'drive',
     });
     const json = await res.json();
-    return json.files?.[0]?.id ?? null;
+    const file = json.files?.[0];
+    if (file?.modifiedTime) lastKnownModifiedTime = file.modifiedTime;
+    return file?.id ?? null;
   }
 
   async function readFile(id) {
@@ -87,21 +93,24 @@ const Data = (() => {
     form.append('media',    new Blob([body],     { type: 'application/json' }));
 
     if (!fileId) {
-      // Create new file
+      // Create new file — get back id + modifiedTime
       const res = await fetch(
-        `${CONFIG.DRIVE_UPLOAD}/files?uploadType=multipart&fields=id`,
+        `${CONFIG.DRIVE_UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime`,
         { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }
       );
       if (!res.ok) throw new Error(`Drive create failed: ${res.status}`);
       const json = await res.json();
       fileId = json.id;
+      if (json.modifiedTime) lastKnownModifiedTime = json.modifiedTime;
     } else {
-      // Update existing file
+      // Update existing file — get back modifiedTime
       const res = await fetch(
-        `${CONFIG.DRIVE_UPLOAD}/files/${fileId}?uploadType=multipart`,
+        `${CONFIG.DRIVE_UPLOAD}/files/${fileId}?uploadType=multipart&fields=modifiedTime`,
         { method: 'PATCH', headers: { Authorization: `Bearer ${token}` }, body: form }
       );
       if (!res.ok) throw new Error(`Drive update failed: ${res.status}`);
+      const json = await res.json();
+      if (json.modifiedTime) lastKnownModifiedTime = json.modifiedTime;
     }
   }
 
