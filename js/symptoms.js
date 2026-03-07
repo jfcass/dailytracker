@@ -1157,6 +1157,7 @@ const Symptoms = (() => {
   function _deleteSymptomByDate(id, dt)    { deleteSymptomByDate(id, dt); }
   function _openIssueFromHealthLog(id, dt) { openIssueFromHealthLog(id, dt); }
   function _openNewIssueFromHealthLog()    { openNewIssueFromHealthLog(); }
+  function _quickNewIssue()               { quickNewIssue(); }
   function _startIssEdit(id)             { startIssEdit(id); }
   function _cancelIssEdit()              { cancelIssEdit(); }
   function _saveIssEdit(id)              { saveIssEdit(id); }
