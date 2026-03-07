@@ -227,11 +227,117 @@ const Medications = (() => {
     }).join('');
   }
 
-  // ── Zone 2: PRN trigger (stub — filled in Task 3) ─────────────────────────
-  function renderPrnTrigger(prnMeds, prnDoses) { return ''; }
+  // ── Zone 2: PRN trigger + collapsible panel ───────────────────────────────
 
-  // ── Zone 3: Dosing Windows (stub — filled in Task 3) ─────────────────────
-  function renderDosingWindows(windowMeds, prnDoses) { return ''; }
+  function renderPrnTrigger(prnMeds, prnDoses) {
+    // Quick-pick: up to 5 most-recently-used PRN meds in last 7 days
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recentIds = [...prnDoses]
+      .filter(d => new Date(d.iso_timestamp).getTime() > sevenDaysAgo)
+      .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp))
+      .map(d => d.medication_id)
+      .filter((id, i, arr) => arr.indexOf(id) === i)
+      .slice(0, 5);
+
+    const quickPick = recentIds.map(id => prnMeds.find(m => m.id === id)).filter(Boolean);
+    const otherMeds = prnMeds.filter(m => !recentIds.includes(m.id));
+
+    const quickChips = quickPick.map(m =>
+      `<button class="meds-prn-chip" data-prn-quick="${escHtml(m.id)}">${escHtml(m.name)}</button>`
+    ).join('');
+
+    const otherOpts = otherMeds.map(m =>
+      `<option value="${escHtml(m.id)}">${escHtml(m.name)}</option>`
+    ).join('');
+
+    const panelHtml = prnPanelOpen ? `
+      <div class="meds-prn-panel">
+        ${quickChips ? `<div class="meds-prn-quick">${quickChips}</div>` : ''}
+        ${otherMeds.length ? `
+          <div class="meds-prn-other">
+            <select class="meds-prn-select" id="meds-prn-other-select">
+              <option value="">Other med…</option>${otherOpts}
+            </select>
+            <button class="meds-prn-log-btn" id="meds-prn-other-log">Log</button>
+          </div>` : ''}
+      </div>` : '';
+
+    return `
+      <button class="meds-prn-trigger ${prnPanelOpen ? 'meds-prn-trigger--open' : ''}" id="meds-prn-trigger">
+        <span class="meds-prn-plus">＋</span>
+        Log as-needed med
+      </button>
+      ${panelHtml}`;
+  }
+
+  // ── Zone 3: Active Dosing Windows ─────────────────────────────────────────
+
+  function renderDosingWindows(windowMeds, prnDoses) {
+    const now       = Date.now();
+    const cutoff24h = now - 24 * 60 * 60 * 1000;
+
+    const cards = windowMeds.map(m => {
+      // Most recent dose of this med within 24h
+      const dose = [...prnDoses]
+        .filter(d => d.medication_id === m.id)
+        .filter(d => new Date(d.iso_timestamp).getTime() > cutoff24h)
+        .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp))[0];
+      if (!dose) return '';
+
+      const takenMs    = new Date(dose.iso_timestamp).getTime();
+      const elapsedMs  = now - takenMs;
+      const intervalMs = (m.min_interval_hours ?? 0) * 60 * 60 * 1000;
+
+      const today      = Data.today();
+      const todayStart = new Date(today + 'T00:00:00').getTime();
+      const dosesToday = prnDoses.filter(d =>
+        d.medication_id === m.id && new Date(d.iso_timestamp).getTime() >= todayStart
+      ).length;
+
+      const maxReached      = m.max_daily_doses && dosesToday >= m.max_daily_doses;
+      const intervalElapsed = !intervalMs || elapsedMs >= intervalMs;
+      const progress        = intervalMs ? Math.min(elapsedMs / intervalMs, 1) : 1;
+
+      const elapsedH  = Math.floor(elapsedMs / 3_600_000);
+      const elapsedM  = Math.floor((elapsedMs % 3_600_000) / 60_000);
+      const takenAgo  = elapsedH > 0 ? `${elapsedH}h ${elapsedM}m ago` : `${elapsedM}m ago`;
+
+      let nextText, nextClass;
+      if (maxReached) {
+        nextText  = 'max doses reached today';
+        nextClass = 'meds-window-next--error';
+      } else if (intervalElapsed) {
+        nextText  = 'safe to take again';
+        nextClass = 'meds-window-next--safe';
+      } else {
+        const remMs = intervalMs - elapsedMs;
+        const remH  = Math.floor(remMs / 3_600_000);
+        const remM  = Math.floor((remMs % 3_600_000) / 60_000);
+        nextText  = `next dose in ${remH}h ${String(remM).padStart(2, '0')}m`;
+        nextClass = '';
+      }
+
+      const barClass   = maxReached ? 'meds-window-bar--error' : '';
+      const cardFaded  = intervalElapsed ? 'meds-window-card--faded' : '';
+      const countLabel = m.max_daily_doses ? `${dosesToday} of ${m.max_daily_doses} today` : `${dosesToday} today`;
+
+      return `
+        <div class="meds-window-card ${cardFaded}">
+          <div class="meds-window-top">
+            <span class="meds-window-name">${escHtml(m.name)}</span>
+            ${dose.dose ? `<span class="meds-window-dose">${escHtml(dose.dose)}</span>` : ''}
+            <span class="meds-window-count">${countLabel}</span>
+          </div>
+          <div class="meds-window-bar-wrap">
+            <div class="meds-window-bar ${barClass}" style="width:${Math.round(progress * 100)}%"></div>
+          </div>
+          <div class="meds-window-next ${nextClass}">Taken ${takenAgo} · ${nextText}</div>
+        </div>`;
+    }).filter(Boolean).join('');
+
+    if (!cards) return '';
+    return `<div class="meds-windows-label">Active Dosing Windows</div>${cards}`;
+  }
 
   // ── Zone 4: Logged Today (stub — filled in Task 4) ───────────────────────
   function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) { return ''; }

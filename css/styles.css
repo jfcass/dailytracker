@@ -7982,6 +7982,108 @@ button {
 }
 .meds-all-done-check { color: var(--clr-accent); }
 
+/* ── Zone 2: PRN trigger ── */
+.meds-prn-trigger {
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1.5px dashed var(--clr-border);
+  border-radius: 8px;
+  color: var(--clr-text-2);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.meds-prn-trigger--open,
+.meds-prn-trigger:hover {
+  border-style: solid;
+  border-color: var(--clr-accent);
+  color: var(--clr-text);
+}
+.meds-prn-plus { font-size: 1rem; color: var(--clr-accent); }
+.meds-prn-panel {
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.meds-prn-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.meds-prn-chip {
+  padding: 6px 12px;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: 20px;
+  color: var(--clr-text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.meds-prn-chip:active { background: var(--clr-accent-dim); border-color: var(--clr-accent); }
+.meds-prn-other { display: flex; gap: 8px; }
+.meds-prn-select {
+  flex: 1;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  color: var(--clr-text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 7px 10px;
+}
+.meds-prn-log-btn {
+  padding: 7px 14px;
+  background: var(--clr-accent);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── Zone 3: Dosing Windows ── */
+.meds-windows-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clr-text-2);
+  margin-bottom: 8px;
+}
+.meds-window-card {
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: opacity 0.3s;
+}
+.meds-window-card + .meds-window-card { margin-top: 6px; }
+.meds-window-card--faded { opacity: 0.4; }
+.meds-window-top { display: flex; align-items: baseline; gap: 6px; }
+.meds-window-name  { font-size: 0.9rem; font-weight: 600; }
+.meds-window-dose  { font-size: 0.78rem; color: var(--clr-text-2); }
+.meds-window-count { font-size: 0.75rem; color: var(--clr-text-2); margin-left: auto; white-space: nowrap; }
+.meds-window-bar-wrap { height: 4px; background: var(--clr-border); border-radius: 2px; overflow: hidden; }
+.meds-window-bar { height: 100%; border-radius: 2px; background: var(--clr-ok, #66bb6a); transition: width 0.4s; }
+.meds-window-bar--error { background: var(--clr-error); }
+.meds-window-next { font-size: 0.78rem; color: var(--clr-text-2); }
+.meds-window-next--safe  { color: var(--clr-accent); font-weight: 600; }
+.meds-window-next--error { color: var(--clr-error);  font-weight: 600; }
+
 .meds-slot-edit-actions {
   display:         flex;
   justify-content: flex-end;
