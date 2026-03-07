@@ -7599,6 +7599,102 @@ button {
   cursor:        pointer;
 }
 
+/* Grouped list */
+.mmg-group { border-bottom: 1px solid var(--clr-border); }
+.mmg-group-header {
+  display:         flex;
+  align-items:     center;
+  gap:             8px;
+  width:           100%;
+  background:      none;
+  border:          none;
+  padding:         11px 16px;
+  cursor:          pointer;
+  text-align:      left;
+  -webkit-tap-highlight-color: transparent;
+}
+.mmg-group-header:active { background: var(--clr-surface-2); }
+.mmg-group-chevron {
+  font-size:  0.75rem;
+  color:      var(--clr-text-2);
+  flex-shrink: 0;
+}
+.mmg-group-name {
+  font-size:   0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color:       var(--clr-text-2);
+  flex:        1;
+}
+.mmg-group-count {
+  font-size:  0.75rem;
+  color:      var(--clr-text-2);
+  background: var(--clr-surface-2);
+  border:     1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:    1px 7px;
+}
+.mmg-group-body { /* no extra padding — med rows have their own */ }
+
+/* Dose chip tag input */
+.mmg-field-hint {
+  font-size:  0.78rem;
+  color:      var(--clr-text-2);
+  margin:     2px 0 8px;
+}
+.mmg-dose-tags {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+  margin:    0 0 8px;
+  min-height: 0;
+}
+.mmg-dose-tag {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  padding:       4px 8px 4px 10px;
+  background:    var(--clr-accent-dim);
+  border:        1px solid var(--clr-accent);
+  border-radius: 20px;
+  font-size:     0.82rem;
+  color:         var(--clr-accent);
+  font-weight:   500;
+}
+.mmg-dose-tag-del {
+  background:  none;
+  border:      none;
+  color:       var(--clr-accent);
+  font-size:   1rem;
+  line-height: 1;
+  padding:     0;
+  cursor:      pointer;
+  opacity:     0.7;
+}
+.mmg-dose-tag-del:hover { opacity: 1; }
+.mmg-dose-input-row {
+  display:    flex;
+  gap:        8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.mmg-dose-input-row .mmg-dose-input {
+  flex:       1;
+  margin:     0;
+}
+.mmg-dose-add-btn {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  font-size:     0.85rem;
+  padding:       8px 14px;
+  cursor:        pointer;
+  white-space:   nowrap;
+  flex-shrink:   0;
+}
+.mmg-dose-add-btn:active { background: var(--clr-accent-dim); border-color: var(--clr-accent); }
+
 /* ── Today Tab: Medications Section ────────────────────────────────────────── */
 .meds-empty {
   padding:    16px;

@@ -12,6 +12,22 @@ const MedsManage = (() => {
   let _editId      = null;      // med id currently being edited, null = list view
   let _showArchive = false;     // show archived meds toggle
 
+  // Dose chip editing state
+  let _editDoses      = [];     // doses[] being built in the edit form
+  let _editDosesForId = null;   // tracks which _editId the doses were loaded for
+
+  // Collapsible group state (Set of group keys that are collapsed)
+  let _collapsedGroups = new Set();
+
+  // Group definitions for list view
+  const GROUPS = [
+    { key: 'am',        label: 'AM',         test: m => (m.slots ?? []).includes('am') },
+    { key: 'afternoon', label: 'Afternoon',   test: m => (m.slots ?? []).includes('afternoon') },
+    { key: 'pm',        label: 'PM',          test: m => (m.slots ?? []).includes('pm') },
+    { key: 'as_needed', label: 'As Needed',   test: m => !!m.as_needed },
+    { key: 'reminder',  label: 'Reminders',   test: m => !!m.med_reminder && !(m.slots ?? []).length && !m.as_needed },
+  ];
+
   // ── Open / Close ──────────────────────────────────────────────────────────
 
   function open(returnTab = 'today') {
@@ -41,27 +57,42 @@ const MedsManage = (() => {
   function render() {
     const content = document.getElementById('view-meds-manage-content');
     if (!content) return;
+
+    // Initialise dose list when first entering a specific edit form
+    if (_editId) {
+      if (_editId !== _editDosesForId) {
+        const med = _editId === '__new__' ? {} : (getAllMeds().find(m => m.id === _editId) ?? {});
+        _editDoses      = [...(med.doses ?? [])];
+        _editDosesForId = _editId;
+      }
+    } else {
+      _editDosesForId = null;
+      _editDoses      = [];
+    }
+
     content.innerHTML = _editId ? renderEditForm() : renderList();
     wireEvents();
   }
 
+  // ── List view ─────────────────────────────────────────────────────────────
+
   function renderList() {
-    const meds = getAllMeds();
+    const meds     = getAllMeds();
     const active   = meds.filter(m => m.active);
     const archived = meds.filter(m => !m.active);
 
     const medRow = m => {
       const chips = [];
-      if (m.slots?.includes('am'))        chips.push(`AM${m.slot_doses?.am ? ' · ' + escHtml(m.slot_doses.am) : ''}`);
-      if (m.slots?.includes('afternoon')) chips.push(`Afternoon${m.slot_doses?.afternoon ? ' · ' + escHtml(m.slot_doses.afternoon) : ''}`);
-      if (m.slots?.includes('pm'))        chips.push(`PM${m.slot_doses?.pm ? ' · ' + escHtml(m.slot_doses.pm) : ''}`);
+      if ((m.slots ?? []).includes('am'))        chips.push(`AM${m.slot_doses?.am ? ' · ' + escHtml(m.slot_doses.am) : ''}`);
+      if ((m.slots ?? []).includes('afternoon')) chips.push(`Afternoon${m.slot_doses?.afternoon ? ' · ' + escHtml(m.slot_doses.afternoon) : ''}`);
+      if ((m.slots ?? []).includes('pm'))        chips.push(`PM${m.slot_doses?.pm ? ' · ' + escHtml(m.slot_doses.pm) : ''}`);
       if (m.as_needed) {
         let prn = 'As Needed';
         if (m.min_interval_hours) prn += ` · ${m.min_interval_hours}h interval`;
         if (m.max_daily_doses)    prn += ` · max ${m.max_daily_doses}/day`;
         chips.push(prn);
       }
-      if (m.med_reminder)         chips.push('Reminder');
+      if (m.med_reminder) chips.push('Reminder');
 
       return `<div class="mmg-med-row" data-med-id="${escHtml(m.id)}">
         <div class="mmg-med-name">${escHtml(m.name)}</div>
@@ -69,9 +100,42 @@ const MedsManage = (() => {
       </div>`;
     };
 
-    let html = active.map(medRow).join('');
+    let html = '';
+
     if (!active.length) {
       html = `<p class="mmg-empty">No medications configured yet. Tap + Add to get started.</p>`;
+    } else {
+      // Render each group
+      const assignedIds = new Set();
+
+      GROUPS.forEach(({ key, label, test }) => {
+        const groupMeds = active.filter(test).sort((a, b) => a.name.localeCompare(b.name));
+        if (!groupMeds.length) return;
+        groupMeds.forEach(m => assignedIds.add(m.id));
+        const collapsed = _collapsedGroups.has(key);
+        html += `<div class="mmg-group">
+          <button class="mmg-group-header" data-toggle-group="${escHtml(key)}">
+            <span class="mmg-group-chevron">${collapsed ? '▸' : '▾'}</span>
+            <span class="mmg-group-name">${label}</span>
+            <span class="mmg-group-count">${groupMeds.length}</span>
+          </button>
+          ${collapsed ? '' : `<div class="mmg-group-body">${groupMeds.map(medRow).join('')}</div>`}
+        </div>`;
+      });
+
+      // Uncategorised meds (no slot, no as_needed, no reminder)
+      const uncat = active.filter(m => !assignedIds.has(m.id)).sort((a, b) => a.name.localeCompare(b.name));
+      if (uncat.length) {
+        const collapsed = _collapsedGroups.has('_other');
+        html += `<div class="mmg-group">
+          <button class="mmg-group-header" data-toggle-group="_other">
+            <span class="mmg-group-chevron">${collapsed ? '▸' : '▾'}</span>
+            <span class="mmg-group-name">Other</span>
+            <span class="mmg-group-count">${uncat.length}</span>
+          </button>
+          ${collapsed ? '' : `<div class="mmg-group-body">${uncat.map(medRow).join('')}</div>`}
+        </div>`;
+      }
     }
 
     if (archived.length) {
@@ -79,18 +143,31 @@ const MedsManage = (() => {
         ${_showArchive ? '▾' : '▸'} Archived (${archived.length})
       </button>`;
       if (_showArchive) {
-        html += `<div class="mmg-archived">${archived.map(medRow).join('')}</div>`;
+        html += `<div class="mmg-archived">${archived.map(m => {
+          const chips = [];
+          if ((m.slots ?? []).includes('am'))        chips.push('AM');
+          if ((m.slots ?? []).includes('afternoon')) chips.push('Afternoon');
+          if ((m.slots ?? []).includes('pm'))        chips.push('PM');
+          if (m.as_needed)   chips.push('As Needed');
+          if (m.med_reminder) chips.push('Reminder');
+          return `<div class="mmg-med-row" data-med-id="${escHtml(m.id)}">
+            <div class="mmg-med-name">${escHtml(m.name)}</div>
+            <div class="mmg-med-chips">${chips.map(c => `<span class="mmg-chip">${c}</span>`).join('')}</div>
+          </div>`;
+        }).join('')}</div>`;
       }
     }
 
     return html;
   }
 
+  // ── Edit form ─────────────────────────────────────────────────────────────
+
   function renderEditForm() {
     const isNew = _editId === '__new__';
     const med = isNew ? {} : (getAllMeds().find(m => m.id === _editId) ?? {});
 
-    const slots = med.slots ?? [];
+    const slots     = med.slots     ?? [];
     const slotDoses = med.slot_doses ?? {};
 
     const slotRow = (key, label) => `
@@ -105,6 +182,11 @@ const MedsManage = (() => {
         <input type="text" class="mmg-text-input" id="mmg-dose-${key}"
                value="${escHtml(slotDoses[key] ?? '')}" placeholder="e.g. 500mg" maxlength="40">
       </div>`;
+
+    // Dose option chips
+    const doseChips = _editDoses.map((d, i) =>
+      `<span class="mmg-dose-tag">${escHtml(d)}<button class="mmg-dose-tag-del" data-dose-idx="${i}" type="button" aria-label="Remove ${escHtml(d)}">×</button></span>`
+    ).join('');
 
     return `
       <div class="mmg-form">
@@ -132,6 +214,15 @@ const MedsManage = (() => {
           <label class="mmg-field-label" for="mmg-max-doses">Max daily doses (blank = no limit)</label>
           <input type="number" class="mmg-text-input" id="mmg-max-doses" min="1" step="1"
                  value="${med.max_daily_doses ?? ''}" placeholder="e.g. 3">
+        </div>
+
+        <div class="mmg-section-label">Dose Options</div>
+        <p class="mmg-field-hint">Available doses shown as quick-pick chips when logging</p>
+        <div class="mmg-dose-tags" id="mmg-dose-tags">${doseChips}</div>
+        <div class="mmg-dose-input-row">
+          <input type="text" class="mmg-text-input mmg-dose-input" id="mmg-dose-input"
+                 placeholder="e.g. 400mg" maxlength="30">
+          <button class="mmg-dose-add-btn" id="mmg-dose-add-btn" type="button">Add</button>
         </div>
 
         <div class="mmg-section-label">Other</div>
@@ -168,6 +259,16 @@ const MedsManage = (() => {
       row.addEventListener('click', () => { _editId = row.dataset.medId; render(); });
     });
 
+    // List: group header toggle collapse
+    content.querySelectorAll('[data-toggle-group]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.toggleGroup;
+        if (_collapsedGroups.has(key)) _collapsedGroups.delete(key);
+        else _collapsedGroups.add(key);
+        render();
+      });
+    });
+
     // Archive toggle
     content.querySelector('#mmg-archive-toggle')?.addEventListener('click', () => {
       _showArchive = !_showArchive;
@@ -191,6 +292,32 @@ const MedsManage = (() => {
     // Form: as-needed toggle shows PRN fields
     content.querySelector('#mmg-as-needed')?.addEventListener('change', e => {
       document.getElementById('mmg-prn-fields')?.classList.toggle('mmg-slot-dose-row--hidden', !e.target.checked);
+    });
+
+    // Form: dose chip removal
+    content.querySelectorAll('[data-dose-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.doseIdx, 10);
+        if (!isNaN(idx)) {
+          _editDoses.splice(idx, 1);
+          render();
+        }
+      });
+    });
+
+    // Form: dose add (button + Enter key)
+    const doseInput  = content.querySelector('#mmg-dose-input');
+    const doseAddBtn = content.querySelector('#mmg-dose-add-btn');
+    const addDose = () => {
+      const val = doseInput?.value.trim();
+      if (val && !_editDoses.includes(val)) {
+        _editDoses.push(val);
+        render();
+      }
+    };
+    doseAddBtn?.addEventListener('click', addDose);
+    doseInput?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addDose(); }
     });
 
     // Form: save
@@ -217,14 +344,15 @@ const MedsManage = (() => {
       }
     });
 
-    const asNeeded   = content.querySelector('#mmg-as-needed')?.checked ?? false;
-    const interval   = parseFloat(content.querySelector('#mmg-interval')?.value) || null;
-    const maxDoses   = parseInt(content.querySelector('#mmg-max-doses')?.value, 10) || null;
-    const reminder   = content.querySelector('#mmg-reminder')?.checked ?? false;
-    const recDose    = content.querySelector('#mmg-rec-dose')?.value.trim() ?? '';
-    const notes      = content.querySelector('#mmg-notes')?.value.trim() ?? '';
+    const asNeeded = content.querySelector('#mmg-as-needed')?.checked ?? false;
+    const interval = parseFloat(content.querySelector('#mmg-interval')?.value) || null;
+    const maxDoses = parseInt(content.querySelector('#mmg-max-doses')?.value, 10) || null;
+    const reminder = content.querySelector('#mmg-reminder')?.checked ?? false;
+    const recDose  = content.querySelector('#mmg-rec-dose')?.value.trim() ?? '';
+    const notes    = content.querySelector('#mmg-notes')?.value.trim() ?? '';
+    const doses    = [..._editDoses];
 
-    const meds = Data.getData().medications ?? (Data.getData().medications = {});
+    const meds  = Data.getData().medications ?? (Data.getData().medications = {});
     const isNew = _editId === '__new__';
 
     if (isNew) {
@@ -232,14 +360,14 @@ const MedsManage = (() => {
       meds[id] = { id, name, active: true, slots, slot_doses: slotDoses,
                    as_needed: asNeeded, min_interval_hours: interval,
                    max_daily_doses: maxDoses, med_reminder: reminder,
-                   recommended_dose: recDose, notes };
+                   doses, recommended_dose: recDose, notes };
     } else {
       const med = meds[_editId];
       if (med) {
         Object.assign(med, { name, slots, slot_doses: slotDoses,
           as_needed: asNeeded, min_interval_hours: interval,
           max_daily_doses: maxDoses, med_reminder: reminder,
-          recommended_dose: recDose, notes });
+          doses, recommended_dose: recDose, notes });
       }
     }
 
