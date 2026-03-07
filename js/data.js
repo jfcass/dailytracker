@@ -355,6 +355,12 @@ const Data = (() => {
         note:              '',
         tags:              [],
         prn_doses:         [],
+        med_slots: {
+          am:        { time: null, skipped: [], extras: [] },
+          afternoon: { time: null, skipped: [], extras: [] },
+          pm:        { time: null, skipped: [], extras: [] },
+        },
+        med_reminders: {},
       };
     }
     return data.days[dateStr];
