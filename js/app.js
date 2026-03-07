@@ -154,6 +154,37 @@ const App = (() => {
     applyCollapsedState();
     applyVisibility();
     initSwipe();
+
+    // Conflict detection — fired by Data.save() when Drive file was updated elsewhere
+    document.addEventListener('ht-data-conflict', showConflictModal);
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !document.getElementById('conflict-modal')?.hidden) {
+        hideConflictModal();
+      }
+    });
+
+    // "Reload latest" — fetch fresh data from Drive and re-render
+    document.getElementById('conflict-reload')?.addEventListener('click', async () => {
+      hideConflictModal();
+      try {
+        await Data.load();
+        reRenderAll();
+      } catch (err) {
+        console.error('Conflict reload failed:', err);
+      }
+    });
+
+    // "Keep my changes" — force-save local data, accepting that other device's changes are lost
+    document.getElementById('conflict-force')?.addEventListener('click', async () => {
+      hideConflictModal();
+      try {
+        await Data.forceSave();
+      } catch (err) {
+        console.error('Force save failed:', err);
+      }
+    });
   }
 
   // ── Section visibility (show/hide in settings) ───────────────────────────────
@@ -182,6 +213,23 @@ const App = (() => {
       if (btn) btn.hidden = hidden.has(`tab-${tab}`);
       if (hidden.has(`tab-${tab}`) && currentTab === tab) switchTab('today');
     });
+  }
+
+  /** Re-renders all today-tab sections after a data reload */
+  function reRenderAll() {
+    const date = DateNav.getDate();
+    // setDate() on each module re-renders it with the current in-memory data
+    Weather.setDate(date);
+    Mood.setDate(date);
+    Habits.setDate(date);
+    Moderation.setDate(date);
+    Symptoms.setDate(date);
+    Medications.setDate(date);
+    Bowel.setDate(date);
+    Gratitudes.setDate(date);
+    if (typeof Books !== 'undefined') Books.setDate(date);
+    // Force re-render of whatever tab is active
+    switchTab(currentTab, false);
   }
 
   // ── Swipe-to-navigate ────────────────────────────────────────────────────────
@@ -332,6 +380,20 @@ const App = (() => {
     if (banner) banner.hidden = true;
   }
 
+  function showConflictModal() {
+    const modal = document.getElementById('conflict-modal');
+    if (modal) {
+      modal.hidden = false;
+      // Move focus to the first action button for keyboard accessibility
+      modal.querySelector('#conflict-reload')?.focus();
+    }
+  }
+
+  function hideConflictModal() {
+    const modal = document.getElementById('conflict-modal');
+    if (modal) modal.hidden = true;
+  }
+
   function handleReconnect() {
     hideReconnectBanner();
     Auth.startSignIn();
@@ -356,7 +418,7 @@ const App = (() => {
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
-  return { init, showScreen, showMain, switchTab, toggleSection, applyVisibility, showReconnectBanner };
+  return { init, showScreen, showMain, switchTab, toggleSection, applyVisibility, showReconnectBanner, reRenderAll };
 })();
 
 // Kick off on DOM ready
