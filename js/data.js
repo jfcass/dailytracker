@@ -114,6 +114,13 @@ const Data = (() => {
     }
   }
 
+  async function getServerModifiedTime() {
+    if (!fileId) return null;
+    const res  = await driveGet(`/files/${fileId}`, { fields: 'modifiedTime' });
+    const json = await res.json();
+    return json.modifiedTime ?? null;
+  }
+
   // ── Schema migration / merge ─────────────────────────────────────────────────
 
   function mergeWithDefaults(loaded) {
@@ -285,6 +292,20 @@ const Data = (() => {
   async function save() {
     if (!data) return;
     try {
+      // Rate-limited conflict check: only if we know the file and have a baseline time
+      if (fileId && lastKnownModifiedTime) {
+        const now = Date.now();
+        if (now - lastConflictCheckAt >= CONFLICT_CHECK_INTERVAL_MS) {
+          lastConflictCheckAt = now;
+          const serverTime = await getServerModifiedTime();
+          if (serverTime && serverTime !== lastKnownModifiedTime) {
+            document.dispatchEvent(new CustomEvent('ht-data-conflict', {
+              detail: { serverTime, ourTime: lastKnownModifiedTime }
+            }));
+            return;  // Do NOT save — let the user decide
+          }
+        }
+      }
       await writeFile(data);
     } catch (err) {
       // If the token expired mid-session, try a silent re-auth and retry once
@@ -297,6 +318,12 @@ const Data = (() => {
         throw err;
       }
     }
+  }
+
+  async function forceSave() {
+    if (!data) return;
+    lastConflictCheckAt = Date.now();  // reset the timer so next save doesn't re-check immediately
+    await writeFile(data);
   }
 
   // ── PIN helpers ──────────────────────────────────────────────────────────────
@@ -379,7 +406,7 @@ const Data = (() => {
   function getSettings()  { return data?.settings; }
 
   return {
-    load, save,
+    load, save, forceSave,
     hashPIN, verifyPIN, setPIN, hasPIN,
     getData, getSettings, getDay, today,
   };
