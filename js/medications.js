@@ -483,8 +483,23 @@ const Medications = (() => {
       el.querySelector('#meds-extra-med-select')?.addEventListener('change', e => { editExtraMedId = e.target.value; });
       el.querySelector('#meds-extra-dose-input')?.addEventListener('input', e => { editExtraDose = e.target.value; });
       el.querySelector('#meds-extra-add-btn')?.addEventListener('click', addExtra);
-      el.querySelector('#meds-edit-cancel')?.addEventListener('click', () => { editSlot = null; render(); });
+      el.querySelector('#meds-edit-cancel')?.addEventListener('click', () => {
+        editSlot = null;
+        confirmingDelete = false;
+        render();
+      });
       el.querySelector('#meds-edit-save')?.addEventListener('click', saveSlotEdit);
+
+      // Delete with inline confirmation
+      el.querySelector('#meds-delete-btn')?.addEventListener('click', () => {
+        confirmingDelete = true;
+        render();
+      });
+      el.querySelector('#meds-delete-no')?.addEventListener('click', () => {
+        confirmingDelete = false;
+        render();
+      });
+      el.querySelector('#meds-delete-yes')?.addEventListener('click', deleteSlotLog);
     }
 
     // PRN quick buttons
