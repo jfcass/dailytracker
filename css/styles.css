@@ -7909,6 +7909,25 @@ button {
   padding:       7px 16px;
   cursor:        pointer;
 }
+.meds-edit-delete-btn {
+  background:    transparent;
+  color:         var(--clr-error);
+  border:        1px solid var(--clr-error);
+  border-radius: 8px;
+  font-size:     0.88rem;
+  padding:       7px 16px;
+  cursor:        pointer;
+  margin-right:  auto;   /* pushes Cancel + Save to the right */
+}
+.meds-edit-delete-btn:active {
+  background: color-mix(in srgb, var(--clr-error) 12%, transparent);
+}
+.meds-delete-confirm-label {
+  font-size:    0.88rem;
+  color:        var(--clr-error);
+  margin-right: auto;
+  align-self:   center;
+}
 
 /* PRN section */
 .meds-prn-section {
