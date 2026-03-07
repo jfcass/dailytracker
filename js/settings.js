@@ -12,15 +12,6 @@ const Settings = (() => {
   // Which settings cards are expanded? (all collapsed by default)
   let expandedCards = new Set();
 
-  // PRN med form state
-  let prnForm          = null;   // null | 'add' | med-id (editing)
-  let prnFName         = '';
-  let prnFInterval     = '';
-  let prnFMaxDoses     = '';
-  let prnFDoses        = [];     // string[]
-  let prnFDoseInput    = '';
-  let prnFDefaultDose  = '';     // which dose is the default
-
   // Treatment medication form state
   let txMedForm         = null;   // null | 'add' | med-id (editing)
   let txMedFName        = '';
@@ -45,7 +36,7 @@ const Settings = (() => {
     wrap.innerHTML = '';
     wrap.appendChild(buildHabitsCard());
     wrap.appendChild(buildSubstancesCard());
-    wrap.appendChild(buildPrnMedsCard());
+    wrap.appendChild(buildMedicationsLinkCard());
     wrap.appendChild(buildTreatmentMedsCard());
     wrap.appendChild(buildCategoriesCard());
     wrap.appendChild(buildNoteTagsCard());
@@ -815,313 +806,36 @@ const Settings = (() => {
 
   // ── PRN Medications Card ──────────────────────────────────────────────────
 
-  function buildPrnMedsCard() {
+  function buildMedicationsLinkCard() {
     const { card, body } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
-          <path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3"/>
-          <circle cx="18" cy="18" r="4"/>
-          <path d="M15.27 20.73 20.73 15.27"/>
+             stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+          <path d="M12 22a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/>
+          <path d="M8 12h8M12 8v8"/>
         </svg>
-        As-Needed Medications
+        Medications
       </span>
-    `, 'prn');
-    card.id = 'stg-prn-meds-card';
+    `, 'medications-link');
 
-    const meds = Object.values(Data.getData().medications ?? {}).filter(m => m.as_needed);
-    const list = document.createElement('div');
-    list.className = 'stg-list';
-
-    if (meds.length === 0 && prnForm !== 'add') {
-      const empty = document.createElement('p');
-      empty.className   = 'stg-empty';
-      empty.textContent = 'No as-needed medications configured.';
-      list.appendChild(empty);
-    }
-
-    meds.forEach(med => {
-      const isEditing = prnForm === med.id;
-
-      const row = document.createElement('div');
-      row.className = 'stg-item-row';
-
-      const metaTags = [
-        med.min_interval_hours ? `Every ${med.min_interval_hours}h` : null,
-        med.max_daily_doses    ? `Max ${med.max_daily_doses}/day` : null,
-      ].filter(Boolean);
-
-      const doseTagsHtml = (med.doses ?? [])
-        .map(d => d === med.default_dose
-          ? `<span class="prn-stg-tag prn-stg-tag--default">${escHtml(d)} ★</span>`
-          : `<span class="prn-stg-tag">${escHtml(d)}</span>`
-        ).join('');
-
-      row.innerHTML = `
-        <div class="stg-item-info">
-          <span class="stg-item-name">${escHtml(med.name)}</span>
-          <div class="prn-stg-meta">
-            ${metaTags.map(t => `<span class="prn-stg-tag">${escHtml(t)}</span>`).join('')}
-            ${doseTagsHtml}
-          </div>
-        </div>
-        <div style="display:flex;gap:4px">
-          <button class="stg-icon-btn prn-edit-btn" type="button" data-id="${escHtml(med.id)}"
-                  aria-label="Edit ${escHtml(med.name)}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="stg-icon-btn stg-icon-btn--danger prn-archive-btn" type="button"
-                  data-id="${escHtml(med.id)}" aria-label="Archive ${escHtml(med.name)}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                 stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/><path d="M14 11v6"/>
-            </svg>
-          </button>
-        </div>
-      `;
-
-      row.querySelector('.prn-edit-btn').addEventListener('click', () => startPrnEdit(med));
-      row.querySelector('.prn-archive-btn').addEventListener('click', () => archivePrnMed(med.id));
-      list.appendChild(row);
-
-      // Inline edit form
-      if (isEditing) list.appendChild(buildPrnForm('edit', med));
+    const btn = document.createElement('button');
+    btn.className = 'stg-link-btn';
+    btn.textContent = 'Manage all medications →';
+    btn.addEventListener('click', () => {
+      if (typeof MedsManage !== 'undefined') MedsManage.open('settings');
     });
+    body.appendChild(btn);
 
-    // Add form
-    if (prnForm === 'add') list.appendChild(buildPrnForm('add'));
-
-    body.appendChild(list);
-
-    // Add button
-    if (prnForm !== 'add') {
-      const addRow = document.createElement('div');
-      addRow.className = 'stg-add-row';
-      const addBtn = document.createElement('button');
-      addBtn.className   = 'stg-add-btn';
-      addBtn.type        = 'button';
-      addBtn.textContent = '+ Add medication';
-      addBtn.addEventListener('click', () => {
-        prnForm         = 'add';
-        prnFName        = '';
-        prnFInterval    = '';
-        prnFMaxDoses    = '';
-        prnFDoses       = [];
-        prnFDoseInput   = '';
-        prnFDefaultDose = '';
-        render();
-      });
-      addRow.appendChild(addBtn);
-      body.appendChild(addRow);
+    // Show count of active meds as context
+    const count = Object.values(Data.getData().medications ?? {}).filter(m => m.active).length;
+    if (count > 0) {
+      const info = document.createElement('p');
+      info.className = 'stg-empty';
+      info.textContent = `${count} active medication${count === 1 ? '' : 's'} configured`;
+      body.appendChild(info);
     }
 
     return card;
-  }
-
-  function buildPrnForm(mode, med = null) {
-    const wrap = document.createElement('div');
-    wrap.className = 'prn-stg-form';
-
-    const tagsHtml = prnFDoses.map(d =>
-      `<span class="prn-dose-tag">${escHtml(d)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(d)}" aria-label="Remove ${escHtml(d)}">×</button></span>`
-    ).join('');
-
-    const defaultDoseOptions = [
-      `<option value="">— None —</option>`,
-      ...prnFDoses.map(d =>
-        `<option value="${escHtml(d)}"${d === prnFDefaultDose ? ' selected' : ''}>${escHtml(d)}</option>`
-      ),
-    ].join('');
-
-    wrap.innerHTML = `
-      <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label" for="prn-f-name">Name</label>
-        <input id="prn-f-name" class="prn-stg-form__input" type="text"
-               value="${escHtml(prnFName)}" maxlength="80" placeholder="e.g. Ibuprofen">
-      </div>
-      <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Min interval</label>
-        <div class="prn-stg-form__row">
-          <input id="prn-f-interval" class="prn-stg-form__input prn-stg-form__input--short"
-                 type="number" min="0.5" max="72" step="0.5"
-                 value="${escHtml(prnFInterval)}" placeholder="8">
-          <span class="prn-stg-form__unit">hours</span>
-        </div>
-      </div>
-      <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Max in 24 hours</label>
-        <div class="prn-stg-form__row">
-          <input id="prn-f-max" class="prn-stg-form__input prn-stg-form__input--short"
-                 type="number" min="1" max="20" step="1"
-                 value="${escHtml(prnFMaxDoses)}" placeholder="3">
-          <span class="prn-stg-form__unit">doses</span>
-        </div>
-      </div>
-      <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Available doses</label>
-        <div class="prn-dose-tags" id="prn-dose-tags">
-          ${tagsHtml}
-          <input class="prn-dose-tag-input" id="prn-dose-tag-input" type="text"
-                 value="${escHtml(prnFDoseInput)}" placeholder="e.g. 400mg" maxlength="20">
-          <button class="prn-dose-add-btn" id="prn-dose-add-btn" type="button" aria-label="Add dose">+</button>
-        </div>
-      </div>
-      <div class="prn-stg-form__field">
-        <label class="prn-stg-form__label">Default dose</label>
-        <select class="prn-stg-form__input" id="prn-f-default-dose">${defaultDoseOptions}</select>
-      </div>
-      <div class="prn-stg-form__actions">
-        <button class="stg-add-btn" style="background:transparent;border:1px solid var(--clr-border);color:var(--clr-text-2)" type="button" id="prn-f-cancel">Cancel</button>
-        <button class="stg-add-btn" type="button" id="prn-f-save">${mode === 'add' ? 'Add' : 'Save'}</button>
-      </div>
-    `;
-
-    wrap.querySelector('#prn-f-name').addEventListener('input', e => { prnFName = e.target.value; });
-    wrap.querySelector('#prn-f-interval').addEventListener('input', e => { prnFInterval = e.target.value; });
-    wrap.querySelector('#prn-f-max').addEventListener('input', e => { prnFMaxDoses = e.target.value; });
-
-    const tagInput = wrap.querySelector('#prn-dose-tag-input');
-    const addPrnDose = () => {
-      const val = tagInput.value.trim();
-      if (!val || prnFDoses.includes(val)) return;
-      prnFDoses = [...prnFDoses, val];
-      prnFDoseInput = '';
-      // Targeted DOM update — avoids full render() which dismisses the mobile keyboard
-      const tagsContainer = wrap.querySelector('#prn-dose-tags');
-      const tag = document.createElement('span');
-      tag.className = 'prn-dose-tag';
-      tag.innerHTML = `${escHtml(val)}<button class="prn-dose-tag__del" type="button" data-dose="${escHtml(val)}" aria-label="Remove ${escHtml(val)}">×</button>`;
-      tag.querySelector('.prn-dose-tag__del').addEventListener('click', () => {
-        prnFDoses = prnFDoses.filter(d => d !== val);
-        render();
-      });
-      tagsContainer.insertBefore(tag, tagInput);
-      tagInput.value = '';
-      tagInput.focus();
-      // Also update the default-dose <select> in-place so the new dose is immediately selectable
-      const defaultSelect = wrap.querySelector('#prn-f-default-dose');
-      if (defaultSelect) {
-        const current = prnFDefaultDose;
-        defaultSelect.innerHTML = [
-          `<option value="">— None —</option>`,
-          ...prnFDoses.map(d =>
-            `<option value="${escHtml(d)}"${d === current ? ' selected' : ''}>${escHtml(d)}</option>`
-          ),
-        ].join('');
-      }
-    };
-    wrap.querySelector('#prn-dose-add-btn').addEventListener('click', () => addPrnDose());
-    wrap.querySelector('#prn-f-default-dose')
-      ?.addEventListener('change', e => { prnFDefaultDose = e.target.value; });
-    tagInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.keyCode === 13 || e.key === ',') {
-        e.preventDefault();
-        addPrnDose();
-      } else if (e.key === 'Backspace' && tagInput.value === '' && prnFDoses.length > 0) {
-        prnFDoses = prnFDoses.slice(0, -1);
-        render();
-      }
-    });
-    tagInput.addEventListener('keyup', e => {
-      if (e.key === 'Enter' || e.keyCode === 13) addPrnDose();
-    });
-    tagInput.addEventListener('input', e => {
-      if (e.inputType === 'insertLineBreak') { addPrnDose(); return; }
-      prnFDoseInput = e.target.value;
-    });
-
-    wrap.querySelectorAll('.prn-dose-tag__del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        prnFDoses = prnFDoses.filter(d => d !== btn.dataset.dose);
-        render();
-      });
-    });
-
-    wrap.querySelector('#prn-f-cancel').addEventListener('click', () => {
-      prnForm = null;
-      render();
-    });
-
-    wrap.querySelector('#prn-f-save').addEventListener('click', () => {
-      savePrnForm(mode, med?.id);
-    });
-
-    return wrap;
-  }
-
-  function startPrnEdit(med) {
-    prnForm         = med.id;
-    prnFName        = med.name ?? '';
-    prnFInterval    = med.min_interval_hours != null ? String(med.min_interval_hours) : '';
-    prnFMaxDoses    = med.max_daily_doses    != null ? String(med.max_daily_doses)    : '';
-    prnFDoses       = [...(med.doses ?? [])];
-    prnFDoseInput   = '';
-    prnFDefaultDose = med.default_dose ?? '';
-    render();
-  }
-
-  function savePrnForm(mode, editId) {
-    const name = prnFName.trim();
-    if (!name) {
-      const el = document.getElementById('prn-f-name');
-      if (el) el.classList.add('prn-stg-form__input--error');
-      return;
-    }
-    const interval = parseFloat(prnFInterval) || null;
-    const maxDoses = parseInt(prnFMaxDoses, 10) || null;
-
-    // Auto-include any dose typed in the input but not yet confirmed with +
-    const pendingDose = prnFDoseInput.trim();
-    if (pendingDose && !prnFDoses.includes(pendingDose)) {
-      prnFDoses = [...prnFDoses, pendingDose];
-    }
-    prnFDoseInput = '';
-
-    // Only persist default_dose if it's still in the doses list
-    const defaultDose = prnFDoses.includes(prnFDefaultDose) ? prnFDefaultDose : '';
-
-    if (mode === 'add') {
-      const id = crypto.randomUUID();
-      Data.getData().medications[id] = {
-        id,
-        name,
-        doses:               [...prnFDoses],
-        default_dose:        defaultDose,
-        min_interval_hours:  interval,
-        max_daily_doses:     maxDoses,
-        as_needed:           true,
-        active:              true,
-        notes:               '',
-      };
-    } else {
-      const med = Data.getData().medications[editId];
-      if (med) {
-        med.name               = name;
-        med.doses              = [...prnFDoses];
-        med.default_dose       = defaultDose;
-        med.min_interval_hours = interval;
-        med.max_daily_doses    = maxDoses;
-      }
-    }
-    prnForm = null;
-    render();
-    scheduleSave();
-    if (typeof Medications !== 'undefined') Medications.render();
-  }
-
-  function archivePrnMed(id) {
-    const med = Data.getData().medications[id];
-    if (med) { med.active = false; }
-    prnForm = null;
-    render();
-    scheduleSave();
-    if (typeof Medications !== 'undefined') Medications.render();
   }
 
   // ── Treatment Medications Card ──────────────────────────────────────────────
