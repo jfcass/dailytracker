@@ -197,6 +197,11 @@ const MedsManage = (() => {
         <input type="text" class="mmg-text-input" id="mmg-name"
                value="${escHtml(med.name ?? '')}" placeholder="Medication name" maxlength="80">
 
+        <label class="mmg-field-label" for="mmg-emoji">Icon (emoji — optional)</label>
+        <input type="text" class="mmg-text-input mmg-emoji-input" id="mmg-emoji"
+               value="${escHtml(med.emoji ?? '')}" placeholder="💊" maxlength="4">
+        <p class="mmg-field-hint">Tap the field and use your emoji keyboard.</p>
+
         <div class="mmg-section-label">Scheduled Slots</div>
         ${slotRow('am',        'AM')}
         ${slotRow('afternoon', 'Afternoon')}
@@ -350,6 +355,7 @@ const MedsManage = (() => {
     const reminder = content.querySelector('#mmg-reminder')?.checked ?? false;
     const recDose  = content.querySelector('#mmg-rec-dose')?.value.trim() ?? '';
     const notes    = content.querySelector('#mmg-notes')?.value.trim() ?? '';
+    const emoji    = content.querySelector('#mmg-emoji')?.value.trim() ?? '';
     const doses    = [..._editDoses];
 
     const meds  = Data.getData().medications ?? (Data.getData().medications = {});
@@ -357,14 +363,14 @@ const MedsManage = (() => {
 
     if (isNew) {
       const id = crypto.randomUUID();
-      meds[id] = { id, name, active: true, slots, slot_doses: slotDoses,
+      meds[id] = { id, name, emoji, active: true, slots, slot_doses: slotDoses,
                    as_needed: asNeeded, min_interval_hours: interval,
                    max_daily_doses: maxDoses, med_reminder: reminder,
                    doses, recommended_dose: recDose, notes };
     } else {
       const med = meds[_editId];
       if (med) {
-        Object.assign(med, { name, slots, slot_doses: slotDoses,
+        Object.assign(med, { name, emoji, slots, slot_doses: slotDoses,
           as_needed: asNeeded, min_interval_hours: interval,
           max_daily_doses: maxDoses, med_reminder: reminder,
           doses, recommended_dose: recDose, notes });
