@@ -8146,6 +8146,17 @@ button {
   font-family: inherit;
   flex-shrink: 0;
 }
+/* Row whose edit form is currently open — subtle left accent */
+.meds-log-entry--editing {
+  border-left: 2px solid var(--clr-accent);
+  padding-left: 8px;
+}
+/* Wrapper that holds an edit form injected inline below an entry */
+.meds-log-inline-edit {
+  margin: 4px 0 6px;
+  border-left: 2px solid var(--clr-accent);
+  padding-left: 8px;
+}
 
 .meds-slot-edit-actions {
   display:         flex;

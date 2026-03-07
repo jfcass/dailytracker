@@ -99,30 +99,6 @@ const Medications = (() => {
     const medRems      = dayData.med_reminders ?? {};
     const prnDoses     = dayData.prn_doses     ?? [];
 
-    // ── Slot edit form: replaces Zone 1 when open ──
-    if (editSlot) {
-      const slotMeds = allMeds.filter(m => (m.slots ?? []).includes(editSlot));
-      const slotData = medSlots[editSlot] ?? { time: null, skipped: [], extras: [] };
-      let html = `<div class="meds-zone">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>`;
-      if (prnMeds.length) {
-        let zone2 = renderPrnTrigger(prnMeds, prnDoses);
-        if (prnFormOpen) zone2 += renderPrnLogForm(prnMeds, buildRecentDoses(prnDoses));
-        if (prnEditDoseId) {
-          const d = buildRecentDoses(prnDoses).find(x => x.id === prnEditDoseId)
-                 ?? prnDoses.find(x => x.id === prnEditDoseId);
-          if (d) zone2 += renderPrnEditCard(d);
-        }
-        html += `<div class="meds-zone">${zone2}</div>`;
-      }
-      const windowMeds = prnMeds.filter(m => m.min_interval_hours || m.max_daily_doses);
-      const winHtml    = windowMeds.length ? renderDosingWindows(windowMeds, prnDoses) : '';
-      if (winHtml) html += `<div class="meds-zone">${winHtml}</div>`;
-      html += `<div class="meds-zone">${renderLoggedToday(allMeds, medSlots, medRems, prnDoses)}</div>`;
-      el.innerHTML = html;
-      wireEvents(el);
-      return;
-    }
-
     if (!allMeds.length) {
       el.innerHTML = `<p class="meds-empty">No medications configured.
         <button class="meds-config-link" onclick="MedsManage.open('today')">Set up medications →</button>
@@ -143,15 +119,11 @@ const Medications = (() => {
                </div>`;
     }
 
-    // ── Zone 2: PRN trigger + log/edit forms ──
+    // ── Zone 2: PRN trigger + new-dose log form ──
+    // Note: PRN edit form (existing dose) renders inline within Zone 4.
     if (prnMeds.length) {
       let zone2 = renderPrnTrigger(prnMeds, prnDoses);
       if (prnFormOpen) zone2 += renderPrnLogForm(prnMeds, buildRecentDoses(prnDoses));
-      if (prnEditDoseId) {
-        const d = buildRecentDoses(prnDoses).find(x => x.id === prnEditDoseId)
-               ?? prnDoses.find(x => x.id === prnEditDoseId);
-        if (d) zone2 += renderPrnEditCard(d);
-      }
       html += `<div class="meds-zone">${zone2}</div>`;
     }
 
@@ -366,8 +338,6 @@ const Medications = (() => {
     Object.entries(medRems).forEach(([medId, remTime]) => {
       if (!remTime) return;
       const med = getMedById(medId) ?? { name: medId };
-
-      // If editing this reminder, show inline edit row
       if (reminderEditId === medId) {
         entries.push({ time: remTime, name: med.name, dose: '', kind: 'reminder-editing', id: medId });
         return;
@@ -390,20 +360,38 @@ const Medications = (() => {
     entries.sort((a, b) => a.time.localeCompare(b.time) || a.name.localeCompare(b.name));
 
     const total = entries.length;
+
+    // Auto-expand when an edit form is open so user can see it
+    const forceOpen = !!(editSlot || prnEditDoseId);
+    const isOpen    = loggedListOpen || forceOpen;
+
     const triggerBtn = `
       <button class="meds-logged-trigger" id="meds-logged-trigger">
         <span class="meds-logged-headline">${total ? `${total} Med${total !== 1 ? 's' : ''} Logged Today` : 'No Meds Logged Yet'}</span>
-        <span class="meds-logged-chevron ${loggedListOpen ? 'meds-logged-chevron--open' : ''}">▾</span>
+        <span class="meds-logged-chevron ${isOpen ? 'meds-logged-chevron--open' : ''}">▾</span>
       </button>`;
 
-    if (!total || !loggedListOpen) return triggerBtn;
+    if (!total || !isOpen) return triggerBtn;
+
+    // Pre-build inline edit forms
+    const slotEditHtml = editSlot ? (() => {
+      const slotMeds = allMeds.filter(m => (m.slots ?? []).includes(editSlot));
+      const slotData = medSlots[editSlot] ?? { time: null, skipped: [], extras: [] };
+      return `<div class="meds-log-inline-edit">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>`;
+    })() : '';
+
+    const prnEditHtml = prnEditDoseId ? (() => {
+      const d = buildRecentDoses(prnDoses).find(x => x.id === prnEditDoseId)
+             ?? prnDoses.find(x => x.id === prnEditDoseId);
+      return d ? `<div class="meds-log-inline-edit">${renderPrnEditCard(d)}</div>` : '';
+    })() : '';
 
     // Group by time
     const groups = {};
     entries.forEach(e => { (groups[e.time] = groups[e.time] ?? []).push(e); });
 
-    const listHtml = Object.entries(groups).map(([time, meds]) => {
-      const rows = meds.map(e => {
+    const listHtml = Object.entries(groups).map(([time, grpEntries]) => {
+      const rows = grpEntries.map(e => {
         if (e.kind === 'reminder-editing') {
           return `<div class="meds-log-entry">
             <span class="meds-log-name">${escHtml(e.name)}</span>
@@ -415,17 +403,29 @@ const Medications = (() => {
         }
         const badgeClass = e.kind === 'prn' ? 'meds-log-badge--prn' : e.kind === 'reminder' ? 'meds-log-badge--rem' : '';
         const badgeText  = e.kind === 'prn' ? 'PRN' : e.kind === 'reminder' ? 'REM' : SLOT_SHORT[e.slot] ?? '';
-        const editAttr   = e.kind === 'slot'    ? `data-edit-logged-slot="${escHtml(e.slot)}"` :
-                           e.kind === 'prn'     ? `data-edit-logged-prn="${escHtml(e.id)}"` :
-                                                  `data-edit-logged-rem="${escHtml(e.id)}"`;
-        return `<div class="meds-log-entry">
+        const editAttr   = e.kind === 'slot' ? `data-edit-logged-slot="${escHtml(e.slot)}"` :
+                           e.kind === 'prn'  ? `data-edit-logged-prn="${escHtml(e.id)}"` :
+                                               `data-edit-logged-rem="${escHtml(e.id)}"`;
+        const isEditing  = (e.kind === 'slot' && editSlot === e.slot) ||
+                           (e.kind === 'prn'  && prnEditDoseId === e.id);
+        const editLabel  = isEditing ? 'Close' : 'Edit';
+
+        // Inject PRN edit form directly after the specific PRN dose row
+        const inlinePrnEdit = (e.kind === 'prn' && prnEditDoseId === e.id) ? prnEditHtml : '';
+
+        return `<div class="meds-log-entry${isEditing ? ' meds-log-entry--editing' : ''}">
           <span class="meds-log-name">${escHtml(e.name)}</span>
           ${e.dose ? `<span class="meds-log-dose">${escHtml(e.dose)}</span>` : ''}
           <span class="meds-log-badge ${badgeClass}">${badgeText}</span>
-          <button class="meds-log-edit" ${editAttr}>Edit</button>
-        </div>`;
+          <button class="meds-log-edit" ${editAttr}>${editLabel}</button>
+        </div>${inlinePrnEdit}`;
       }).join('');
-      return `<div class="meds-log-group-time">${fmt12h(time)}</div>${rows}`;
+
+      // Inject slot edit form after the last entry in the group for the editing slot
+      const slotInGroup = grpEntries.find(e => e.kind === 'slot' && editSlot === e.slot);
+      const inlineSlotEdit = slotInGroup ? slotEditHtml : '';
+
+      return `<div class="meds-log-group-time">${fmt12h(time)}</div>${rows}${inlineSlotEdit}`;
     }).join('');
 
     return `${triggerBtn}
@@ -714,7 +714,7 @@ const Medications = (() => {
       btn.addEventListener('click', e => { e.stopPropagation(); deletePrnDose(btn.dataset.prnDelDose); });
     });
 
-    // Zone 2: PRN edit form
+    // Zone 4: PRN edit form (renders inline in Zone 4)
     if (prnEditDoseId) {
       el.querySelector('#prn-e-time')?.addEventListener('input', e => { prnETime = e.target.value; });
       el.querySelectorAll('[data-prn-edc]').forEach(btn => {
@@ -746,12 +746,24 @@ const Medications = (() => {
       render();
     });
 
-    // Zone 4: edit buttons
+    // Zone 4: edit buttons (toggle: close if already editing that entry)
     el.querySelectorAll('[data-edit-logged-slot]').forEach(btn => {
-      btn.addEventListener('click', () => openSlotEdit(btn.dataset.editLoggedSlot));
+      btn.addEventListener('click', () => {
+        if (editSlot === btn.dataset.editLoggedSlot) {
+          editSlot = null; confirmingDelete = false; render();
+        } else {
+          openSlotEdit(btn.dataset.editLoggedSlot);
+        }
+      });
     });
     el.querySelectorAll('[data-edit-logged-prn]').forEach(btn => {
-      btn.addEventListener('click', () => openPrnEdit(btn.dataset.editLoggedPrn));
+      btn.addEventListener('click', () => {
+        if (prnEditDoseId === btn.dataset.editLoggedPrn) {
+          prnEditDoseId = null; render();
+        } else {
+          openPrnEdit(btn.dataset.editLoggedPrn);
+        }
+      });
     });
     el.querySelectorAll('[data-edit-logged-rem]').forEach(btn => {
       btn.addEventListener('click', () => openReminderEdit(btn.dataset.editLoggedRem));
@@ -801,7 +813,6 @@ const Medications = (() => {
     editExtraMedId   = '';
     editExtraDose    = '';
     confirmingDelete = false;
-    pendingLogSlot   = null;   // close pending form if open
     render();
   }
 
