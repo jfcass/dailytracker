@@ -219,8 +219,15 @@ const Medications = (() => {
         <button class="meds-edit-add-btn" id="meds-extra-add-btn">Add</button>
       </div>` : ''}
       <div class="meds-slot-edit-actions">
-        <button class="meds-edit-cancel-btn" id="meds-edit-cancel">Cancel</button>
-        <button class="meds-edit-save-btn"   id="meds-edit-save">Save</button>
+        ${confirmingDelete ? `
+          <span class="meds-delete-confirm-label">Confirm delete?</span>
+          <button class="meds-edit-cancel-btn"  id="meds-delete-no">No</button>
+          <button class="meds-edit-delete-btn"  id="meds-delete-yes">Yes</button>
+        ` : `
+          <button class="meds-edit-delete-btn"  id="meds-delete-btn">Delete</button>
+          <button class="meds-edit-cancel-btn"  id="meds-edit-cancel">Cancel</button>
+          <button class="meds-edit-save-btn"    id="meds-edit-save">Save</button>
+        `}
       </div>
     </div>`;
   }
