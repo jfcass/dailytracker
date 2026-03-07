@@ -8084,6 +8084,69 @@ button {
 .meds-window-next--safe  { color: var(--clr-accent); font-weight: 600; }
 .meds-window-next--error { color: var(--clr-error);  font-weight: 600; }
 
+/* ── Zone 4: Logged Today ── */
+.meds-logged-trigger {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--clr-text);
+  font-family: inherit;
+}
+.meds-logged-headline { font-size: 0.95rem; font-weight: 600; flex: 1; text-align: left; }
+.meds-logged-chevron { font-size: 0.75rem; color: var(--clr-text-2); transition: transform 0.2s; }
+.meds-logged-chevron--open { transform: rotate(180deg); }
+.meds-logged-list { margin-top: 10px; }
+.meds-log-group-time {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clr-text-2);
+  padding: 8px 0 4px;
+}
+.meds-log-group-time:first-child { padding-top: 0; }
+.meds-log-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--clr-surface-2);
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+.meds-log-name  { flex: 1; font-size: 0.85rem; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meds-log-dose  { font-size: 0.78rem; color: var(--clr-text-2); flex-shrink: 0; }
+.meds-log-badge {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--clr-accent-dim);
+  color: var(--clr-accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.meds-log-badge--prn { background: color-mix(in srgb, #f57c00 15%, transparent); color: #f57c00; }
+.meds-log-badge--rem { background: color-mix(in srgb, #4fc3f7 13%, transparent); color: #4fc3f7; }
+.meds-log-edit {
+  background: none;
+  border: 1px solid var(--clr-border);
+  border-radius: 5px;
+  color: var(--clr-text-2);
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
 .meds-slot-edit-actions {
   display:         flex;
   justify-content: flex-end;

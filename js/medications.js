@@ -339,43 +339,97 @@ const Medications = (() => {
     return `<div class="meds-windows-label">Active Dosing Windows</div>${cards}`;
   }
 
-  // ── Zone 4: Logged Today (stub — filled in Task 4) ───────────────────────
-  function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) { return ''; }
+  // ── Zone 4: Meds Logged Today ─────────────────────────────────────────────
 
-  // ── Scheduled slot — not yet logged (legacy — replaced by Zone 1) ────────
+  function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) {
+    const SLOT_SHORT = { am: 'AM', afternoon: 'AFT', pm: 'PM' };
+    const entries = [];
 
-  function renderSlotButton(slot) {
-    if (pendingLogSlot === slot) {
-      return `<div class="meds-slot-row meds-slot-row--pending">
-        <span class="meds-slot-pending-label">${SLOT_LABELS[slot]}</span>
-        <input type="time" class="meds-slot-pending-time" id="meds-pending-time-${slot}"
-               value="${escHtml(pendingLogTime)}">
-        <button class="meds-slot-log-btn meds-slot-confirm-btn" data-confirm-log="${slot}">Log</button>
-        <button class="meds-slot-cancel-btn" data-cancel-log="${slot}">Cancel</button>
-      </div>`;
-    }
-    return `<div class="meds-slot-row meds-slot-row--empty">
-      <button class="meds-slot-log-btn" data-log-slot="${slot}">
-        Log ${SLOT_LABELS[slot]}
-      </button>
-    </div>`;
-  }
+    // Slot meds
+    SLOT_ORDER.forEach(slot => {
+      const slotData = medSlots[slot];
+      if (!slotData?.time) return;
+      const medIds = slotData.meds ?? allMeds.filter(m => (m.slots ?? []).includes(slot)).map(m => m.id);
+      const skipped = slotData.skipped ?? [];
+      const extras  = slotData.extras  ?? [];
+      medIds.filter(id => !skipped.includes(id)).forEach(id => {
+        const med = getMedById(id) ?? { id, name: id };
+        entries.push({ time: slotData.time, name: med.name, dose: (med.slot_doses ?? {})[slot] ?? '', kind: 'slot', slot, id });
+      });
+      extras.forEach(ex => {
+        const med = getMedById(ex.medication_id) ?? { name: ex.medication_id };
+        entries.push({ time: slotData.time, name: med.name, dose: ex.dose, kind: 'slot', slot, id: ex.medication_id });
+      });
+    });
 
-  // ── Scheduled slot — logged (tappable) ────────────────────────────────────
+    // Reminder meds
+    Object.entries(medRems).forEach(([medId, remTime]) => {
+      if (!remTime) return;
+      const med = getMedById(medId) ?? { name: medId };
 
-  function renderSlotLogged(slot, slotData, allSlotMeds) {
-    const skipped = slotData.skipped ?? [];
-    const extras  = slotData.extras  ?? [];
-    const taken   = allSlotMeds.filter(m => !skipped.includes(m.id));
-    const skipCount  = skipped.length;
-    const extraCount = extras.length;
-    let meta = '';
-    if (skipCount)  meta += ` · ${skipCount} skipped`;
-    if (extraCount) meta += ` · ${extraCount} added`;
-    return `<div class="meds-slot-row meds-slot-row--done" data-edit-slot="${slot}">
-      <div class="meds-slot-done-label">${SLOT_LABELS[slot]}</div>
-      <div class="meds-slot-done-time">✓ ${fmt12h(slotData.time)}${meta}</div>
-    </div>`;
+      // If editing this reminder, show inline edit row
+      if (reminderEditId === medId) {
+        entries.push({ time: remTime, name: med.name, dose: '', kind: 'reminder-editing', id: medId });
+        return;
+      }
+      entries.push({ time: remTime, name: med.name, dose: '', kind: 'reminder', id: medId });
+    });
+
+    // PRN doses (today only)
+    const today      = Data.today();
+    const todayStart = new Date(today + 'T00:00:00').getTime();
+    prnDoses
+      .filter(d => new Date(d.iso_timestamp).getTime() >= todayStart)
+      .forEach(d => {
+        const med     = getMedById(d.medication_id) ?? { name: d.medication_id };
+        const rawTime = d.iso_timestamp.slice(11, 16);
+        entries.push({ time: rawTime, name: med.name, dose: d.dose ?? '', kind: 'prn', id: d.id });
+      });
+
+    // Sort by time ASC, then name ASC
+    entries.sort((a, b) => a.time.localeCompare(b.time) || a.name.localeCompare(b.name));
+
+    const total = entries.length;
+    const triggerBtn = `
+      <button class="meds-logged-trigger" id="meds-logged-trigger">
+        <span class="meds-logged-headline">${total ? `${total} Med${total !== 1 ? 's' : ''} Logged Today` : 'No Meds Logged Yet'}</span>
+        <span class="meds-logged-chevron ${loggedListOpen ? 'meds-logged-chevron--open' : ''}">▾</span>
+      </button>`;
+
+    if (!total || !loggedListOpen) return triggerBtn;
+
+    // Group by time
+    const groups = {};
+    entries.forEach(e => { (groups[e.time] = groups[e.time] ?? []).push(e); });
+
+    const listHtml = Object.entries(groups).map(([time, meds]) => {
+      const rows = meds.map(e => {
+        if (e.kind === 'reminder-editing') {
+          return `<div class="meds-log-entry">
+            <span class="meds-log-name">${escHtml(e.name)}</span>
+            <input type="time" class="meds-reminder-time-input" value="${escHtml(reminderEditTime)}">
+            <button data-reminder-confirm="${escHtml(e.id)}" class="meds-log-edit">✓</button>
+            <button data-reminder-cancel-edit="${escHtml(e.id)}" class="meds-log-edit">✕</button>
+            <button data-reminder-undo="${escHtml(e.id)}" class="meds-log-edit" style="color:var(--clr-error)">Undo</button>
+          </div>`;
+        }
+        const badgeClass = e.kind === 'prn' ? 'meds-log-badge--prn' : e.kind === 'reminder' ? 'meds-log-badge--rem' : '';
+        const badgeText  = e.kind === 'prn' ? 'PRN' : e.kind === 'reminder' ? 'REM' : SLOT_SHORT[e.slot] ?? '';
+        const editAttr   = e.kind === 'slot'    ? `data-edit-logged-slot="${escHtml(e.slot)}"` :
+                           e.kind === 'prn'     ? `data-edit-logged-prn="${escHtml(e.id)}"` :
+                                                  `data-edit-logged-rem="${escHtml(e.id)}"`;
+        return `<div class="meds-log-entry">
+          <span class="meds-log-name">${escHtml(e.name)}</span>
+          ${e.dose ? `<span class="meds-log-dose">${escHtml(e.dose)}</span>` : ''}
+          <span class="meds-log-badge ${badgeClass}">${badgeText}</span>
+          <button class="meds-log-edit" ${editAttr}>Edit</button>
+        </div>`;
+      }).join('');
+      return `<div class="meds-log-group-time">${fmt12h(time)}</div>${rows}`;
+    }).join('');
+
+    return `${triggerBtn}
+      <div class="meds-logged-list">${listHtml}</div>`;
   }
 
   // ── Slot edit form ─────────────────────────────────────────────────────────
@@ -441,55 +495,6 @@ const Medications = (() => {
           <button class="meds-edit-save-btn"    id="meds-edit-save">Save</button>
         `}
       </div>
-    </div>`;
-  }
-
-  // ── PRN / As-Needed section ────────────────────────────────────────────────
-
-  function renderPrnSection(prnMeds, prnDoses) {
-    const todayDate = Data.today();
-    let recentDoses;
-    if (currentDate === todayDate) {
-      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-      const yest   = Data.getDay(shiftDate(currentDate, -1)).prn_doses ?? [];
-      recentDoses  = [...yest, ...prnDoses]
-        .filter(d => new Date(d.iso_timestamp).getTime() > cutoff)
-        .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
-    } else {
-      recentDoses = [...prnDoses].sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
-    }
-
-    // Top N by 30-day frequency
-    const topMeds   = getTopPrnMeds(prnMeds, PRN_QUICK_COUNT);
-    const otherMeds = prnMeds.filter(m => !topMeds.find(t => t.id === m.id));
-
-    const quickBtns = topMeds.map(m =>
-      `<button class="meds-prn-quick-btn" data-prn-quick="${escHtml(m.id)}">${escHtml(m.name)}</button>`
-    ).join('');
-
-    const otherOpts = otherMeds.map(m =>
-      `<option value="${escHtml(m.id)}">${escHtml(m.name)}</option>`
-    ).join('');
-
-    const doseCards = recentDoses.map(d => {
-      if (prnEditDoseId === d.id) return renderPrnEditCard(d);
-      return renderPrnDoseCard(d, recentDoses, prnMeds);
-    }).join('');
-
-    let logForm = '';
-    if (prnFormOpen) {
-      logForm = renderPrnLogForm(prnMeds, recentDoses);
-    }
-
-    return `<div class="meds-prn-section">
-      <div class="meds-prn-label">As-Needed Meds</div>
-      <div class="meds-prn-quick-row">${quickBtns}${otherMeds.length
-        ? `<select class="meds-prn-other-select" id="meds-prn-other-select">
-             <option value="">Other…</option>${otherOpts}
-           </select>` : ''}</div>
-      ${doseCards}
-      ${logForm}
-      <div id="meds-prn-save-status" class="save-status"></div>
     </div>`;
   }
 
@@ -602,45 +607,6 @@ const Medications = (() => {
         <button class="prn-cancel-btn" id="prn-f-cancel">Cancel</button>
         <button class="prn-log-btn"    id="prn-f-submit">Log</button>
       </div>
-    </div>`;
-  }
-
-  // ── Med Reminders section ──────────────────────────────────────────────────
-
-  function renderRemindersSection(reminderMeds, medRems) {
-    const rows = reminderMeds.map(m => {
-      const timeTaken = medRems[m.id];
-
-      if (reminderEditId === m.id) {
-        // ── Time-input form (new log or editing existing) ──
-        return `<div class="meds-reminder-row meds-reminder-row--editing">
-          <span class="meds-reminder-name">${escHtml(m.name)}</span>
-          <input type="time" class="meds-reminder-time-input"
-                 id="rem-time-${escHtml(m.id)}"
-                 value="${escHtml(reminderEditTime)}">
-          <button class="meds-reminder-confirm-btn" data-reminder-confirm="${escHtml(m.id)}">✓ Save</button>
-          <button class="meds-reminder-cancel-edit" data-reminder-cancel-edit="${escHtml(m.id)}">Cancel</button>
-        </div>`;
-      } else if (timeTaken) {
-        // ── Logged — tap time to edit ──
-        return `<div class="meds-reminder-row meds-reminder-row--done">
-          <span class="meds-reminder-name">${escHtml(m.name)}</span>
-          <button class="meds-reminder-time-done" data-reminder-edit="${escHtml(m.id)}" title="Tap to edit time">
-            ✓ ${fmt12h(timeTaken)}
-          </button>
-          <button class="meds-reminder-undo" data-reminder-undo="${escHtml(m.id)}">Undo</button>
-        </div>`;
-      } else {
-        // ── Not yet logged ──
-        return `<div class="meds-reminder-row">
-          <span class="meds-reminder-name">${escHtml(m.name)}</span>
-          <button class="meds-reminder-btn" data-reminder-take="${escHtml(m.id)}">Mark taken</button>
-        </div>`;
-      }
-    }).join('');
-    return `<div class="meds-reminders-section">
-      <div class="meds-reminders-label">Reminders</div>
-      ${rows}
     </div>`;
   }
 
