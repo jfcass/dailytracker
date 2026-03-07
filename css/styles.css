@@ -5566,9 +5566,12 @@ button {
 
 /* ── Health Log tab ──────────────────────────────────────────────────────── */
 .hl-tab-header {
-  padding:       16px 16px 8px;
-  border-bottom: 1px solid var(--clr-border);
-  margin-bottom: 12px;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         16px 16px 8px;
+  border-bottom:   1px solid var(--clr-border);
+  margin-bottom:   12px;
 }
 .hl-tab-title {
   font-size:   1.1rem;
