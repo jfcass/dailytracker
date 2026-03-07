@@ -211,7 +211,17 @@ const HealthLog = (() => {
   }
 
   function renderList() {
-    return `<div class="hl-tab-header"><h2 class="hl-tab-title">Health Log</h2></div>`
+    return `<div class="hl-tab-header">
+    <h2 class="hl-tab-title">Health Log</h2>
+    <button class="hl-meds-link-btn" onclick="MedsManage.open('health-log')" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+        <path d="M12 22a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/>
+        <path d="M8 12h8M12 8v8"/>
+      </svg>
+      Medications
+    </button>
+  </div>`
       + renderBPSection()
       + renderDigestionSection()
       + renderMedsSection()
