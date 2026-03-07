@@ -84,8 +84,9 @@ const App = (() => {
   function handlePopState(e) {
     const s = e.state;
     if (!s?.ht) return;
-    // Always exit the issues view if open (it may be layered over any tab)
-    if (typeof Symptoms !== 'undefined') Symptoms._exitIssuesView();
+    // Always exit any full-screen overlays if open
+    if (typeof Symptoms   !== 'undefined') Symptoms._exitIssuesView();
+    if (typeof MedsManage !== 'undefined') MedsManage.exit();
     if (s.ht === 'tab') {
       // Returning to a tab — close any open detail views first
       if (typeof HealthLog    !== 'undefined') HealthLog._exitDetail();
@@ -93,6 +94,8 @@ const App = (() => {
       switchTab(s.tab, false);
     } else if (s.ht === 'issues-view') {
       // Swipe-back from issues view — return to the originating tab
+      switchTab(s.returnTab ?? 'today', false);
+    } else if (s.ht === 'meds-manage') {
       switchTab(s.returnTab ?? 'today', false);
     } else if (s.ht === 'tx-detail') {
       // Back from within a treatment detail — return to treatment list
@@ -136,6 +139,7 @@ const App = (() => {
     Moderation.init();
     Symptoms.init();
     Medications.init();
+    if (typeof MedsManage !== 'undefined') MedsManage.render();
     Bowel.init();
     Gratitudes.init();
     Books.init();
