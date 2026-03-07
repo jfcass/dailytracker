@@ -292,9 +292,16 @@ const Symptoms = (() => {
       html += `<p class="section-empty">Nothing logged yet today.</p>`;
     }
 
-    // ── Add button ──
+    // ── Quick-add field + detailed form button ──
     if (formMode === null && !pendingLinkSymptomId) {
-      html += `<button class="health-add-btn" onclick="Symptoms._startAdd()">+ Add Symptom</button>`;
+      html += `
+        <div class="symp-quick-add-row">
+          <input type="text" class="symp-quick-input" id="symp-quick-input"
+                 placeholder="Quick note a symptom…" aria-label="Quick add symptom"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();Symptoms._quickAddSymptom()}">
+          <button class="symp-quick-add-btn" onclick="Symptoms._quickAddSymptom()">Add</button>
+        </div>
+        <button class="health-add-btn symp-detailed-btn" onclick="Symptoms._startAdd()">+ Detailed entry</button>`;
     }
 
     el.innerHTML = html;
@@ -865,6 +872,30 @@ const Symptoms = (() => {
     renderContent();
   }
 
+  function quickAddSymptom() {
+    const inp  = document.getElementById('symp-quick-input');
+    if (!inp) return;
+    const desc = inp.value.trim();
+    if (!desc) return;
+    const cats = Data.getSettings().symptom_categories ?? [];
+    const cat  = cats[0] ?? 'Other';
+    const day  = Data.getDay(currentDate);
+    day.symptoms.push({
+      id:          crypto.randomUUID(),
+      issue_id:    null,
+      category:    cat,
+      severity:    3,
+      description: desc,
+      time:        null,
+    });
+    scheduleSave();
+    renderContent();
+    requestAnimationFrame(() => {
+      const inp2 = document.getElementById('symp-quick-input');
+      if (inp2) inp2.focus();
+    });
+  }
+
   function startEdit(symptomId) {
     const s = getSymptoms(currentDate).find(x => x.id === symptomId);
     if (!s) return;
@@ -1085,18 +1116,32 @@ const Symptoms = (() => {
       const issueCategories = Data.getSettings().issue_categories ?? [];
       fIssCat           = issueCategories[0] ?? 'Other';
     }
+    history.pushState({ ht: 'issues-view', returnTab }, '');
     document.getElementById('view-issues').hidden = false;
     renderIssuePanel();
   }
 
   function closeIssuesView() {
-    document.getElementById('view-issues').hidden = true;
+    // Called by the Back button — use history.back() so the history entry is cleaned up,
+    // which triggers popstate → exitIssuesView() + App.switchTab()
+    if (history.state?.ht === 'issues-view') {
+      history.back();
+    } else {
+      exitIssuesView();
+      App.switchTab(_issueReturnTab);
+    }
+  }
+
+  // Called by popstate handler — close view without switching tabs (tab switch is handled by popstate)
+  function exitIssuesView() {
+    const viewEl = document.getElementById('view-issues');
+    if (!viewEl || viewEl.hidden) return;
+    viewEl.hidden     = true;
     managingIssues    = false;
     issueDetailId     = null;
     issuePanelNewForm = false;
     editingIssueId    = null;
-    renderIssuePanel(); // clears content
-    App.switchTab(_issueReturnTab);
+    renderIssuePanel();
   }
 
   function startIssEdit(issueId) {
@@ -1169,6 +1214,7 @@ const Symptoms = (() => {
 
   // ── Inline onclick bridges ────────────────────────────────────────────────
 
+  function _quickAddSymptom()            { quickAddSymptom(); }
   function _startAdd()                   { startAdd(); }
   function _startAddForIssue(id)         { startAdd(id); }
   function _startEdit(id)                { startEdit(id); }
@@ -1195,6 +1241,7 @@ const Symptoms = (() => {
   function _quickNewIssue()               { quickNewIssue(); }
   function _openIssuesView(tab, newForm)  { openIssuesView(tab, !!newForm); }
   function _closeIssuesView()             { closeIssuesView(); }
+  function _exitIssuesView()              { exitIssuesView(); }
   function _openIssueDetailFromTab(issueId, returnTab) {
     openIssuesView(returnTab, false);
     openIssueDetail(issueId);
@@ -1563,6 +1610,7 @@ const Symptoms = (() => {
 
   return {
     init, render, setDate,
+    _quickAddSymptom,
     _startAdd, _startAddForIssue, _startEdit, _cancel,
     _saveAdd, _saveEdit, _deleteSymptom,
     _startLink, _cancelLink, _saveLink,
@@ -1575,6 +1623,6 @@ const Symptoms = (() => {
     _setCat, _setSev, _setDesc, _setTime, _setIssueLink,
     _setIssName, _setIssRemind, _setIssCat,
     _quickNewIssue,
-    _openIssuesView, _closeIssuesView, _openIssueDetailFromTab,
+    _openIssuesView, _closeIssuesView, _exitIssuesView, _openIssueDetailFromTab,
   };
 })();

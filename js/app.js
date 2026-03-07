@@ -84,11 +84,16 @@ const App = (() => {
   function handlePopState(e) {
     const s = e.state;
     if (!s?.ht) return;
+    // Always exit the issues view if open (it may be layered over any tab)
+    if (typeof Symptoms !== 'undefined') Symptoms._exitIssuesView();
     if (s.ht === 'tab') {
       // Returning to a tab — close any open detail views first
       if (typeof HealthLog    !== 'undefined') HealthLog._exitDetail();
       if (typeof Treatments   !== 'undefined') Treatments._exitDetail();
       switchTab(s.tab, false);
+    } else if (s.ht === 'issues-view') {
+      // Swipe-back from issues view — return to the originating tab
+      switchTab(s.returnTab ?? 'today', false);
     } else if (s.ht === 'tx-detail') {
       // Back from within a treatment detail — return to treatment list
       if (typeof Treatments !== 'undefined') {
