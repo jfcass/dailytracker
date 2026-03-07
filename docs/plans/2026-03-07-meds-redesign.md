@@ -289,31 +289,11 @@ Replace the `render()` function body. The current body (lines ~82–131) loops o
                </div></div>`;
     }
 
-    // ── Slot edit form (when open, replaces Zone 1 content inline) ──
-    if (editSlot) {
-      const slotMeds = allMeds.filter(m => (m.slots ?? []).includes(editSlot));
-      const slotData = medSlots[editSlot] ?? { time: null, skipped: [], extras: [] };
-      html = `<div class="meds-zone">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>` + html.replace(/<div class="meds-zone">[\s\S]*?<\/div><\/div>/, '');
-      // Simpler: just put the edit form first and hide the grid
-      html = `<div class="meds-zone">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>`;
-      if (prnMeds.length) html += `<div class="meds-zone">${renderPrnTrigger(prnMeds, dayData.prn_doses ?? [])}</div>`;
-      if (prnMeds.some(m => m.min_interval_hours || m.max_daily_doses)) {
-        html += `<div class="meds-zone">${renderDosingWindows(prnMeds, dayData.prn_doses ?? [])}</div>`;
-      }
-      html += `<div class="meds-zone">${renderLoggedToday(allMeds, medSlots, medRems, dayData.prn_doses ?? [])}</div>`;
-      el.innerHTML = html;
-      wireEvents(el);
-      return;
-    }
-
     // ── Zone 2: PRN trigger ──
+    // Note: PRN log/edit forms render inline within Zone 4 (see renderLoggedToday).
+    // Zone 2 only shows the trigger + quick-pick panel.
     if (prnMeds.length) {
       html += `<div class="meds-zone">${renderPrnTrigger(prnMeds, dayData.prn_doses ?? [])}</div>`;
-    }
-
-    // ── PRN log/edit form (when open) ──
-    if (prnLogOpen || prnEditId) {
-      // keep existing PRN form renderers — they render inside Zone 2
     }
 
     // ── Zone 3: Active Dosing Windows ──
@@ -324,6 +304,8 @@ Replace the `render()` function body. The current body (lines ~82–131) loops o
     }
 
     // ── Zone 4: Meds Logged Today ──
+    // Edit forms for slot/PRN/reminder entries render inline here, directly below
+    // the entry being edited — not at the top of the section.
     html += `<div class="meds-zone">${renderLoggedToday(allMeds, medSlots, medRems, dayData.prn_doses ?? [])}</div>`;
 
     if (!html.trim()) {
@@ -837,6 +819,8 @@ git commit -m "feat(meds): Zone 2 PRN trigger panel, Zone 3 active dosing window
 
 ### Step 1 — Add `renderLoggedToday()` function
 
+The function builds a list of all logged entries, groups them by time, and — crucially — **injects the relevant edit form inline directly after the last entry in that group**, anchored to the entry being edited. It uses the existing edit state variables (`editSlot`, and whatever PRN/reminder edit state variables already exist in the file) to decide where to inject.
+
 Add after `renderDosingWindows()`:
 
 ```js
@@ -844,7 +828,7 @@ function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) {
   const SLOT_SHORT = { am: 'AM', afternoon: 'AFT', pm: 'PM' };
   const entries = [];
 
-  // Slot meds
+  // Slot meds (each slot is a group keyed by slot name so we can inject edit form after it)
   SLOT_ORDER.forEach(slot => {
     const slotData = medSlots[slot];
     if (!slotData?.time) return;
@@ -890,35 +874,70 @@ function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) {
     </button>`;
   }
 
-  // Group by time
+  // Pre-build slot edit form HTML (if a slot edit is open)
+  const slotEditHtml = editSlot
+    ? (() => {
+        const slotMeds = allMeds.filter(m => (m.slots ?? []).includes(editSlot));
+        const slotData = medSlots[editSlot] ?? { time: null, skipped: [], extras: [] };
+        return `<div class="meds-log-inline-edit">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>`;
+      })()
+    : '';
+
+  // Pre-build PRN edit form HTML (check the real variable name for PRN edit state in the file)
+  // prnEditId is the existing state variable that holds the dose id being edited
+  const prnEditHtml = prnEditId
+    ? `<div class="meds-log-inline-edit">${renderPrnEditCard(prnEditId)}</div>`
+    : '';
+
+  // Group by time, then render rows + inject edit forms in context
   const groups = {};
   entries.forEach(e => {
     (groups[e.time] = groups[e.time] ?? []).push(e);
   });
 
-  const listHtml = Object.entries(groups).map(([time, meds]) => {
-    const rows = meds.map(e => {
+  const listHtml = Object.entries(groups).map(([time, grpEntries]) => {
+    const rows = grpEntries.map(e => {
       const badgeClass = e.kind === 'prn' ? 'meds-log-badge--prn' : e.kind === 'reminder' ? 'meds-log-badge--rem' : '';
       const badgeText  = e.kind === 'prn' ? 'PRN' : e.kind === 'reminder' ? 'REM' : SLOT_SHORT[e.slot] ?? '';
-      const editAttr   = e.kind === 'slot' ? `data-edit-logged-slot="${escHtml(e.slot)}"` :
-                         e.kind === 'prn'  ? `data-edit-logged-prn="${escHtml(e.id)}"` :
-                                             `data-edit-logged-rem="${escHtml(e.id)}"`;
-      return `<div class="meds-log-entry">
+      const editAttr   = e.kind === 'slot'     ? `data-edit-logged-slot="${escHtml(e.slot)}"` :
+                         e.kind === 'prn'       ? `data-edit-logged-prn="${escHtml(e.id)}"` :
+                                                  `data-edit-logged-rem="${escHtml(e.id)}"`;
+      // Highlight the row that has its edit form open
+      const isEditing  = (e.kind === 'slot' && editSlot === e.slot) ||
+                         (e.kind === 'prn'  && prnEditId === e.id);
+      return `<div class="meds-log-entry ${isEditing ? 'meds-log-entry--editing' : ''}">
         <span class="meds-log-name">${escHtml(e.name)}</span>
         ${e.dose ? `<span class="meds-log-dose">${escHtml(e.dose)}</span>` : ''}
         <span class="meds-log-badge ${badgeClass}">${badgeText}</span>
-        <button class="meds-log-edit" ${editAttr}>Edit</button>
+        <button class="meds-log-edit" ${editAttr}>${isEditing ? 'Close' : 'Edit'}</button>
       </div>`;
     }).join('');
-    return `<div class="meds-log-group-time">${fmt12h(time)}</div>${rows}`;
+
+    // Inject slot edit form after ALL rows of that slot's group (slot edit affects the whole slot)
+    const slotInThisGroup = grpEntries.find(e => e.kind === 'slot' && editSlot === e.slot);
+    // Only inject once — after the last entry in the group if any entry triggered edit
+    const injectSlotEdit = slotInThisGroup && grpEntries[grpEntries.length - 1] === grpEntries.filter(e => e.kind === 'slot' && e.slot === editSlot).at(-1)
+      ? slotEditHtml : '';
+
+    // Inject PRN edit form directly after the specific PRN dose row
+    const prnRows = grpEntries.map(e => {
+      if (e.kind === 'prn' && prnEditId === e.id) return prnEditHtml;
+      return '';
+    }).join('');
+
+    return `<div class="meds-log-group-time">${fmt12h(time)}</div>${rows}${injectSlotEdit}${prnRows}`;
   }).join('');
+
+  // Auto-expand when an edit form is open so the user can see it
+  const forceOpen = !!(editSlot || prnEditId);
+  const isOpen = loggedListOpen || forceOpen;
 
   return `
     <button class="meds-logged-trigger" id="meds-logged-trigger">
       <span class="meds-logged-headline">${total} Med${total !== 1 ? 's' : ''} Logged Today</span>
-      <span class="meds-logged-chevron ${loggedListOpen ? 'meds-logged-chevron--open' : ''}">▾</span>
+      <span class="meds-logged-chevron ${isOpen ? 'meds-logged-chevron--open' : ''}">▾</span>
     </button>
-    <div class="meds-logged-list ${loggedListOpen ? '' : 'meds-logged-list--hidden'}">
+    <div class="meds-logged-list ${isOpen ? '' : 'meds-logged-list--hidden'}">
       ${listHtml}
     </div>`;
 }
@@ -926,7 +945,11 @@ function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) {
 
 Add `let loggedListOpen = false;` to the module state block. Reset it in `setDate()`.
 
+> **Note to implementer:** Check the actual name of the PRN edit state variable in the existing file (search for where `renderPrnEditCard` is called — the variable holding the dose id will be nearby). Replace `prnEditId` in the code above with whatever that variable is actually called.
+
 ### Step 2 — Wire Zone 4 events in wireEvents()
+
+Edit buttons now open the existing edit functions, which set their state and call `render()`. Because `renderLoggedToday()` checks the same state to inject the form inline, and auto-expands when an edit is open, no extra wiring is needed beyond calling the existing functions.
 
 ```js
     // Zone 4: logged today toggle
@@ -935,9 +958,17 @@ Add `let loggedListOpen = false;` to the module state block. Reset it in `setDat
       render();
     });
 
-    // Zone 4: edit buttons
+    // Zone 4: edit buttons — open existing edit forms (they render inline in Zone 4)
     el.querySelectorAll('[data-edit-logged-slot]').forEach(btn => {
-      btn.addEventListener('click', () => openSlotEdit(btn.dataset.editLoggedSlot));
+      btn.addEventListener('click', () => {
+        // If already editing this slot, close it; otherwise open it
+        if (editSlot === btn.dataset.editLoggedSlot) {
+          editSlot = null;
+          render();
+        } else {
+          openSlotEdit(btn.dataset.editLoggedSlot);
+        }
+      });
     });
     el.querySelectorAll('[data-edit-logged-prn]').forEach(btn => {
       btn.addEventListener('click', () => openPrnEdit(btn.dataset.editLoggedPrn));
@@ -947,7 +978,7 @@ Add `let loggedListOpen = false;` to the module state block. Reset it in `setDat
     });
 ```
 
-> **Note:** `openPrnEdit` and `openReminderEdit` are the existing functions for editing those entries — check the actual function names in the current file and use those.
+> **Note:** Check the actual function names for PRN and reminder edit in the existing file (`openPrnEdit` / `openReminderEdit` may differ) and substitute accordingly.
 
 ### Step 3 — Remove old render functions that are now dead code
 
@@ -1025,6 +1056,17 @@ Keep the function stubs with a comment if unsure, but remove their render output
   cursor: pointer;
   font-family: inherit;
   flex-shrink: 0;
+}
+/* Row with its edit form open — subtle left accent */
+.meds-log-entry--editing {
+  border-left: 2px solid var(--clr-accent);
+  padding-left: 8px;
+}
+/* Wrapper that holds an edit form injected inline below an entry */
+.meds-log-inline-edit {
+  margin: 4px 0 6px;
+  border-left: 2px solid var(--clr-accent);
+  padding-left: 8px;
 }
 ```
 
