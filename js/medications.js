@@ -27,6 +27,7 @@ const Medications = (() => {
   let editSlot      = null;   // 'am' | 'afternoon' | 'pm' | null
   let editTime      = '';
   let editSkipped   = [];     // med IDs skipped in edit
+  let editMeds      = [];     // snapshot of med IDs that were in the slot at log time
   let editExtras    = [];     // { medication_id, dose } added in edit
   let editExtraMedId = '';
   let editExtraDose  = '';
@@ -167,7 +168,7 @@ const Medications = (() => {
   // ── Slot edit form ─────────────────────────────────────────────────────────
 
   function renderSlotEditForm(slot, allSlotMeds, slotData) {
-    const meds    = allSlotMeds;
+    const meds    = editMeds.map(id => getMedById(id)).filter(Boolean);
     const skipped = editSkipped;
     const extras  = editExtras;
 
@@ -588,6 +589,9 @@ const Medications = (() => {
     editSlot       = slot;
     editTime       = slotData.time ?? nowHHMM();
     editSkipped    = [...(slotData.skipped ?? [])];
+    editMeds       = slotData.meds
+      ? [...slotData.meds]
+      : getActiveMeds().filter(m => (m.slots ?? []).includes(slot)).map(m => m.id);
     editExtras     = [...(slotData.extras  ?? [])];
     editExtraMedId = '';
     editExtraDose  = '';
@@ -609,7 +613,12 @@ const Medications = (() => {
     if (!editSlot || !editTime) return;
     const day = Data.getDay(currentDate);
     if (!day.med_slots) day.med_slots = defaultSlots();
-    day.med_slots[editSlot] = { time: editTime, skipped: [...editSkipped], extras: [...editExtras] };
+    day.med_slots[editSlot] = {
+      time:    editTime,
+      meds:    [...editMeds],
+      skipped: [...editSkipped],
+      extras:  [...editExtras],
+    };
     editSlot = null;
     scheduleSave();
     render();
@@ -715,6 +724,11 @@ const Medications = (() => {
 
   function getActiveMeds() {
     return Object.values(Data.getData().medications ?? {}).filter(m => m.active);
+  }
+
+  /** Look up any med by ID — including archived ones */
+  function getMedById(id) {
+    return Object.values(Data.getData().medications ?? {}).find(m => m.id === id);
   }
 
   /** Top N PRN meds by frequency in last 30 days */
