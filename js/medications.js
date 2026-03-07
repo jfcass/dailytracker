@@ -18,6 +18,7 @@ const Medications = (() => {
 
   const SLOT_ORDER  = ['am', 'afternoon', 'pm'];
   const SLOT_LABELS = { am: 'AM Meds', afternoon: 'Afternoon Meds', pm: 'PM Meds' };
+  const SLOT_ICONS  = { am: '🌅', afternoon: '☀️', pm: '🌙' };
   const PRN_QUICK_COUNT = 4;   // top N as-needed meds shown as quick-tap buttons
 
   let currentDate   = null;
@@ -50,9 +51,13 @@ const Medications = (() => {
   let reminderEditId   = null;   // med id whose input row is open (null = none)
   let reminderEditTime = '';     // HH:MM value in the input
 
-  // Slot pending-log state (time input shown before confirming the batch log)
-  let pendingLogSlot = null;     // 'am' | 'afternoon' | 'pm' | null
-  let pendingLogTime = '';       // HH:MM value in the input
+  // Zone 1 picker state
+  let pickingSlot     = null;   // 'am' | 'afternoon' | 'pm' | null — inline time picker open
+  let pickingReminder = null;   // med.id | null — inline time picker open for a reminder med
+
+  // Zone 2 / Zone 4 UI state
+  let prnPanelOpen    = false;  // Zone 2 panel expanded
+  let loggedListOpen  = false;  // Zone 4 list expanded
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -65,10 +70,13 @@ const Medications = (() => {
   function setDate(date) {
     currentDate      = date;
     editSlot         = null;
-    pendingLogSlot   = null;
+    pickingSlot      = null;
+    pickingReminder  = null;
     prnFormOpen      = false;
+    prnPanelOpen     = false;
     prnEditDoseId    = null;
     reminderEditId   = null;
+    loggedListOpen   = false;
     render();
   }
 
@@ -83,54 +91,152 @@ const Medications = (() => {
     const el = document.getElementById('meds-content');
     if (!el) return;
 
-    const allMeds     = getActiveMeds();
-    const slotMeds    = slotName => allMeds.filter(m => (m.slots ?? []).includes(slotName));
-    const prnMeds     = allMeds.filter(m => m.as_needed);
-    const reminderMeds = allMeds.filter(m => m.med_reminder);
+    const allMeds      = getActiveMeds();
+    const prnMeds      = allMeds.filter(m => m.as_needed);
+    const reminderMeds = allMeds.filter(m => m.med_reminder && !m.as_needed);
+    const dayData      = Data.getDay(currentDate);
+    const medSlots     = dayData.med_slots     ?? defaultSlots();
+    const medRems      = dayData.med_reminders ?? {};
+    const prnDoses     = dayData.prn_doses     ?? [];
 
-    const dayData    = Data.getDay(currentDate);
-    const medSlots   = dayData.med_slots   ?? defaultSlots();
-    const medRems    = dayData.med_reminders ?? {};
+    // ── Slot edit form: replaces Zone 1 when open ──
+    if (editSlot) {
+      const slotMeds = allMeds.filter(m => (m.slots ?? []).includes(editSlot));
+      const slotData = medSlots[editSlot] ?? { time: null, skipped: [], extras: [] };
+      let html = `<div class="meds-zone">${renderSlotEditForm(editSlot, slotMeds, slotData)}</div>`;
+      if (prnMeds.length) {
+        let zone2 = renderPrnTrigger(prnMeds, prnDoses);
+        if (prnFormOpen) zone2 += renderPrnLogForm(prnMeds, buildRecentDoses(prnDoses));
+        if (prnEditDoseId) {
+          const d = buildRecentDoses(prnDoses).find(x => x.id === prnEditDoseId)
+                 ?? prnDoses.find(x => x.id === prnEditDoseId);
+          if (d) zone2 += renderPrnEditCard(d);
+        }
+        html += `<div class="meds-zone">${zone2}</div>`;
+      }
+      const windowMeds = prnMeds.filter(m => m.min_interval_hours || m.max_daily_doses);
+      const winHtml    = windowMeds.length ? renderDosingWindows(windowMeds, prnDoses) : '';
+      if (winHtml) html += `<div class="meds-zone">${winHtml}</div>`;
+      html += `<div class="meds-zone">${renderLoggedToday(allMeds, medSlots, medRems, prnDoses)}</div>`;
+      el.innerHTML = html;
+      wireEvents(el);
+      return;
+    }
+
+    if (!allMeds.length) {
+      el.innerHTML = `<p class="meds-empty">No medications configured.
+        <button class="meds-config-link" onclick="MedsManage.open('today')">Set up medications →</button>
+      </p>`;
+      wireEvents(el);
+      return;
+    }
 
     let html = '';
 
-    // ── Scheduled slots ──
-    SLOT_ORDER.forEach(slot => {
-      const meds = slotMeds(slot);
-      if (!meds.length) return;
-      const slotData = medSlots[slot] ?? { time: null, skipped: [], extras: [] };
-
-      if (editSlot === slot) {
-        html += renderSlotEditForm(slot, meds, slotData);
-      } else if (slotData.time) {
-        html += renderSlotLogged(slot, slotData, meds);
-      } else {
-        html += renderSlotButton(slot);
-      }
-    });
-
-    // ── Med Reminders (above As-Needed) ──
-    if (reminderMeds.length) {
-      html += renderRemindersSection(reminderMeds, medRems);
+    // ── Zone 1: Today's Doses ──
+    const hasDoses = SLOT_ORDER.some(s => allMeds.some(m => (m.slots ?? []).includes(s)))
+                  || reminderMeds.length > 0;
+    if (hasDoses) {
+      html += `<div class="meds-zone">
+                 <div class="meds-zone-label">Today's Doses</div>
+                 <div class="meds-dose-grid">${renderTodaysDoses(allMeds, medSlots, medRems)}</div>
+               </div>`;
     }
 
-    // ── PRN / As-Needed ──
+    // ── Zone 2: PRN trigger + log/edit forms ──
     if (prnMeds.length) {
-      html += renderPrnSection(prnMeds, dayData.prn_doses ?? []);
+      let zone2 = renderPrnTrigger(prnMeds, prnDoses);
+      if (prnFormOpen) zone2 += renderPrnLogForm(prnMeds, buildRecentDoses(prnDoses));
+      if (prnEditDoseId) {
+        const d = buildRecentDoses(prnDoses).find(x => x.id === prnEditDoseId)
+               ?? prnDoses.find(x => x.id === prnEditDoseId);
+        if (d) zone2 += renderPrnEditCard(d);
+      }
+      html += `<div class="meds-zone">${zone2}</div>`;
     }
 
-    if (!html) {
-      html = `<p class="meds-empty">No medications configured.
-        <button class="meds-config-link" onclick="MedsManage.open('today')">Set up medications →</button>
-      </p>`;
+    // ── Zone 3: Active Dosing Windows ──
+    const windowMeds = prnMeds.filter(m => m.min_interval_hours || m.max_daily_doses);
+    if (windowMeds.length) {
+      const winHtml = renderDosingWindows(windowMeds, prnDoses);
+      if (winHtml) html += `<div class="meds-zone">${winHtml}</div>`;
     }
+
+    // ── Zone 4: Meds Logged Today ──
+    html += `<div class="meds-zone">${renderLoggedToday(allMeds, medSlots, medRems, prnDoses)}</div>`;
 
     el.innerHTML = html;
     wireEvents(el);
-    updateBadge(allMeds, medSlots, medRems, dayData.prn_doses ?? []);
+    updateBadge(allMeds, medSlots, medRems, prnDoses);
   }
 
-  // ── Scheduled slot — not yet logged ───────────────────────────────────────
+  // ── Zone 1: Today's Doses grid ────────────────────────────────────────────
+
+  function renderTodaysDoses(allMeds, medSlots, medRems) {
+    const SLOT_SHORT = { am: 'AM', afternoon: 'Afternoon', pm: 'PM' };
+    const items = [];
+
+    // Scheduled slots (only if unlogged and have meds)
+    SLOT_ORDER.forEach(slot => {
+      const meds = allMeds.filter(m => (m.slots ?? []).includes(slot));
+      if (!meds.length) return;
+      const slotData = medSlots[slot] ?? { time: null };
+      if (slotData.time) return;  // already logged — not shown
+      items.push({ kind: 'slot', slot, label: SLOT_SHORT[slot] + ' Meds', count: `${meds.length} med${meds.length !== 1 ? 's' : ''}` });
+    });
+
+    // Reminder meds (only if not yet logged today)
+    allMeds.filter(m => m.med_reminder && !m.as_needed).forEach(m => {
+      if (medRems[m.id]) return;  // already logged
+      items.push({ kind: 'reminder', id: m.id, emoji: m.emoji ?? '', label: m.name, count: m.recommended_dose || '' });
+    });
+
+    if (!items.length) {
+      return `<div class="meds-all-done"><span class="meds-all-done-check">✓</span> All doses logged for today</div>`;
+    }
+
+    return items.map(item => {
+      const icon      = item.kind === 'slot' ? (SLOT_ICONS[item.slot] ?? '💊') : (item.emoji || '💊');
+      const isPicking = item.kind === 'slot' ? pickingSlot === item.slot : pickingReminder === item.id;
+
+      if (isPicking) {
+        const dataAttr = item.kind === 'slot'
+          ? `data-pick-slot="${escHtml(item.slot)}"`
+          : `data-pick-reminder="${escHtml(item.id)}"`;
+        return `
+          <div class="meds-slot-picker" ${dataAttr}>
+            <span class="meds-picker-icon">${icon}</span>
+            <span class="meds-picker-name">${escHtml(item.label)}</span>
+            <input type="time" class="meds-picker-time" value="${escHtml(nowHHMM())}">
+            <button class="meds-picker-ok" data-confirm-pick>OK</button>
+            <button class="meds-picker-cancel" data-cancel-pick title="Cancel">✕</button>
+          </div>`;
+      }
+
+      const dataOpen = item.kind === 'slot'
+        ? `data-open-slot="${escHtml(item.slot)}"`
+        : `data-open-reminder="${escHtml(item.id)}"`;
+      return `
+        <button class="meds-dose-btn" ${dataOpen}>
+          <div class="meds-dose-btn-top">
+            <span class="meds-dose-icon">${icon}</span>
+            <span class="meds-dose-name">${escHtml(item.label)}</span>
+          </div>
+          ${item.count ? `<span class="meds-dose-count">${escHtml(item.count)}</span>` : ''}
+        </button>`;
+    }).join('');
+  }
+
+  // ── Zone 2: PRN trigger (stub — filled in Task 3) ─────────────────────────
+  function renderPrnTrigger(prnMeds, prnDoses) { return ''; }
+
+  // ── Zone 3: Dosing Windows (stub — filled in Task 3) ─────────────────────
+  function renderDosingWindows(windowMeds, prnDoses) { return ''; }
+
+  // ── Zone 4: Logged Today (stub — filled in Task 4) ───────────────────────
+  function renderLoggedToday(allMeds, medSlots, medRems, prnDoses) { return ''; }
+
+  // ── Scheduled slot — not yet logged (legacy — replaced by Zone 1) ────────
 
   function renderSlotButton(slot) {
     if (pendingLogSlot === slot) {
@@ -435,36 +541,43 @@ const Medications = (() => {
   // ── Event wiring ───────────────────────────────────────────────────────────
 
   function wireEvents(el) {
-    // Log slot buttons — open pending time-confirm form
-    el.querySelectorAll('[data-log-slot]').forEach(btn => {
+    // ── Zone 1: open inline time picker ──
+    el.querySelectorAll('[data-open-slot]').forEach(btn => {
       btn.addEventListener('click', () => {
-        pendingLogSlot = btn.dataset.logSlot;
-        pendingLogTime = nowHHMM();
+        pickingSlot     = btn.dataset.openSlot;
+        pickingReminder = null;
+        render();
+      });
+    });
+    el.querySelectorAll('[data-open-reminder]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pickingReminder = btn.dataset.openReminder;
+        pickingSlot     = null;
         render();
       });
     });
 
-    // Pending-log: time input change
-    el.querySelectorAll('.meds-slot-pending-time').forEach(inp => {
-      inp.addEventListener('input', e => { pendingLogTime = e.target.value; });
+    // Zone 1: confirm or cancel picker
+    el.querySelectorAll('[data-confirm-pick]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const picker = btn.closest('[data-pick-slot],[data-pick-reminder]');
+        const time   = picker?.querySelector('.meds-picker-time')?.value || nowHHMM();
+        if (picker?.dataset.pickSlot) {
+          logSlot(picker.dataset.pickSlot, time);
+        } else if (picker?.dataset.pickReminder) {
+          logReminder(picker.dataset.pickReminder, time);
+        }
+        pickingSlot = pickingReminder = null;
+      });
+    });
+    el.querySelectorAll('[data-cancel-pick]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pickingSlot = pickingReminder = null;
+        render();
+      });
     });
 
-    // Pending-log: confirm
-    el.querySelectorAll('[data-confirm-log]').forEach(btn => {
-      btn.addEventListener('click', () => logSlot(btn.dataset.confirmLog, pendingLogTime || nowHHMM()));
-    });
-
-    // Pending-log: cancel
-    el.querySelectorAll('[data-cancel-log]').forEach(btn => {
-      btn.addEventListener('click', () => { pendingLogSlot = null; render(); });
-    });
-
-    // Tap logged slot to edit
-    el.querySelectorAll('[data-edit-slot]').forEach(row => {
-      row.addEventListener('click', () => openSlotEdit(row.dataset.editSlot));
-    });
-
-    // Slot edit form
+    // ── Slot edit form ──
     if (editSlot) {
       el.querySelector('#meds-edit-time')?.addEventListener('input', e => { editTime = e.target.value; });
       el.querySelectorAll('[data-check-med]').forEach(chk => {
@@ -484,35 +597,39 @@ const Medications = (() => {
       el.querySelector('#meds-extra-dose-input')?.addEventListener('input', e => { editExtraDose = e.target.value; });
       el.querySelector('#meds-extra-add-btn')?.addEventListener('click', addExtra);
       el.querySelector('#meds-edit-cancel')?.addEventListener('click', () => {
-        editSlot = null;
+        editSlot         = null;
         confirmingDelete = false;
         render();
       });
       el.querySelector('#meds-edit-save')?.addEventListener('click', saveSlotEdit);
-
-      // Delete with inline confirmation
-      el.querySelector('#meds-delete-btn')?.addEventListener('click', () => {
-        confirmingDelete = true;
-        render();
-      });
-      el.querySelector('#meds-delete-no')?.addEventListener('click', () => {
-        confirmingDelete = false;
-        render();
-      });
+      el.querySelector('#meds-delete-btn')?.addEventListener('click', () => { confirmingDelete = true; render(); });
+      el.querySelector('#meds-delete-no')?.addEventListener('click', () => { confirmingDelete = false; render(); });
       el.querySelector('#meds-delete-yes')?.addEventListener('click', deleteSlotLog);
     }
 
-    // PRN quick buttons
+    // ── Zone 2: PRN panel toggle ──
+    el.querySelector('#meds-prn-trigger')?.addEventListener('click', () => {
+      prnPanelOpen = !prnPanelOpen;
+      render();
+    });
+
+    // Zone 2: PRN quick-pick chip
     el.querySelectorAll('[data-prn-quick]').forEach(btn => {
-      btn.addEventListener('click', () => openPrnForm(btn.dataset.prnQuick));
+      btn.addEventListener('click', () => { openPrnForm(btn.dataset.prnQuick); prnPanelOpen = false; });
     });
 
-    // PRN other select
+    // Zone 2: PRN other-med log
+    el.querySelector('#meds-prn-other-log')?.addEventListener('click', () => {
+      const id = el.querySelector('#meds-prn-other-select')?.value;
+      if (id) { openPrnForm(id); prnPanelOpen = false; }
+    });
+
+    // Zone 2: PRN other-med select (old pattern kept for compat)
     el.querySelector('#meds-prn-other-select')?.addEventListener('change', e => {
-      if (e.target.value) { openPrnForm(e.target.value); e.target.value = ''; }
+      if (e.target.value) { openPrnForm(e.target.value); prnPanelOpen = false; e.target.value = ''; }
     });
 
-    // PRN dose cards — tap to edit
+    // Zone 2: PRN dose cards — tap to edit
     el.querySelectorAll('[data-prn-edit-dose]').forEach(card => {
       card.addEventListener('click', e => {
         if (e.target.closest('[data-prn-del-dose]')) return;
@@ -520,12 +637,12 @@ const Medications = (() => {
       });
     });
 
-    // PRN dose card delete
+    // Zone 2: PRN dose card delete
     el.querySelectorAll('[data-prn-del-dose]').forEach(btn => {
       btn.addEventListener('click', e => { e.stopPropagation(); deletePrnDose(btn.dataset.prnDelDose); });
     });
 
-    // PRN edit form
+    // Zone 2: PRN edit form
     if (prnEditDoseId) {
       el.querySelector('#prn-e-time')?.addEventListener('input', e => { prnETime = e.target.value; });
       el.querySelectorAll('[data-prn-edc]').forEach(btn => {
@@ -539,7 +656,7 @@ const Medications = (() => {
       });
     }
 
-    // PRN log form
+    // Zone 2: PRN log form
     if (prnFormOpen) {
       el.querySelector('#prn-f-med')?.addEventListener('change', e => { prnMedId = e.target.value; prnDose = ''; render(); });
       el.querySelector('#prn-f-time')?.addEventListener('input', e => { prnTime = e.target.value; });
@@ -551,41 +668,33 @@ const Medications = (() => {
       el.querySelector('#prn-f-submit')?.addEventListener('click', submitPrnLog);
     }
 
-    // Reminder: "Mark taken" → open time-input form defaulting to now
-    el.querySelectorAll('[data-reminder-take]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        reminderEditId   = btn.dataset.reminderTake;
-        reminderEditTime = nowHHMM();
-        render();
-      });
+    // ── Zone 4: logged today toggle ──
+    el.querySelector('#meds-logged-trigger')?.addEventListener('click', () => {
+      loggedListOpen = !loggedListOpen;
+      render();
     });
 
-    // Reminder: tap logged time to edit
-    el.querySelectorAll('[data-reminder-edit]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mid = btn.dataset.reminderEdit;
-        reminderEditId   = mid;
-        reminderEditTime = (Data.getDay(currentDate).med_reminders ?? {})[mid] ?? nowHHMM();
-        render();
-      });
+    // Zone 4: edit buttons
+    el.querySelectorAll('[data-edit-logged-slot]').forEach(btn => {
+      btn.addEventListener('click', () => openSlotEdit(btn.dataset.editLoggedSlot));
+    });
+    el.querySelectorAll('[data-edit-logged-prn]').forEach(btn => {
+      btn.addEventListener('click', () => openPrnEdit(btn.dataset.editLoggedPrn));
+    });
+    el.querySelectorAll('[data-edit-logged-rem]').forEach(btn => {
+      btn.addEventListener('click', () => openReminderEdit(btn.dataset.editLoggedRem));
     });
 
-    // Reminder: time-input change
+    // Reminder inline edit (Zone 4)
     el.querySelectorAll('.meds-reminder-time-input').forEach(inp => {
       inp.addEventListener('input', e => { reminderEditTime = e.target.value; });
     });
-
-    // Reminder: confirm (save)
     el.querySelectorAll('[data-reminder-confirm]').forEach(btn => {
       btn.addEventListener('click', () => saveReminder(btn.dataset.reminderConfirm));
     });
-
-    // Reminder: cancel edit
     el.querySelectorAll('[data-reminder-cancel-edit]').forEach(btn => {
       btn.addEventListener('click', () => { reminderEditId = null; render(); });
     });
-
-    // Reminder: undo
     el.querySelectorAll('[data-reminder-undo]').forEach(btn => {
       btn.addEventListener('click', () => undoReminder(btn.dataset.reminderUndo));
     });
@@ -601,7 +710,8 @@ const Medications = (() => {
       .map(m => m.id);
     if (!day.med_slots) day.med_slots = defaultSlots();
     day.med_slots[slot] = { time: t, meds: snapshot, skipped: [], extras: [] };
-    pendingLogSlot = null;
+    pickingSlot     = null;
+    pickingReminder = null;
     scheduleSave();
     render();
   }
@@ -782,6 +892,26 @@ const Medications = (() => {
       .slice()
       .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0))
       .slice(0, n);
+  }
+
+  function buildRecentDoses(prnDoses) {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const yest   = Data.getDay(shiftDate(currentDate, -1)).prn_doses ?? [];
+    return [...yest, ...prnDoses]
+      .filter(d => new Date(d.iso_timestamp).getTime() > cutoff)
+      .sort((a, b) => new Date(b.iso_timestamp) - new Date(a.iso_timestamp));
+  }
+
+  function logReminder(medId, time) {
+    reminderEditTime = time || nowHHMM();
+    reminderEditId   = null;
+    saveReminder(medId);
+  }
+
+  function openReminderEdit(medId) {
+    reminderEditId   = medId;
+    reminderEditTime = (Data.getDay(currentDate).med_reminders ?? {})[medId] ?? nowHHMM();
+    render();
   }
 
   function defaultSlots() {
