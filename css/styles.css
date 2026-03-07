@@ -7392,6 +7392,491 @@ button {
   white-space:    nowrap;
 }
 
+/* ── Medications Management Overlay ────────────────────────────────────────── */
+.view-meds-manage {
+  position:   fixed;
+  inset:      0;
+  background: var(--clr-bg);
+  z-index:    200;
+  display:    flex;
+  flex-direction: column;
+  overflow:   hidden;
+}
+.view-meds-manage[hidden] { display: none; }
+
+.view-meds-manage-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         12px 16px;
+  border-bottom:   1px solid var(--clr-border);
+  background:      var(--clr-surface);
+  flex-shrink:     0;
+}
+.view-meds-manage-back-btn {
+  display:     flex;
+  align-items: center;
+  gap:         4px;
+  background:  none;
+  border:      none;
+  color:       var(--clr-accent);
+  font-size:   0.9rem;
+  font-weight: 600;
+  cursor:      pointer;
+  padding:     6px 0;
+}
+.view-meds-manage-title {
+  font-size:   1rem;
+  font-weight: 700;
+  color:       var(--clr-text);
+}
+.view-meds-manage-add-btn {
+  background:  none;
+  border:      none;
+  color:       var(--clr-accent);
+  font-size:   0.9rem;
+  font-weight: 600;
+  cursor:      pointer;
+  padding:     6px 0;
+}
+.view-meds-manage-content {
+  flex:       1;
+  overflow-y: auto;
+  padding:    8px 0 40px;
+}
+
+/* Med list rows */
+.mmg-med-row {
+  padding:       12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+  cursor:        pointer;
+}
+.mmg-med-row:active { background: var(--clr-surface-2); }
+.mmg-med-name {
+  font-size:   0.95rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+  margin-bottom: 4px;
+}
+.mmg-med-chips {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       5px;
+}
+.mmg-chip {
+  font-size:     0.72rem;
+  font-weight:   500;
+  padding:       2px 8px;
+  border-radius: 10px;
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text-2);
+  border:        1px solid var(--clr-border);
+}
+.mmg-empty {
+  padding:    24px 16px;
+  color:      var(--clr-text-2);
+  font-size:  0.88rem;
+  text-align: center;
+}
+.mmg-archive-toggle {
+  display:     block;
+  width:       100%;
+  text-align:  left;
+  padding:     10px 16px;
+  background:  none;
+  border:      none;
+  color:       var(--clr-text-2);
+  font-size:   0.85rem;
+  cursor:      pointer;
+  border-top:  1px solid var(--clr-border);
+}
+.mmg-archived { opacity: 0.65; }
+
+/* Edit form */
+.mmg-form {
+  padding: 16px;
+}
+.mmg-form-back {
+  background: none;
+  border: none;
+  color: var(--clr-accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0 12px;
+}
+.mmg-form-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin: 0 0 16px;
+}
+.mmg-field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--clr-text-2);
+  margin: 12px 0 4px;
+}
+.mmg-section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 20px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.mmg-text-input {
+  width:         100%;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  color:         var(--clr-text);
+  font-size:     0.9rem;
+  padding:       8px 10px;
+  box-sizing:    border-box;
+}
+.mmg-text-input:focus { border-color: var(--clr-accent); outline: none; }
+.mmg-slot-label {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   0.88rem;
+  color:       var(--clr-text);
+  padding:     6px 0;
+  cursor:      pointer;
+}
+.mmg-slot-dose-row {
+  padding-left: 24px;
+  margin-bottom: 8px;
+}
+.mmg-slot-dose-row--hidden { display: none; }
+.mmg-prn-fields { padding-left: 24px; }
+.mmg-form-actions {
+  display:     flex;
+  align-items: center;
+  margin-top:  24px;
+  gap:         10px;
+}
+.mmg-save-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 8px;
+  font-size:     0.9rem;
+  font-weight:   600;
+  padding:       9px 20px;
+  cursor:        pointer;
+}
+.mmg-archive-btn {
+  background:    transparent;
+  color:         var(--clr-text-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  font-size:     0.85rem;
+  padding:       8px 14px;
+  cursor:        pointer;
+}
+
+/* ── Today Tab: Medications Section ────────────────────────────────────────── */
+.meds-empty {
+  padding:    16px;
+  font-size:  0.88rem;
+  color:      var(--clr-text-2);
+  text-align: center;
+}
+.meds-config-link {
+  background: none;
+  border:     none;
+  color:      var(--clr-accent);
+  font-size:  0.88rem;
+  cursor:     pointer;
+  padding:    0;
+  text-decoration: underline;
+}
+
+/* Scheduled slot rows */
+.meds-slot-row {
+  display:       flex;
+  align-items:   center;
+  padding:       10px 16px;
+  border-bottom: 1px solid var(--clr-border);
+  gap:           10px;
+}
+.meds-slot-row--empty {
+  justify-content: center;
+}
+.meds-slot-log-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 20px;
+  font-size:     0.88rem;
+  font-weight:   600;
+  padding:       8px 20px;
+  cursor:        pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.meds-slot-row--done {
+  cursor:        pointer;
+  justify-content: space-between;
+}
+.meds-slot-row--done:active { background: var(--clr-surface-2); }
+.meds-slot-done-label {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+.meds-slot-done-time {
+  font-size:  0.85rem;
+  color:      var(--clr-accent);
+  font-weight: 500;
+}
+
+/* Slot edit form */
+.meds-slot-edit {
+  padding:       12px 16px;
+  border-bottom: 1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+}
+.meds-slot-edit-header {
+  font-size:     0.85rem;
+  font-weight:   700;
+  color:         var(--clr-text-2);
+  margin-bottom: 10px;
+}
+.meds-edit-time-row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  margin-bottom: 10px;
+}
+.meds-edit-label {
+  font-size:   0.8rem;
+  font-weight: 600;
+  color:       var(--clr-text-2);
+  min-width:   55px;
+}
+.meds-edit-time-input {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  color:         var(--clr-text);
+  padding:       5px 8px;
+  font-size:     0.88rem;
+}
+.meds-edit-med-list {
+  margin-bottom: 8px;
+}
+.meds-edit-med-row {
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  padding:       6px 0;
+  border-bottom: 1px dashed var(--clr-border);
+}
+.meds-edit-med-check {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   0.88rem;
+  color:       var(--clr-text);
+  cursor:      pointer;
+}
+.meds-edit-med-dose {
+  font-size: 0.8rem;
+  color:     var(--clr-text-2);
+}
+.meds-edit-extra-row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   0.85rem;
+  color:       var(--clr-text);
+  padding:     4px 0;
+}
+.meds-edit-extra-del {
+  background: none;
+  border:     none;
+  color:      var(--clr-text-2);
+  cursor:     pointer;
+  font-size:  0.85rem;
+}
+.meds-edit-add-extra {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex-wrap:   wrap;
+  margin-top:  8px;
+}
+.meds-edit-extra-select,
+.meds-edit-extra-dose-input {
+  flex:          1;
+  min-width:     80px;
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 6px;
+  color:         var(--clr-text);
+  font-size:     0.82rem;
+  padding:       5px 8px;
+}
+.meds-edit-add-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 6px;
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 12px;
+  cursor:        pointer;
+}
+.meds-slot-edit-actions {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+  margin-top:      12px;
+}
+.meds-edit-cancel-btn {
+  background:    transparent;
+  color:         var(--clr-text-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  font-size:     0.88rem;
+  padding:       7px 16px;
+  cursor:        pointer;
+}
+.meds-edit-save-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 8px;
+  font-size:     0.88rem;
+  font-weight:   600;
+  padding:       7px 16px;
+  cursor:        pointer;
+}
+
+/* PRN section */
+.meds-prn-section {
+  padding:       12px 16px 4px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.meds-prn-label {
+  font-size:     0.75rem;
+  font-weight:   700;
+  color:         var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.meds-prn-quick-row {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       8px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.meds-prn-quick-btn {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 20px;
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  font-weight:   500;
+  padding:       7px 14px;
+  cursor:        pointer;
+}
+.meds-prn-quick-btn:active { background: var(--clr-accent-dim); border-color: var(--clr-accent); }
+.meds-prn-other-select {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 20px;
+  color:         var(--clr-text-2);
+  font-size:     0.82rem;
+  padding:       6px 10px;
+}
+.meds-prn-dose-card { cursor: pointer; }
+
+/* Med Reminders section */
+.meds-reminders-section {
+  padding:       12px 16px;
+}
+.meds-reminders-label {
+  font-size:     0.75rem;
+  font-weight:   700;
+  color:         var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.meds-reminder-row {
+  display:       flex;
+  align-items:   center;
+  justify-content: space-between;
+  padding:       8px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.meds-reminder-row:last-child { border-bottom: none; }
+.meds-reminder-name {
+  font-size:   0.9rem;
+  font-weight: 600;
+  color:       var(--clr-text);
+}
+.meds-reminder-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 14px;
+  font-size:     0.8rem;
+  font-weight:   600;
+  padding:       5px 14px;
+  cursor:        pointer;
+}
+.meds-reminder-row--done .meds-reminder-time {
+  font-size:  0.85rem;
+  color:      var(--clr-accent);
+  font-weight: 500;
+}
+.meds-reminder-undo {
+  background: none;
+  border:     none;
+  color:      var(--clr-text-2);
+  font-size:  0.8rem;
+  cursor:     pointer;
+  text-decoration: underline;
+}
+
+/* Health Log: Medications link in header */
+.hl-meds-link-btn {
+  display:       flex;
+  align-items:   center;
+  gap:           5px;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  color:         var(--clr-text-2);
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 12px;
+  cursor:        pointer;
+}
+.hl-meds-link-btn:hover { border-color: var(--clr-accent); color: var(--clr-accent); }
+
+/* Settings: Medications link button */
+.stg-link-btn {
+  background:    var(--clr-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: 8px;
+  font-size:     0.88rem;
+  font-weight:   600;
+  padding:       9px 18px;
+  cursor:        pointer;
+  margin-bottom: 8px;
+}
+
 /* ── Reconnect banner ────────────────────────────────────────────────────── */
 .reconnect-banner[hidden] { display: none; }
 .reconnect-banner {
