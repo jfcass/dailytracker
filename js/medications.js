@@ -570,10 +570,13 @@ const Medications = (() => {
   // ── Slot actions ───────────────────────────────────────────────────────────
 
   function logSlot(slot, time) {
-    const t   = time || nowHHMM();
-    const day = Data.getDay(currentDate);
+    const t        = time || nowHHMM();
+    const day      = Data.getDay(currentDate);
+    const snapshot = getActiveMeds()
+      .filter(m => (m.slots ?? []).includes(slot))
+      .map(m => m.id);
     if (!day.med_slots) day.med_slots = defaultSlots();
-    day.med_slots[slot] = { time: t, skipped: [], extras: [] };
+    day.med_slots[slot] = { time: t, meds: snapshot, skipped: [], extras: [] };
     pendingLogSlot = null;
     scheduleSave();
     render();
