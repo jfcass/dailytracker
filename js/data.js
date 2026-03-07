@@ -20,6 +20,7 @@ const Data = (() => {
       ],
       symptom_categories: ['Headache', 'Fever', 'Fatigue', 'Nausea', 'Diarrhea', 'Other'],
       issue_categories: ['Headache', 'Fever', 'Fatigue', 'Nausea', 'Diarrhea', 'Other'],
+      note_tags: ['Positive News', 'Challenging News', 'Concert', 'Social Event', 'Travel', 'Work Stress', 'Exercise'],
       theme: 'system',
       weather_unit: 'auto',
       default_report_period: '7d',
@@ -352,6 +353,7 @@ const Data = (() => {
         floors:           null,
         gratitudes:        [],
         note:              '',
+        tags:              [],
         prn_doses:         [],
       };
     }

@@ -48,6 +48,7 @@ const Settings = (() => {
     wrap.appendChild(buildPrnMedsCard());
     wrap.appendChild(buildTreatmentMedsCard());
     wrap.appendChild(buildCategoriesCard());
+    wrap.appendChild(buildNoteTagsCard());
     wrap.appendChild(buildVisibilityCard());
     wrap.appendChild(buildDisplayCard());
     wrap.appendChild(buildAccountCard());
@@ -404,6 +405,81 @@ const Settings = (() => {
     cats.splice(idx, 1);
     render(); scheduleSave();
     if (typeof Symptoms !== 'undefined') Symptoms.render();
+  }
+
+  // ── Note Tags Card ───────────────────────────────────────────────────────────
+
+  function buildNoteTagsCard() {
+    const { card, body } = makeCard(`
+      <span class="stg-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+          <line x1="7" y1="7" x2="7.01" y2="7"/>
+        </svg>
+        Note Tags
+      </span>
+    `, 'note-tags');
+
+    const tags = Data.getSettings().note_tags ?? [];
+    const tagsWrap = document.createElement('div');
+    tagsWrap.className = 'stg-tags';
+
+    if (tags.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'stg-empty';
+      empty.textContent = 'No tags yet. Add one below.';
+      tagsWrap.appendChild(empty);
+    } else {
+      tags.forEach(tag => {
+        const el = document.createElement('span');
+        el.className = 'stg-tag';
+        el.innerHTML = `${escHtml(tag)}<button class="stg-tag-remove" type="button" aria-label="Remove ${escHtml(tag)}">×</button>`;
+        el.querySelector('.stg-tag-remove').addEventListener('click', () => removeNoteTag(tag));
+        tagsWrap.appendChild(el);
+      });
+    }
+    body.appendChild(tagsWrap);
+
+    const addRow = document.createElement('div');
+    addRow.className = 'stg-add-row';
+    addRow.innerHTML = `
+      <input class="stg-text-input" type="text" placeholder="New tag" maxlength="30" aria-label="New note tag">
+      <button class="stg-add-btn" type="button">Add</button>
+    `;
+    const inp   = addRow.querySelector('input');
+    const doAdd = () => { if (addNoteTag(inp.value.trim())) { inp.value = ''; } inp.focus(); };
+    addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+    body.appendChild(addRow);
+
+    return card;
+  }
+
+  function addNoteTag(name) {
+    if (!name) return false;
+    const settings = Data.getSettings();
+    if (!settings.note_tags) settings.note_tags = [];
+    if (settings.note_tags.includes(name)) return false;
+    settings.note_tags.push(name);
+    render(); scheduleSave();
+    if (typeof Mood !== 'undefined') Mood.setDate && Mood._renderTags && Mood._renderTags();
+    return true;
+  }
+
+  function removeNoteTag(name) {
+    const settings = Data.getSettings();
+    if (!settings.note_tags) return;
+    const idx = settings.note_tags.indexOf(name);
+    if (idx === -1) return;
+    settings.note_tags.splice(idx, 1);
+    // Remove this tag from all days that had it selected
+    Object.values(Data.getData().days ?? {}).forEach(day => {
+      if (!day.tags) return;
+      const i = day.tags.indexOf(name);
+      if (i !== -1) day.tags.splice(i, 1);
+    });
+    render(); scheduleSave();
   }
 
   // ── Visibility Card ───────────────────────────────────────────────────────────

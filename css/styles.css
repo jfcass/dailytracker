@@ -4686,6 +4686,74 @@ button {
   color: var(--clr-text-2);
 }
 
+/* ── Note Tags ───────────────────────────────────────────────────────────────── */
+.note-tags-wrap {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-tag-pills {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       6px;
+}
+
+.note-tag {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 999px;
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+  font-size:     0.78rem;
+  font-weight:   500;
+  padding:       4px 12px;
+  transition:    background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.note-tag:active { opacity: 0.75; }
+
+.note-tag--active {
+  background:   var(--clr-accent-dim);
+  border-color: var(--clr-accent);
+  color:        var(--clr-accent);
+}
+
+.note-tag-add-row {
+  display: flex;
+  gap:     8px;
+}
+
+.note-tag-add-input {
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 8px;
+  color:         var(--clr-text);
+  flex:          1;
+  font-size:     0.85rem;
+  padding:       5px 10px;
+}
+
+.note-tag-add-input:focus {
+  border-color: var(--clr-accent);
+  outline:      none;
+}
+
+.note-tag-add-btn {
+  background:    var(--clr-accent);
+  border:        none;
+  border-radius: 8px;
+  color:         #fff;
+  cursor:        pointer;
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       5px 14px;
+  white-space:   nowrap;
+}
+
+.note-tag-add-btn:active { opacity: 0.8; }
+
 /* ── Conditions bar (weather + pollen, collapsible) ─────────────────────────── */
 .conditions-bar {
   background:    var(--clr-surface-2);
