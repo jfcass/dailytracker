@@ -257,18 +257,26 @@ const Mood = (() => {
 
     const pills = allTags.map(tag => {
       const active = selected.includes(tag) ? ' note-tag--active' : '';
-      return `<button class="note-tag${active}" type="button"
-                      onclick="Mood._toggleTag(${JSON.stringify(escHtml(tag))})">${escHtml(tag)}</button>`;
+      return `<button class="note-tag${active}" type="button" data-tag="${escHtml(tag)}">${escHtml(tag)}</button>`;
     }).join('');
 
     wrap.innerHTML = `
       <div class="note-tag-pills">${pills}</div>
       <div class="note-tag-add-row">
         <input class="note-tag-add-input" id="note-tag-add-input" type="text"
-               placeholder="Add tag…" maxlength="30" aria-label="Add new tag"
-               onkeydown="if(event.key==='Enter'){event.preventDefault();Mood._addNoteTagInline()}">
-        <button class="note-tag-add-btn" type="button" onclick="Mood._addNoteTagInline()">+ Tag</button>
+               placeholder="Add tag…" maxlength="30" aria-label="Add new tag">
+        <button class="note-tag-add-btn" type="button" id="note-tag-add-btn">+ Tag</button>
       </div>`;
+
+    // Wire events after innerHTML — avoids quote-escaping issues with inline onclick
+    wrap.querySelectorAll('.note-tag[data-tag]').forEach(btn => {
+      btn.addEventListener('click', () => toggleTag(btn.dataset.tag));
+    });
+    const inp = wrap.querySelector('#note-tag-add-input');
+    inp?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addNoteTagInline(); }
+    });
+    wrap.querySelector('#note-tag-add-btn')?.addEventListener('click', addNoteTagInline);
   }
 
   // ── Public ────────────────────────────────────────────────────────────────────
