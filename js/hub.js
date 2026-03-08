@@ -110,33 +110,92 @@ const Hub = (() => {
   }
 
   /**
-   * Returns reminder text or null if nothing to remind.
-   * Checks: medications due today not yet taken; habits not yet done (evening only).
+   * Returns the next actionable pending item, or null if nothing due.
+   * Result: { text, type, slot?, medId? }
+   *   type = 'slot' | 'reminder' | 'habits'
+   *
+   * Items are sorted by inferred expected time (from yesterday's log),
+   * interleaving scheduled slots and reminder meds chronologically.
+   * An item is "due" when currentTime >= expectedTime − 30 min.
    */
-  function getReminderText() {
-    const items = [];
+  function getNextPendingItem() {
+    const today    = Data.today();
+    const dayToday = Data.getDay(today);
 
-    // Pending medications
-    const day = Data.getDay(Data.today());
-    const meds = Data.getData().medications ?? {};
-    const taken = day.medications_taken ?? [];
-    const activeMeds = Object.values(meds).filter(m => m.active && !m.as_needed);
-    const pendingMeds = activeMeds.filter(m =>
-      !taken.some(t => t.medication_id === m.id && t.taken)
-    );
-    if (pendingMeds.length === 1) items.push(`${pendingMeds[0].name} due`);
-    else if (pendingMeds.length > 1) items.push(`${pendingMeds.length} meds due`);
+    // Yesterday's date string
+    const d = new Date(today + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    const yesterday = d.toISOString().slice(0, 10);
+    const dayYest   = Data.getDay(yesterday) ?? {};
 
-    // Incomplete habits (only remind if it's past 6pm)
-    const hour = new Date().getHours();
-    if (hour >= 18) {
-      const habits   = Data.getSettings().habits ?? [];
-      const dayHabs  = day.habits ?? {};
-      const undone   = habits.filter(h => !dayHabs[h]);
-      if (undone.length > 0) items.push(`${undone.length} habit${undone.length > 1 ? 's' : ''} left`);
+    const allMeds  = Object.values(Data.getData().medications ?? {}).filter(m => m.active);
+    const medSlots = dayToday.med_slots    ?? {};
+    const medRems  = dayToday.med_reminders ?? {};
+
+    const now         = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    // Parse "HH:MM" → minutes since midnight (returns null if invalid)
+    function parseMins(hhmm) {
+      if (!hhmm) return null;
+      const [h, m] = hhmm.split(':').map(Number);
+      return isNaN(h) || isNaN(m) ? null : h * 60 + m;
     }
 
-    return items.length > 0 ? items.join(' · ') : null;
+    const SLOT_DEFAULTS = { am: 8 * 60, afternoon: 12 * 60, pm: 20 * 60 };
+    const SLOT_LABELS   = { am: 'AM',   afternoon: 'Afternoon', pm: 'PM'  };
+
+    // Build candidate list: all pending items with their expected time
+    const candidates = [];
+
+    // Scheduled slots
+    for (const slot of ['am', 'afternoon', 'pm']) {
+      const slotMeds = allMeds.filter(m => !m.as_needed && !m.med_reminder && (m.slots ?? []).includes(slot));
+      if (!slotMeds.length) continue;
+      if (medSlots[slot]?.time) continue;   // already logged
+
+      const expectedMins = parseMins(dayYest?.med_slots?.[slot]?.time) ?? SLOT_DEFAULTS[slot];
+      candidates.push({
+        expectedMins,
+        text: `${SLOT_LABELS[slot]} meds due`,
+        type: 'slot',
+        slot,
+      });
+    }
+
+    // Reminder meds
+    allMeds.filter(m => m.med_reminder && !medRems[m.id]).forEach(m => {
+      const expectedMins = parseMins(dayYest?.med_reminders?.[m.id]) ?? 9 * 60; // 9am default
+      candidates.push({
+        expectedMins,
+        text: `${m.name} reminder`,
+        type: 'reminder',
+        medId: m.id,
+      });
+    });
+
+    // Sort by expected time
+    candidates.sort((a, b) => a.expectedMins - b.expectedMins);
+
+    // Return the first item that is due (within 30 min window or overdue)
+    for (const item of candidates) {
+      if (currentMins >= item.expectedMins - 30) return item;
+    }
+
+    // Habits fallback — only after 6pm
+    if (now.getHours() >= 18) {
+      const habits  = Data.getSettings().habits ?? [];
+      const dayHabs = dayToday.habits ?? {};
+      const undone  = habits.filter(h => !dayHabs[h]);
+      if (undone.length > 0) {
+        return {
+          text: `${undone.length} habit${undone.length > 1 ? 's' : ''} left`,
+          type: 'habits',
+        };
+      }
+    }
+
+    return null;
   }
 
   // ── User display initial cache ────────────────────────────────────
