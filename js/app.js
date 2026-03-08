@@ -36,13 +36,26 @@ const App = (() => {
 
   function toggleSection(id) {
     if (collapsedSections.has(id)) {
+      // Opening this section
       collapsedSections.delete(id);
+      // Accordion mode: collapse all other currently-open sections
+      if (Data.getSettings().today_accordion) {
+        document.querySelectorAll('.tracker-section[id]').forEach(sec => {
+          if (sec.id !== id) collapsedSections.add(sec.id);
+        });
+      }
     } else {
+      // Closing this section
       collapsedSections.add(id);
     }
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedSections]));
-    const sec = document.getElementById(id);
-    if (sec) sec.classList.toggle('tracker-section--collapsed', collapsedSections.has(id));
+    if (Data.getSettings().today_accordion) {
+      // Re-apply all collapsed states when accordion fires
+      applyCollapsedState();
+    } else {
+      const sec = document.getElementById(id);
+      if (sec) sec.classList.toggle('tracker-section--collapsed', collapsedSections.has(id));
+    }
   }
 
   // ── Tab navigation ────────────────────────────────────────────────────────────
