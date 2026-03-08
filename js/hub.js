@@ -234,6 +234,31 @@ const Hub = (() => {
   }
 
   /**
+   * Re-render all visible sections for current bucket when date changes
+   */
+  function renderBucketSections(bucketId) {
+    const bucket = BUCKETS[bucketId];
+    if (!bucket) return;
+
+    // Call setDate on each section module if it exists and has the method
+    bucket.sections.forEach(sectionId => {
+      if (sectionId === 'section-habits' && typeof Habits !== 'undefined') {
+        Habits.setDate(BucketDateNav.getDate());
+      } else if (sectionId === 'section-mood' && typeof Mood !== 'undefined') {
+        Mood.setDate(BucketDateNav.getDate());
+      } else if (sectionId === 'section-symptoms' && typeof Symptoms !== 'undefined') {
+        Symptoms.setDate(BucketDateNav.getDate());
+      } else if (sectionId === 'section-medications' && typeof Medications !== 'undefined') {
+        Medications.setDate(BucketDateNav.getDate());
+      } else if (sectionId === 'section-bowel' && typeof Bowel !== 'undefined') {
+        Bowel.setDate(BucketDateNav.getDate());
+      } else if (sectionId === 'section-gratitudes' && typeof Gratitudes !== 'undefined') {
+        Gratitudes.setDate(BucketDateNav.getDate());
+      }
+    });
+  }
+
+  /**
    * Attach swipe gesture listener to bucket detail container
    */
   function attachBucketSwipeListener(container, bucketId) {
@@ -1002,8 +1027,7 @@ const Hub = (() => {
       BucketDateNav.init(bucketKey, (newDate) => {
         // When date changes, update header and re-render sections
         updateBucketDetailHeaderDate();
-        // Note: Sections will re-render when they check DateNav.getDate()
-        // For now, we rely on section modules to read BucketDateNav via DateNav
+        renderBucketSections(bucketKey);
       });
 
       // Create and insert bucket detail header
@@ -1012,6 +1036,9 @@ const Hub = (() => {
         accEl.insertBefore(header, accEl.firstChild.nextSibling);
         updateBucketDetailHeaderDate();
       }
+
+      // Update all sections to show data for the bucket's current date
+      renderBucketSections(bucketKey);
 
       // Attach swipe listener for date navigation
       attachBucketSwipeListener(accEl, bucketKey);
