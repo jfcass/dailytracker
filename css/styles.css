@@ -8874,3 +8874,115 @@ button {
   position: sticky;
   top: 0; z-index: 1;
 }
+
+/* ── Accordion wrapper as flex column (enables CSS order for bucket reordering) ── */
+#accordion-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Hub header: greeting, avatar, weather chips ── */
+#hub-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--clr-border);
+  flex-shrink: 0;
+  font-family: var(--hub-font);
+}
+
+.hub-greeting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.hub-greeting-left { flex: 1; min-width: 0; }
+
+.hub-greeting-date {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--clr-text-2);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.hub-greeting-msg {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--clr-text);
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+.hub-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--hub-green-dim);
+  border: 2px solid var(--hub-green-bd);
+  color: var(--hub-green);
+  font-size: 17px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--hub-font);
+}
+
+.hub-weather-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--clr-text-2);
+  font-family: var(--hub-font);
+  white-space: nowrap;
+}
+
+/* Hide conditions bar when hub is active (weather is shown in hub header instead) */
+#conditions-bar.hub-hidden { display: none !important; }
+
+/* ── Health stats bar in Health bucket view ── */
+.hub-bucket-statsbar {
+  display: flex;
+  padding: 12px 16px;
+  background: var(--clr-surface-2);
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.hub-bucket-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1px;
+}
+
+.hub-bucket-stat__ico { font-size: 18px; }
+.hub-bucket-stat__val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--clr-text);
+  font-family: var(--hub-font);
+  line-height: 1.2;
+}
+.hub-bucket-stat__lbl {
+  font-size: 10px;
+  color: var(--clr-text-2);
+  font-weight: 500;
+}

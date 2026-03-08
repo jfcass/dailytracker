@@ -139,6 +139,49 @@ const Hub = (() => {
     return items.length > 0 ? items.join(' · ') : null;
   }
 
+  // ── User display initial cache ────────────────────────────────────
+
+  const _LS_INITIAL_KEY = 'ht_display_initial';
+
+  /** Synchronously return cached user initial, or '?' if not yet loaded. */
+  function _getCachedInitial() {
+    return localStorage.getItem(_LS_INITIAL_KEY) ?? '?';
+  }
+
+  /**
+   * Async: fetch the user's display initial from Drive /about and cache it.
+   * Silently no-ops if already cached or if no token is available.
+   */
+  async function _loadUserInitial() {
+    if (localStorage.getItem(_LS_INITIAL_KEY)) return;
+    try {
+      const token = Auth.getToken() ?? await Auth.requestToken(true);
+      if (!token) return;
+      const res = await fetch(
+        'https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)',
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const name = data?.user?.displayName ?? data?.user?.emailAddress ?? '';
+      if (name) localStorage.setItem(_LS_INITIAL_KEY, name[0].toUpperCase());
+    } catch { /* network errors are silently ignored */ }
+  }
+
+  // ── WMO weather code → emoji (simplified) ────────────────────────
+  const WMO_EMOJI = {
+    0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+    45:'🌫️', 48:'🌫️',
+    51:'🌦️', 53:'🌦️', 55:'🌧️',
+    61:'🌧️', 63:'🌧️', 65:'🌧️',
+    71:'🌨️', 73:'🌨️', 75:'❄️', 77:'🌨️',
+    80:'🌦️', 81:'🌧️', 82:'⛈️',
+    85:'🌨️', 86:'❄️',
+    95:'⛈️', 96:'⛈️', 99:'⛈️',
+  };
+
+  const POLLEN_LABELS = ['None','Very Low','Low','Medium','High','Very High'];
+
   // ── Mood/rating label helpers ─────────────────────────────────────
 
   const MOOD_LABELS  = ['', 'Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
@@ -431,11 +474,81 @@ const Hub = (() => {
     return tile;
   }
 
+  /**
+   * Renders the greeting header (date, greeting, avatar, weather chips)
+   * into #hub-header. Called from renderHome().
+   */
+  function renderHeader() {
+    const el = document.getElementById('hub-header');
+    if (!el) return;
+
+    // Formatted date: e.g. "Saturday, Mar 8"
+    const date = viewDate();
+    const d = new Date(date + 'T12:00:00'); // noon to avoid DST edge
+    const dayName  = d.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    // Time-based greeting
+    const hour   = new Date().getHours();
+    const period = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+
+    // User initial (cached after first Drive API fetch)
+    const initial = _getCachedInitial();
+
+    // Weather chips
+    const weather = Data.getData().days?.[date]?.weather ?? null;
+    let weatherHTML = '';
+    if (weather) {
+      const emoji   = WMO_EMOJI[weather.code] ?? '🌡️';
+      const minF    = weather.temp_min_f != null ? Math.round(weather.temp_min_f) : null;
+      const maxF    = weather.temp_max_f != null ? Math.round(weather.temp_max_f) : null;
+      const tempStr = minF != null ? `${emoji} ${minF}°–${maxF}°F` : '';
+      const aqiStr  = weather.aqi_us != null
+        ? `💨 AQI ${weather.aqi_us}${weather.aqi_category ? ' · ' + weather.aqi_category : ''}`
+        : '';
+      const pollenMax = Math.max(
+        weather.pollen_tree  ?? 0,
+        weather.pollen_grass ?? 0,
+        weather.pollen_weed  ?? 0
+      );
+      const pollenStr = pollenMax > 0
+        ? `🌿 ${POLLEN_LABELS[pollenMax] ?? ''} pollen`
+        : '';
+
+      const chips = [tempStr, aqiStr, pollenStr]
+        .filter(Boolean)
+        .map(t => `<span class="hub-chip">${t}</span>`)
+        .join('');
+
+      if (chips) weatherHTML = `<div class="hub-weather-row">${chips}</div>`;
+    }
+
+    el.innerHTML = `
+      <div class="hub-greeting-row">
+        <div class="hub-greeting-left">
+          <div class="hub-greeting-date">${dayName}, ${monthDay}</div>
+          <div class="hub-greeting-msg">Good ${period}, ${initial}.</div>
+        </div>
+        <div class="hub-avatar">${initial}</div>
+      </div>
+      ${weatherHTML}`;
+  }
+
   /** Renders the 2×2 tile grid into #hub-home. */
   function renderHome() {
     const home = document.getElementById('hub-home');
     if (!home) return;
     home.innerHTML = '';
+
+    // Render header first (uses cached initial if available)
+    renderHeader();
+
+    // Async: if initial not yet loaded, fetch it and re-render header once available
+    if (!localStorage.getItem(_LS_INITIAL_KEY)) {
+      _loadUserInitial().then(() => {
+        if (localStorage.getItem(_LS_INITIAL_KEY)) renderHeader();
+      });
+    }
 
     // Reminder banner (above grid, inside hub-container)
     const container = document.getElementById('hub-container');
@@ -474,15 +587,18 @@ const Hub = (() => {
   }
 
   /**
-   * DOM cleanup: removes back bar, un-hides all sections, clears state.
-   * Safe to call even when no bucket is open.
+   * DOM cleanup: removes back bar, stats bar, un-hides all sections,
+   * resets CSS order, clears state. Safe to call even when no bucket is open.
    */
   function _cleanupBucketView() {
     const accEl = document.getElementById('accordion-wrapper');
     if (accEl) {
       accEl.querySelector('.hub-bucket-backbar')?.remove();
+      accEl.querySelector('.hub-bucket-statsbar')?.remove();
       accEl.querySelector('.hub-tx-row')?.remove();
       accEl.querySelectorAll('.hub-bucket-hidden').forEach(el => el.classList.remove('hub-bucket-hidden'));
+      // Reset CSS order so sections return to their natural DOM order
+      accEl.querySelectorAll('.tracker-section').forEach(el => el.style.removeProperty('order'));
     }
     _activeBucketKey = null;
   }
@@ -508,16 +624,25 @@ const Hub = (() => {
     hubEl.hidden = true;
     accEl.hidden = false;
 
-    // Build set of tracker-section IDs for this bucket (exclude tab-* IDs)
-    const sectionIds = new Set(bucket.sections.filter(id => id.startsWith('section-')));
+    // Build ordered list of section IDs (exclude tab-* IDs)
+    const orderedSectionIds = bucket.sections.filter(id => id.startsWith('section-'));
+    const sectionIdSet      = new Set(orderedSectionIds);
 
     // Hide sections not in bucket; show + expand sections in bucket
     accEl.querySelectorAll('.tracker-section').forEach(sec => {
-      if (sectionIds.has(sec.id)) {
+      if (sectionIdSet.has(sec.id)) {
         sec.classList.remove('hub-bucket-hidden', 'tracker-section--collapsed');
       } else {
         sec.classList.add('hub-bucket-hidden');
       }
+    });
+
+    // Apply CSS flex order so sections appear in BUCKETS array order
+    // regardless of their DOM position (start from 10 so back bar / stats
+    // bar at default order 0 always appear first).
+    orderedSectionIds.forEach((id, idx) => {
+      const el = document.getElementById(id);
+      if (el) el.style.order = String(idx + 10);
     });
 
     // Inject prominent back bar at top of accordion-wrapper
@@ -532,11 +657,27 @@ const Hub = (() => {
     backBar.querySelector('.hub-bucket-back-btn').addEventListener('click', closeBucket);
     accEl.insertBefore(backBar, accEl.firstChild);
 
+    // For the Health bucket, show a sleep/steps/calories stats summary
+    // at the top so the user can see those figures without drilling deeper.
+    if (bucketKey === 'health') {
+      const stats = getTodayStats();
+      const statsBar = document.createElement('div');
+      statsBar.className = 'hub-bucket-statsbar';
+      statsBar.innerHTML = stats.map(s => `
+        <div class="hub-bucket-stat">
+          <span class="hub-bucket-stat__ico">${s.ico}</span>
+          <span class="hub-bucket-stat__val">${s.val ?? '—'}</span>
+          <span class="hub-bucket-stat__lbl">${s.lbl}</span>
+        </div>`).join('');
+      backBar.insertAdjacentElement('afterend', statsBar);
+    }
+
     // Render Treatments and add a nav row if this bucket includes tab-treatments
     if (bucket.sections.includes('tab-treatments')) {
       if (typeof Treatments !== 'undefined') Treatments.render();
       const txRow = document.createElement('div');
       txRow.className = 'hub-tx-row hub-section-row';
+      txRow.style.order = '99'; // always last in the flex column
       txRow.innerHTML = `
         <span class="hub-section-row__name">Treatments</span>
         <span class="hub-section-row__arrow">&#8250;</span>`;
@@ -590,9 +731,10 @@ const Hub = (() => {
    * Call this whenever the layout setting changes or Today tab is shown.
    */
   function applyLayout() {
-    const layout = Data.getSettings().today_layout ?? 'accordion';
-    const hubEl  = document.getElementById('hub-container');
-    const accEl  = document.getElementById('accordion-wrapper');
+    const layout   = Data.getSettings().today_layout ?? 'accordion';
+    const hubEl    = document.getElementById('hub-container');
+    const accEl    = document.getElementById('accordion-wrapper');
+    const condBar  = document.getElementById('conditions-bar');
     if (!hubEl || !accEl) return;
 
     // Always close any open bucket view first (back-swipe, date change, layout toggle, etc.)
@@ -601,10 +743,14 @@ const Hub = (() => {
     if (layout === 'hub') {
       hubEl.hidden = false;
       accEl.hidden = true;
+      // Hide weather conditions bar — hub header shows weather instead
+      if (condBar) condBar.classList.add('hub-hidden');
       renderHome();
     } else {
       hubEl.hidden = true;
       accEl.hidden = false;
+      // Restore conditions bar (weather.js controls its [hidden] attribute)
+      if (condBar) condBar.classList.remove('hub-hidden');
     }
   }
 

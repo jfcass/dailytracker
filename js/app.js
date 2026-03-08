@@ -356,6 +356,8 @@ const App = (() => {
   }
 
   async function handleSignOut() {
+    // Clear hub's cached user initial so it re-fetches on next login
+    localStorage.removeItem('ht_display_initial');
     await Auth.signOut();
     showScreen('screen-auth');
   }
