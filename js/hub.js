@@ -783,13 +783,45 @@ const Hub = (() => {
     const existingBanner = container.querySelector('.hub-reminder');
     if (existingBanner) existingBanner.remove();
 
-    const reminderText = getReminderText();
-    if (reminderText) {
+    const pending = getNextPendingItem();
+    if (pending) {
       const banner = document.createElement('div');
       banner.className = 'hub-reminder';
+      const isLoggable = pending.type === 'slot' || pending.type === 'reminder';
       banner.innerHTML = `
         <div class="hub-reminder__dot"></div>
-        <div class="hub-reminder__text">${reminderText}</div>`;
+        <div class="hub-reminder__text">${pending.text}</div>
+        ${isLoggable ? `<button class="hub-reminder__check" aria-label="Mark done" type="button">✓</button>` : ''}`;
+
+      // Tap text → navigate to Medications (or Routine for habits)
+      banner.querySelector('.hub-reminder__text')?.addEventListener('click', () => {
+        if (pending.type === 'habits') {
+          openSection('section-habits');
+        } else {
+          openSection('section-meds');
+        }
+      });
+      banner.querySelector('.hub-reminder__dot')?.addEventListener('click', () => {
+        if (pending.type === 'habits') {
+          openSection('section-habits');
+        } else {
+          openSection('section-meds');
+        }
+      });
+
+      // Tap ✓ → log immediately, re-render hub
+      if (isLoggable) {
+        banner.querySelector('.hub-reminder__check')?.addEventListener('click', e => {
+          e.stopPropagation();
+          if (pending.type === 'slot') {
+            Medications.logSlot(pending.slot);
+          } else if (pending.type === 'reminder') {
+            Medications.logReminder(pending.medId);
+          }
+          renderHome();   // advance to next pending item (or hide banner)
+        });
+      }
+
       container.insertBefore(banner, home);
     }
 
