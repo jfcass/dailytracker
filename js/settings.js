@@ -682,6 +682,31 @@ const Settings = (() => {
     pinRow.querySelector('.stg-action-btn').addEventListener('click', () => PIN.showSetup());
     body.appendChild(pinRow);
 
+    // Accordion sections toggle
+    const accordionRow = document.createElement('div');
+    accordionRow.className = 'stg-action-row';
+    const accordionOn = !!(Data.getSettings().today_accordion);
+    accordionRow.innerHTML = `
+      <div class="stg-action-info">
+        <div class="stg-action-title">Accordion sections</div>
+        <div class="stg-action-desc">One section open at a time</div>
+      </div>
+      <div class="stg-toggle-group" role="group" aria-label="Accordion mode">
+        <button class="stg-toggle-btn${accordionOn ? ' stg-toggle-btn--active' : ''}"
+                data-val="on" type="button">On</button>
+        <button class="stg-toggle-btn${!accordionOn ? ' stg-toggle-btn--active' : ''}"
+                data-val="off" type="button">Off</button>
+      </div>
+    `;
+    accordionRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        Data.getSettings().today_accordion = (btn.dataset.val === 'on');
+        render();
+        scheduleSave();
+      })
+    );
+    body.appendChild(accordionRow);
+
     // Sign out row
     const signOutRow = document.createElement('div');
     signOutRow.className = 'stg-action-row';
