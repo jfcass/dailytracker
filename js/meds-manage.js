@@ -22,7 +22,7 @@ const MedsManage = (() => {
     { key: 'afternoon', label: 'Afternoon',   test: m => (m.slots ?? []).includes('afternoon') },
     { key: 'pm',        label: 'PM',          test: m => (m.slots ?? []).includes('pm') },
     { key: 'as_needed', label: 'As Needed',   test: m => !!m.as_needed },
-    { key: 'reminder',  label: 'Reminders',   test: m => !!m.med_reminder && !(m.slots ?? []).length && !m.as_needed },
+    { key: 'reminder',  label: 'Reminders',   test: m => !!m.med_reminder },
   ];
 
   // Collapsible group state (Set of group keys that are collapsed — all collapsed by default)
@@ -105,13 +105,20 @@ const MedsManage = (() => {
     if (!active.length) {
       html = `<p class="mmg-empty">No medications configured yet. Tap + Add to get started.</p>`;
     } else {
-      // Render each group
+      // Render each group.
+      // Reminder meds are intentionally NOT tracked in assignedIds — a med that is both
+      // a reminder and a slot/PRN med should appear in both its primary group AND Reminders.
       const assignedIds = new Set();
 
       GROUPS.forEach(({ key, label, test }) => {
-        const groupMeds = active.filter(test).sort((a, b) => a.name.localeCompare(b.name));
+        const groupMeds = active.filter(test)
+          // Non-reminder groups exclude already-assigned meds to avoid duplicates.
+          // Reminder group always shows all reminder meds regardless.
+          .filter(m => key === 'reminder' || !assignedIds.has(m.id))
+          .sort((a, b) => a.name.localeCompare(b.name));
         if (!groupMeds.length) return;
-        groupMeds.forEach(m => assignedIds.add(m.id));
+        // Only add to assignedIds for non-reminder groups
+        if (key !== 'reminder') groupMeds.forEach(m => assignedIds.add(m.id));
         const collapsed = _collapsedGroups.has(key);
         html += `<div class="mmg-group">
           <button class="mmg-group-header" data-toggle-group="${escHtml(key)}">

@@ -807,33 +807,46 @@ const Settings = (() => {
   // ── PRN Medications Card ──────────────────────────────────────────────────
 
   function buildMedicationsLinkCard() {
-    const { card, body } = makeCard(`
+    const count = Object.values(Data.getData().medications ?? {}).filter(m => m.active).length;
+    const countLabel = count > 0 ? ` <span class="stg-card-count">${count} active</span>` : '';
+
+    // Single-action card: clicking anywhere on the header opens MedsManage directly.
+    // No expand/collapse — there's nothing to expand into.
+    const { card } = makeCard(`
       <span class="stg-card-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
           <path d="M12 22a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/>
           <path d="M8 12h8M12 8v8"/>
         </svg>
-        Medications
+        Medications${countLabel}
       </span>
-    `, 'medications-link');
+    `);  // no key → no collapse behaviour
 
-    const btn = document.createElement('button');
-    btn.className = 'stg-link-btn';
-    btn.textContent = 'Manage all medications →';
-    btn.addEventListener('click', () => {
+    // Grab the header element makeCard() created
+    const header = card.querySelector('.stg-card-header');
+
+    // Make the header itself the tap target
+    header.classList.add('stg-card-header--toggle');
+    header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
+
+    // Append a "→" chevron so it looks tappable
+    const arrow = document.createElement('span');
+    arrow.className = 'stg-card-chevron';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '→';
+    header.appendChild(arrow);
+
+    header.addEventListener('click', () => {
       if (typeof MedsManage !== 'undefined') MedsManage.open('settings');
     });
-    body.appendChild(btn);
-
-    // Show count of active meds as context
-    const count = Object.values(Data.getData().medications ?? {}).filter(m => m.active).length;
-    if (count > 0) {
-      const info = document.createElement('p');
-      info.className = 'stg-empty';
-      info.textContent = `${count} active medication${count === 1 ? '' : 's'} configured`;
-      body.appendChild(info);
-    }
+    header.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (typeof MedsManage !== 'undefined') MedsManage.open('settings');
+      }
+    });
 
     return card;
   }
