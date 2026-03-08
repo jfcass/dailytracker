@@ -1069,5 +1069,5 @@ const Medications = (() => {
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   }
 
-  return { init, render, setDate };
+  return { init, render, setDate, logSlot, logReminder };
 })();
