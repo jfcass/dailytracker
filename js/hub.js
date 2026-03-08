@@ -233,6 +233,51 @@ const Hub = (() => {
     }
   }
 
+  /**
+   * Attach swipe gesture listener to bucket detail container
+   */
+  function attachBucketSwipeListener(container, bucketId) {
+    let touchStartX = null;
+    let touchStartY = null;
+    const SWIPE_THRESHOLD = 50; // px
+    const VERTICAL_THRESHOLD = 30; // px—ignore if vertical movement > this
+
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return; // ignore multi-touch
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    container.addEventListener('touchend', (e) => {
+      if (touchStartX === null) return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+
+      // Ignore if primarily vertical movement (vertical scroll)
+      if (Math.abs(deltaY) > VERTICAL_THRESHOLD && Math.abs(deltaY) > Math.abs(deltaX)) {
+        touchStartX = null;
+        return;
+      }
+
+      // Check if swipe is significant
+      if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+        if (deltaX > 0) {
+          // Right swipe → previous date
+          BucketDateNav.navigate(-1);
+        } else {
+          // Left swipe → next date
+          BucketDateNav.navigate(+1);
+        }
+      }
+
+      touchStartX = null;
+    }, { passive: true });
+  }
+
   // ── User display initial cache ────────────────────────────────────
 
   const _LS_INITIAL_KEY = 'ht_display_initial';
@@ -967,6 +1012,9 @@ const Hub = (() => {
         accEl.insertBefore(header, accEl.firstChild.nextSibling);
         updateBucketDetailHeaderDate();
       }
+
+      // Attach swipe listener for date navigation
+      attachBucketSwipeListener(accEl, bucketKey);
     }
 
     // For the Health bucket, show a sleep/steps/calories stats summary
