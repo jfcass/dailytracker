@@ -26,6 +26,7 @@ const Data = (() => {
       default_report_period: '7d',
       hidden_sections: [],
       today_accordion: false,
+      today_layout:    'accordion',   // 'accordion' | 'hub'
     },
     days:           {},
     issues:         {},

@@ -682,6 +682,34 @@ const Settings = (() => {
     pinRow.querySelector('.stg-action-btn').addEventListener('click', () => PIN.showSetup());
     body.appendChild(pinRow);
 
+    // ── Layout row ──────────────────────────────────────────────
+    const layoutRow = document.createElement('div');
+    layoutRow.className = 'stg-action-row';
+    const currentLayout = Data.getSettings().today_layout ?? 'accordion';
+    layoutRow.innerHTML = `
+      <div class="stg-action-info">
+        <div class="stg-action-title">Today layout</div>
+        <div class="stg-action-desc">How sections appear on the Today tab</div>
+      </div>
+      <div class="stg-toggle-group" role="group" aria-label="Today layout">
+        <button class="stg-toggle-btn${currentLayout === 'accordion' ? ' stg-toggle-btn--active' : ''}"
+                data-value="accordion" type="button">Stack</button>
+        <button class="stg-toggle-btn${currentLayout === 'hub' ? ' stg-toggle-btn--active' : ''}"
+                data-value="hub" type="button">Hub</button>
+      </div>
+    `;
+    layoutRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        Data.getSettings().today_layout = btn.dataset.value;
+        render();
+        scheduleSave();
+        // Re-render the Today tab immediately if it's visible
+        if (typeof Hub !== 'undefined') Hub.applyLayout();
+      })
+    );
+    body.appendChild(layoutRow);
+    // ── (existing accordion row follows) ──────────────────────
+
     // Accordion sections toggle
     const accordionRow = document.createElement('div');
     accordionRow.className = 'stg-action-row';
