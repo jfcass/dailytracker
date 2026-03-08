@@ -507,7 +507,7 @@ const Hub = (() => {
     const period  = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
     const initial = _getCachedInitial();
 
-    // ── Weather cards (3-column) ──────────────────────────────────
+    // ── Weather cards (3-column horizontal layout) ────────────────
     const weather = Data.getData().days?.[date]?.weather ?? null;
     let wxHTML = '';
 
@@ -522,8 +522,10 @@ const Hub = (() => {
         cards.push(`
           <div class="hub-wx-card">
             <span class="hub-wx-ico">${emoji}</span>
-            <span class="hub-wx-val">${hiF}°F</span>
-            <span class="hub-wx-lbl">${condName}</span>
+            <div class="hub-wx-text">
+              <span class="hub-wx-val">${hiF}°F</span>
+              <span class="hub-wx-lbl">${condName}</span>
+            </div>
           </div>`);
       }
 
@@ -540,8 +542,10 @@ const Hub = (() => {
         cards.push(`
           <div class="hub-wx-card">
             <span class="hub-wx-ico">💨</span>
-            <span class="hub-wx-val ${aqiColor}">${aqiDisplay}</span>
-            <span class="hub-wx-lbl">${aqiSub}</span>
+            <div class="hub-wx-text">
+              <span class="hub-wx-val ${aqiColor}">${aqiDisplay}</span>
+              <span class="hub-wx-lbl">${aqiSub}</span>
+            </div>
           </div>`);
       }
 
@@ -558,13 +562,24 @@ const Hub = (() => {
         cards.push(`
           <div class="hub-wx-card">
             <span class="hub-wx-ico">🌿</span>
-            <span class="hub-wx-val ${pollenColor}">${pollenShort}</span>
-            <span class="hub-wx-lbl">Pollen</span>
+            <div class="hub-wx-text">
+              <span class="hub-wx-val ${pollenColor}">${pollenShort}</span>
+              <span class="hub-wx-lbl">Pollen</span>
+            </div>
           </div>`);
       }
 
       if (cards.length) wxHTML = `<div class="hub-wx-cards">${cards.join('')}</div>`;
     }
+
+    // ── Calendar icon SVG ─────────────────────────────────────────
+    const calSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>`;
 
     // ── Render ────────────────────────────────────────────────────
     el.innerHTML = `
@@ -573,7 +588,10 @@ const Hub = (() => {
           <div class="hub-greeting-date">${dayName}, ${monthDay}</div>
           <div class="hub-greeting-msg">Good ${period}, ${initial}.</div>
         </div>
-        <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${initial}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <button class="hub-cal-btn" type="button" aria-label="Pick date">${calSVG}</button>
+          <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${initial}</div>
+        </div>
       </div>
       ${wxHTML}`;
 
@@ -582,7 +600,16 @@ const Hub = (() => {
       if (typeof App !== 'undefined') App.switchTab('settings');
     });
 
-    // Swipe date row left/right to navigate days
+    // Calendar button → triggers the existing main date picker
+    el.querySelector('.hub-cal-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const picker = document.getElementById('app-date-picker');
+      if (!picker) return;
+      picker.value = viewDate();
+      try { picker.showPicker(); } catch { picker.click(); }
+    });
+
+    // ── Swipe date row: right = prev day, left = next day (or next tab if on today) ──
     const dateRow = el.querySelector('.hub-date-row');
     if (dateRow) {
       let _sx = null;
@@ -592,9 +619,20 @@ const Hub = (() => {
         const dx = e.clientX - _sx;
         _sx = null;
         if (Math.abs(dx) < 40) return;
-        // Swipe right = prev day, swipe left = next day
-        const btnId = dx < 0 ? 'app-next-day' : 'app-prev-day';
-        document.getElementById(btnId)?.click();
+        if (dx < 0) {
+          // Swipe left: next day unless already on today — then next bottom nav tab
+          if (viewDate() === Data.today()) {
+            const navBtns = [...document.querySelectorAll('.bottom-nav-btn')];
+            const curIdx  = navBtns.findIndex(b => b.classList.contains('bottom-nav-btn--active'));
+            const nextTab = navBtns[(curIdx + 1) % navBtns.length]?.dataset?.tab;
+            if (nextTab && typeof App !== 'undefined') App.switchTab(nextTab);
+          } else {
+            document.getElementById('app-next-day')?.click();
+          }
+        } else {
+          // Swipe right: go to previous day
+          document.getElementById('app-prev-day')?.click();
+        }
       });
       dateRow.addEventListener('pointercancel', () => { _sx = null; });
     }

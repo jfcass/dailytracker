@@ -8883,7 +8883,7 @@ button {
 
 /* ── Hub header: greeting, avatar, weather chips ── */
 #hub-header {
-  padding: 14px 16px 12px;
+  padding: 20px 20px 14px;
   border-bottom: 1px solid var(--clr-border);
   flex-shrink: 0;
   font-family: var(--hub-font);
@@ -8900,20 +8900,20 @@ button {
 .hub-greeting-left { flex: 1; min-width: 0; }
 
 .hub-greeting-date {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--clr-text-2);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-  margin-bottom: 1px;
-}
-
-.hub-greeting-msg {
-  font-size: 21px;
+  font-size: 26px;
   font-weight: 800;
   color: var(--clr-text);
   letter-spacing: -0.5px;
   line-height: 1.15;
+  margin-bottom: 3px;
+}
+
+.hub-greeting-msg {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--clr-text-2);
+  letter-spacing: 0.1px;
+  line-height: 1.4;
 }
 
 .hub-avatar {
@@ -9015,26 +9015,36 @@ button {
 
 .hub-wx-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  padding: 10px 6px 8px;
+  padding: 11px 14px;
   border-radius: 12px;
   background: var(--clr-surface-2);
   border: 1px solid var(--clr-border);
-  text-align: center;
-  gap: 1px;
+  gap: 10px;
   font-family: var(--hub-font);
 }
 
-.hub-wx-ico { font-size: 22px; line-height: 1; margin-bottom: 3px; }
+.hub-wx-ico {
+  font-size: 26px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.hub-wx-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
 
 .hub-wx-val {
   font-size: 14px;
   font-weight: 700;
   color: var(--clr-text);
   font-family: var(--hub-font);
-  line-height: 1.15;
+  line-height: 1.2;
   white-space: nowrap;
 }
 .hub-wx-val--green { color: var(--hub-green); }
@@ -9047,3 +9057,32 @@ button {
   font-weight: 400;
   white-space: nowrap;
 }
+
+/* ── Hub calendar picker button ── */
+.hub-cal-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--clr-text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+}
+.hub-cal-btn:hover,
+.hub-cal-btn:active { color: var(--clr-text); background: var(--clr-surface-2); }
+.hub-cal-btn svg { display: block; }
+.hub-cal-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
