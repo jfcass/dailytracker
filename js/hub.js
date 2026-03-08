@@ -496,9 +496,9 @@ const Hub = (() => {
 
     const isToday = viewDate() === Data.today();
 
-    menu.innerHTML = `
-      <button class="hub-date-menu__item${isToday ? ' hub-date-menu__item--active' : ''}"
-              data-action="today" type="button">
+    // Only show "Today" button when viewing a past date
+    const todayBtn = isToday ? '' : `
+      <button class="hub-date-menu__item" data-action="today" type="button">
         <span class="hub-date-menu__icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -506,7 +506,9 @@ const Hub = (() => {
           </svg>
         </span>
         Today
-      </button>
+      </button>`;
+
+    menu.innerHTML = `${todayBtn}
       <button class="hub-date-menu__item" data-action="pick" type="button">
         <span class="hub-date-menu__icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -650,7 +652,7 @@ const Hub = (() => {
     }
 
     // ── Calendar icon SVG ─────────────────────────────────────────
-    const calSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    const calSVG = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
       <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -665,7 +667,7 @@ const Hub = (() => {
           <div class="hub-greeting-date">${dayName}, ${monthDay}</div>
           <div class="hub-greeting-msg">Good ${period}, ${initial}.</div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
           <button class="hub-cal-btn" type="button" aria-label="Pick date">${calSVG}</button>
           <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${initial}</div>
         </div>

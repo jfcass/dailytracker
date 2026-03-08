@@ -8586,7 +8586,7 @@ button {
 }
 
 .hub-reminder__text {
-  font-size: 12px; font-weight: 500;
+  font-size: 13px; font-weight: 500;
   color: var(--hub-amber);
   line-height: 1.4;
 }
@@ -8614,14 +8614,14 @@ button {
 }
 
 .hub-tile__inner {
-  padding: 11px 13px 13px;
+  padding: 14px 16px 16px;
   display: flex; flex-direction: column;
-  flex: 1; gap: 7px;
+  flex: 1; gap: 8px;
 }
 
 /* ── Tile header (name) ── */
 .hub-tile__name {
-  font-size: 14px; font-weight: 800;
+  font-size: 16px; font-weight: 800;
   letter-spacing: -0.2px;
   color: var(--clr-text);
   line-height: 1;
@@ -8650,17 +8650,17 @@ button {
 }
 
 /* streak content */
-.hub-c-lbl  { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 1px; }
-.hub-c-row  { display: flex; align-items: baseline; gap: 4px; }
-.hub-c-num  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
-.hub-c-unit { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; }
-.hub-c-fire { font-size: 15px; }
-.hub-c-none { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); opacity: 0.6; line-height: 1.4; }
+.hub-c-lbl  { font-size: 13px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 2px; }
+.hub-c-row  { display: flex; align-items: baseline; gap: 5px; }
+.hub-c-num  { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-c-unit { font-size: 12px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; }
+.hub-c-fire { font-size: 17px; }
+.hub-c-none { font-size: 13px; font-weight: 500; color: var(--clr-text-2); opacity: 0.6; line-height: 1.4; }
 
 /* stat content (Health carousel) — same sizes */
-.hub-s-ico  { font-size: 15px; line-height: 1; margin-bottom: 1px; }
-.hub-s-val  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
-.hub-s-lbl  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 1px; }
+.hub-s-ico  { font-size: 17px; line-height: 1; margin-bottom: 2px; }
+.hub-s-val  { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-s-lbl  { font-size: 12px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 2px; }
 
 /* ── Carousel dots ── */
 .hub-dots {
@@ -8688,11 +8688,11 @@ button {
   justify-content: center; gap: 1px;
 }
 
-.hub-rating__lbl  { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 1px; }
-.hub-rating__val  { display: flex; align-items: baseline; gap: 5px; }
-.hub-rating__em   { font-size: 20px; line-height: 1; }
-.hub-rating__word { font-size: 28px; font-weight: 800; color: var(--hub-green); letter-spacing: -1px; line-height: 1; }
-.hub-rating__sub  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 1px; }
+.hub-rating__lbl  { font-size: 13px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 2px; }
+.hub-rating__val  { display: flex; align-items: baseline; gap: 6px; }
+.hub-rating__em   { font-size: 22px; line-height: 1; }
+.hub-rating__word { font-size: 30px; font-weight: 800; color: var(--hub-green); letter-spacing: -1px; line-height: 1; }
+.hub-rating__sub  { font-size: 12px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 2px; }
 
 /* ── Reflections streak ── */
 .hub-streak {
@@ -8700,9 +8700,9 @@ button {
   display: flex; align-items: center; gap: 6px;
 }
 
-.hub-streak__num  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
-.hub-streak__fire { font-size: 17px; }
-.hub-streak__lbl  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; line-height: 1.35; }
+.hub-streak__num  { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-streak__fire { font-size: 18px; }
+.hub-streak__lbl  { font-size: 12px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; line-height: 1.35; }
 
 /* ── Log buttons — both types share same height ── */
 .hub-log-simple,
@@ -8725,7 +8725,7 @@ button {
 .hub-log-simple:active { background: rgba(94,184,138,0.24); }
 
 .hub-log-simple__lbl {
-  font-size: 13px; font-weight: 600;
+  font-size: 14px; font-weight: 600;
   color: var(--hub-green); line-height: 1;
 }
 
@@ -8763,7 +8763,7 @@ button {
 .hub-log-lbl {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12.5px; font-weight: 600;
+  font-size: 14px; font-weight: 600;
   color: var(--hub-green);
   text-align: center; line-height: 1.25;
   transition: opacity 0.18s ease, transform 0.18s ease;
@@ -8884,6 +8884,7 @@ button {
 /* ── Hub header: greeting, avatar, weather chips ── */
 #hub-header {
   padding: 22px 20px 18px;
+  padding-top: max(22px, env(safe-area-inset-top, 22px));
   flex-shrink: 0;
   font-family: var(--hub-font);
 }
@@ -8899,16 +8900,16 @@ button {
 .hub-greeting-left { flex: 1; min-width: 0; }
 
 .hub-greeting-date {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
   color: var(--clr-text);
   letter-spacing: -0.5px;
-  line-height: 1.15;
-  margin-bottom: 3px;
+  line-height: 1.1;
+  margin-bottom: 4px;
 }
 
 .hub-greeting-msg {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--clr-text-2);
   letter-spacing: 0.1px;
@@ -8916,13 +8917,13 @@ button {
 }
 
 .hub-avatar {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--hub-green);   /* solid green fill */
   border: none;
   color: #0f1210;                 /* dark text on green */
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -8991,7 +8992,11 @@ button {
 
 /* ── Hide native app chrome in hub mode ── */
 .app-header.hub-hidden,
-.app-date-bar.hub-hidden { display: none !important; }
+.app-date-bar.hub-hidden {
+  display: none !important;
+  position: static !important;
+  border: none !important;
+}
 
 /* ── Hub date row (swipeable, contains greeting + avatar) ── */
 .hub-date-row {
@@ -9016,18 +9021,18 @@ button {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border-radius: 14px;
   background: var(--clr-surface-2);
   border: 1px solid var(--clr-border);
-  gap: 8px;
+  gap: 10px;
   font-family: var(--hub-font);
   min-width: 0;
   overflow: hidden;
 }
 
 .hub-wx-ico {
-  font-size: 24px;
+  font-size: 28px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -9041,7 +9046,7 @@ button {
 }
 
 .hub-wx-val {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--clr-text);
   font-family: var(--hub-font);
