@@ -693,14 +693,14 @@ const Settings = (() => {
       </div>
       <div class="stg-toggle-group" role="group" aria-label="Accordion mode">
         <button class="stg-toggle-btn${accordionOn ? ' stg-toggle-btn--active' : ''}"
-                data-val="on" type="button">On</button>
+                data-value="on" type="button">On</button>
         <button class="stg-toggle-btn${!accordionOn ? ' stg-toggle-btn--active' : ''}"
-                data-val="off" type="button">Off</button>
+                data-value="off" type="button">Off</button>
       </div>
     `;
     accordionRow.querySelectorAll('.stg-toggle-btn').forEach(btn =>
       btn.addEventListener('click', () => {
-        Data.getSettings().today_accordion = (btn.dataset.val === 'on');
+        Data.getSettings().today_accordion = (btn.dataset.value === 'on');
         render();
         scheduleSave();
       })
