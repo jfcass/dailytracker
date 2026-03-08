@@ -609,18 +609,33 @@ const Hub = (() => {
       const aqiCat = weather.aqi_category ?? null;
       const aqiNum = weather.aqi_us       ?? null;
       if (aqiCat || aqiNum != null) {
-        // Use .includes() so "Good air quality" / "Good" both match
-        const catLower = (aqiCat ?? '').toLowerCase();
-        const aqiColor = !aqiCat ? '' :
-          catLower.includes('good')                                       ? 'hub-wx-val--green' :
-          (catLower.includes('moderate') || catLower.includes('sensitive')) ? 'hub-wx-val--amber' :
-          'hub-wx-val--red';
+        // Determine AQI circle emoji based on numeric value
+        let aqiEmoji = '—';
+        let aqiColor = '';
+        if (aqiNum != null) {
+          if (aqiNum <= 50) {
+            aqiEmoji = '🟢';
+            aqiColor = 'hub-wx-val--green';
+          } else if (aqiNum <= 100) {
+            aqiEmoji = '🟡';
+            aqiColor = 'hub-wx-val--amber';
+          } else if (aqiNum <= 150) {
+            aqiEmoji = '🟠';
+            aqiColor = 'hub-wx-val--amber';
+          } else if (aqiNum <= 200) {
+            aqiEmoji = '🔴';
+            aqiColor = 'hub-wx-val--red';
+          } else {
+            aqiEmoji = '🟣';
+            aqiColor = 'hub-wx-val--red';
+          }
+        }
         // Short display: just the category keyword (Good / Moderate / etc.)
         const aqiShort = aqiCat ? aqiCat.split(/\s/)[0] : `AQI ${aqiNum}`;
         const aqiSub   = aqiNum != null ? `AQI ${aqiNum}` : 'Air Quality';
         cards.push(`
           <div class="hub-wx-card">
-            <span class="hub-wx-ico">💨</span>
+            <span class="hub-wx-ico">${aqiEmoji}</span>
             <div class="hub-wx-text">
               <span class="hub-wx-val ${aqiColor}">${aqiShort}</span>
               <span class="hub-wx-lbl">${aqiSub}</span>
