@@ -8920,9 +8920,9 @@ button {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: var(--hub-green-dim);
-  border: 2px solid var(--hub-green-bd);
-  color: var(--hub-green);
+  background: var(--hub-green);   /* solid green fill */
+  border: none;
+  color: #0f1210;                 /* dark text on green */
   font-size: 17px;
   font-weight: 800;
   display: flex;
@@ -8930,7 +8930,10 @@ button {
   justify-content: center;
   flex-shrink: 0;
   font-family: var(--hub-font);
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
+.hub-avatar:active { opacity: 0.75; }
 
 .hub-weather-row {
   display: flex;
@@ -8985,4 +8988,62 @@ button {
   font-size: 10px;
   color: var(--clr-text-2);
   font-weight: 500;
+}
+
+/* ── Hide native app chrome in hub mode ── */
+.app-header.hub-hidden,
+.app-date-bar.hub-hidden { display: none !important; }
+
+/* ── Hub date row (swipeable, contains greeting + avatar) ── */
+.hub-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+/* ── Hub weather cards — 3-column grid matching the mockup ── */
+.hub-wx-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.hub-wx-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px 8px;
+  border-radius: 12px;
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+  text-align: center;
+  gap: 1px;
+  font-family: var(--hub-font);
+}
+
+.hub-wx-ico { font-size: 22px; line-height: 1; margin-bottom: 3px; }
+
+.hub-wx-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--clr-text);
+  font-family: var(--hub-font);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.hub-wx-val--green { color: var(--hub-green); }
+.hub-wx-val--amber { color: var(--hub-amber); }
+.hub-wx-val--red   { color: var(--clr-error); }
+
+.hub-wx-lbl {
+  font-size: 11px;
+  color: var(--clr-text-2);
+  font-weight: 400;
+  white-space: nowrap;
 }

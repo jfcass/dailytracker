@@ -90,6 +90,8 @@ const App = (() => {
     if (name === 'settings')   Settings.render();
     if (name === 'health-log') HealthLog.render();
     if (name === 'today' && typeof Hub !== 'undefined') Hub.render();
+    // When leaving Today, restore the native app chrome hidden by hub mode
+    if (name !== 'today' && typeof Hub !== 'undefined') Hub.restoreChrome();
     // Treatments is now accessible via Today → Health bucket (Hub layout)
     // if (name === 'treatments') Treatments.render();
   }

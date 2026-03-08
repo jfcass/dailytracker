@@ -168,7 +168,7 @@ const Hub = (() => {
     } catch { /* network errors are silently ignored */ }
   }
 
-  // ── WMO weather code → emoji (simplified) ────────────────────────
+  // ── WMO weather code → emoji + short condition name ─────────────
   const WMO_EMOJI = {
     0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
     45:'🌫️', 48:'🌫️',
@@ -180,7 +180,19 @@ const Hub = (() => {
     95:'⛈️', 96:'⛈️', 99:'⛈️',
   };
 
+  const WMO_COND = {
+    0:'Sunny', 1:'Mostly Clear', 2:'Partly Cloudy', 3:'Overcast',
+    45:'Foggy', 48:'Freezing Fog',
+    51:'Drizzle', 53:'Drizzle', 55:'Heavy Drizzle',
+    61:'Light Rain', 63:'Rain', 65:'Heavy Rain',
+    71:'Light Snow', 73:'Snow', 75:'Heavy Snow', 77:'Snow Grains',
+    80:'Showers', 81:'Heavy Showers', 82:'Violent Showers',
+    85:'Snow Showers', 86:'Heavy Snow Showers',
+    95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm',
+  };
+
   const POLLEN_LABELS = ['None','Very Low','Low','Medium','High','Very High'];
+  const POLLEN_SHORT  = ['None','V. Low','Low','Medium','High','V. High'];
 
   // ── Mood/rating label helpers ─────────────────────────────────────
 
@@ -475,63 +487,117 @@ const Hub = (() => {
   }
 
   /**
-   * Renders the greeting header (date, greeting, avatar, weather chips)
+   * Renders the full-width hub header (date/greeting row + 3 weather cards)
    * into #hub-header. Called from renderHome().
+   *
+   * The date row is swipeable: left = next day, right = prev day.
+   * The avatar button opens Settings.
    */
   function renderHeader() {
     const el = document.getElementById('hub-header');
     if (!el) return;
 
-    // Formatted date: e.g. "Saturday, Mar 8"
-    const date = viewDate();
-    const d = new Date(date + 'T12:00:00'); // noon to avoid DST edge
+    // ── Date & greeting ───────────────────────────────────────────
+    const date     = viewDate();
+    const d        = new Date(date + 'T12:00:00'); // noon avoids DST edge
     const dayName  = d.toLocaleDateString('en-US', { weekday: 'long' });
     const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    // Time-based greeting
-    const hour   = new Date().getHours();
-    const period = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-
-    // User initial (cached after first Drive API fetch)
+    const hour    = new Date().getHours();
+    const period  = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
     const initial = _getCachedInitial();
 
-    // Weather chips
+    // ── Weather cards (3-column) ──────────────────────────────────
     const weather = Data.getData().days?.[date]?.weather ?? null;
-    let weatherHTML = '';
+    let wxHTML = '';
+
     if (weather) {
-      const emoji   = WMO_EMOJI[weather.code] ?? '🌡️';
-      const minF    = weather.temp_min_f != null ? Math.round(weather.temp_min_f) : null;
-      const maxF    = weather.temp_max_f != null ? Math.round(weather.temp_max_f) : null;
-      const tempStr = minF != null ? `${emoji} ${minF}°–${maxF}°F` : '';
-      const aqiStr  = weather.aqi_us != null
-        ? `💨 AQI ${weather.aqi_us}${weather.aqi_category ? ' · ' + weather.aqi_category : ''}`
-        : '';
+      const cards = [];
+
+      // Card 1 — temperature + condition
+      if (weather.temp_max_f != null) {
+        const emoji    = WMO_EMOJI[weather.code] ?? '🌡️';
+        const condName = WMO_COND[weather.code]  ?? 'Weather';
+        const hiF      = Math.round(weather.temp_max_f);
+        cards.push(`
+          <div class="hub-wx-card">
+            <span class="hub-wx-ico">${emoji}</span>
+            <span class="hub-wx-val">${hiF}°F</span>
+            <span class="hub-wx-lbl">${condName}</span>
+          </div>`);
+      }
+
+      // Card 2 — AQI
+      const aqiCat = weather.aqi_category ?? null;
+      const aqiNum = weather.aqi_us       ?? null;
+      if (aqiCat || aqiNum != null) {
+        const aqiColor = !aqiCat ? '' :
+          aqiCat === 'Good'                          ? 'hub-wx-val--green' :
+          (aqiCat === 'Moderate' || aqiCat.includes('Sensitive')) ? 'hub-wx-val--amber' :
+          'hub-wx-val--red';
+        const aqiDisplay = aqiCat ?? `AQI ${aqiNum}`;
+        const aqiSub     = aqiNum != null ? `AQI ${aqiNum}` : 'Air Quality';
+        cards.push(`
+          <div class="hub-wx-card">
+            <span class="hub-wx-ico">💨</span>
+            <span class="hub-wx-val ${aqiColor}">${aqiDisplay}</span>
+            <span class="hub-wx-lbl">${aqiSub}</span>
+          </div>`);
+      }
+
+      // Card 3 — Pollen
       const pollenMax = Math.max(
         weather.pollen_tree  ?? 0,
         weather.pollen_grass ?? 0,
         weather.pollen_weed  ?? 0
       );
-      const pollenStr = pollenMax > 0
-        ? `🌿 ${POLLEN_LABELS[pollenMax] ?? ''} pollen`
-        : '';
+      if (weather.pollen_tree != null || weather.pollen_grass != null) {
+        const pollenShort = POLLEN_SHORT[pollenMax] ?? '—';
+        const pollenColor = pollenMax <= 2 ? 'hub-wx-val--green' :
+                            pollenMax <= 3 ? 'hub-wx-val--amber' : 'hub-wx-val--red';
+        cards.push(`
+          <div class="hub-wx-card">
+            <span class="hub-wx-ico">🌿</span>
+            <span class="hub-wx-val ${pollenColor}">${pollenShort}</span>
+            <span class="hub-wx-lbl">Pollen</span>
+          </div>`);
+      }
 
-      const chips = [tempStr, aqiStr, pollenStr]
-        .filter(Boolean)
-        .map(t => `<span class="hub-chip">${t}</span>`)
-        .join('');
-
-      if (chips) weatherHTML = `<div class="hub-weather-row">${chips}</div>`;
+      if (cards.length) wxHTML = `<div class="hub-wx-cards">${cards.join('')}</div>`;
     }
 
+    // ── Render ────────────────────────────────────────────────────
     el.innerHTML = `
-      <div class="hub-greeting-row">
+      <div class="hub-date-row">
         <div class="hub-greeting-left">
           <div class="hub-greeting-date">${dayName}, ${monthDay}</div>
           <div class="hub-greeting-msg">Good ${period}, ${initial}.</div>
         </div>
-        <div class="hub-avatar">${initial}</div>
+        <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${initial}</div>
       </div>
-      ${weatherHTML}`;
+      ${wxHTML}`;
+
+    // Avatar → Settings
+    el.querySelector('.hub-avatar')?.addEventListener('click', () => {
+      if (typeof App !== 'undefined') App.switchTab('settings');
+    });
+
+    // Swipe date row left/right to navigate days
+    const dateRow = el.querySelector('.hub-date-row');
+    if (dateRow) {
+      let _sx = null;
+      dateRow.addEventListener('pointerdown', e => { _sx = e.clientX; });
+      dateRow.addEventListener('pointerup', e => {
+        if (_sx === null) return;
+        const dx = e.clientX - _sx;
+        _sx = null;
+        if (Math.abs(dx) < 40) return;
+        // Swipe right = prev day, swipe left = next day
+        const btnId = dx < 0 ? 'app-next-day' : 'app-prev-day';
+        document.getElementById(btnId)?.click();
+      });
+      dateRow.addEventListener('pointercancel', () => { _sx = null; });
+    }
   }
 
   /** Renders the 2×2 tile grid into #hub-home. */
@@ -730,11 +796,21 @@ const Hub = (() => {
    * Shows/hides hub vs accordion based on current layout setting.
    * Call this whenever the layout setting changes or Today tab is shown.
    */
+  /**
+   * Removes the hub-hidden class from app chrome elements.
+   * Called when navigating away from the Today tab so the standard
+   * header and date bar are visible on other tabs.
+   */
+  function restoreChrome() {
+    document.querySelector('.app-header')?.classList.remove('hub-hidden');
+    document.querySelector('.app-date-bar')?.classList.remove('hub-hidden');
+    document.getElementById('conditions-bar')?.classList.remove('hub-hidden');
+  }
+
   function applyLayout() {
     const layout   = Data.getSettings().today_layout ?? 'accordion';
     const hubEl    = document.getElementById('hub-container');
     const accEl    = document.getElementById('accordion-wrapper');
-    const condBar  = document.getElementById('conditions-bar');
     if (!hubEl || !accEl) return;
 
     // Always close any open bucket view first (back-swipe, date change, layout toggle, etc.)
@@ -743,14 +819,15 @@ const Hub = (() => {
     if (layout === 'hub') {
       hubEl.hidden = false;
       accEl.hidden = true;
-      // Hide weather conditions bar — hub header shows weather instead
-      if (condBar) condBar.classList.add('hub-hidden');
+      // Hub header takes over the full top — hide native chrome
+      document.querySelector('.app-header')?.classList.add('hub-hidden');
+      document.querySelector('.app-date-bar')?.classList.add('hub-hidden');
+      document.getElementById('conditions-bar')?.classList.add('hub-hidden');
       renderHome();
     } else {
       hubEl.hidden = true;
       accEl.hidden = false;
-      // Restore conditions bar (weather.js controls its [hidden] attribute)
-      if (condBar) condBar.classList.remove('hub-hidden');
+      restoreChrome();
     }
   }
 
@@ -762,6 +839,6 @@ const Hub = (() => {
     applyLayout();
   }
 
-  return { render, applyLayout, openSection, closeBucket };
+  return { render, applyLayout, openSection, closeBucket, restoreChrome };
 
 })();
