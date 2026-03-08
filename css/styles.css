@@ -460,7 +460,7 @@ button {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+  padding: 10px 10px max(10px, env(safe-area-inset-bottom));
 }
 
 /* ── Placeholder section cards (Phase 1 stub) ─────────────────────────── */
@@ -9021,7 +9021,7 @@ button {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 12px 14px;
+  padding: 12px 5px;
   border-radius: 14px;
   background: var(--clr-surface-2);
   border: 1px solid var(--clr-border);
@@ -9032,7 +9032,7 @@ button {
 }
 
 .hub-wx-ico {
-  font-size: 28px;
+  font-size: 20px;
   line-height: 1;
   flex-shrink: 0;
 }
