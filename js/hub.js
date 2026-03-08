@@ -198,6 +198,41 @@ const Hub = (() => {
     return null;
   }
 
+  // ── Bucket Date Navigation ────────────────────────────────────────
+
+  /**
+   * Create bucket detail header showing bucket name and current date
+   */
+  function createBucketDetailHeader(bucketKey) {
+    const bucket = BUCKETS[bucketKey];
+    if (!bucket) return null;
+
+    const header = document.createElement('div');
+    header.className = 'bucket-detail-header';
+    header.id = `bucket-detail-header-${bucketKey}`;
+    header.innerHTML = `
+      <h2 class="bucket-detail-name">${bucket.label}</h2>
+      <div class="bucket-detail-date">
+        <span class="bucket-detail-date-label">Today</span>
+      </div>
+    `;
+
+    return header;
+  }
+
+  /**
+   * Update bucket detail header date display
+   */
+  function updateBucketDetailHeaderDate() {
+    const dateLabel = BucketDateNav.getDateLabel();
+    const el = document.querySelector('.bucket-detail-date-label');
+    if (el) {
+      el.textContent = dateLabel;
+      // Add 'today' class for styling if currently at today
+      el.classList.toggle('today', BucketDateNav.isToday());
+    }
+  }
+
   // ── User display initial cache ────────────────────────────────────
 
   const _LS_INITIAL_KEY = 'ht_display_initial';
@@ -916,6 +951,23 @@ const Hub = (() => {
       <span class="hub-bucket-title">${bucket.label}</span>`;
     backBar.querySelector('.hub-bucket-back-btn').addEventListener('click', closeBucket);
     accEl.insertBefore(backBar, accEl.firstChild);
+
+    // Initialize BucketDateNav for this bucket
+    if (typeof BucketDateNav !== 'undefined') {
+      BucketDateNav.init(bucketKey, (newDate) => {
+        // When date changes, update header and re-render sections
+        updateBucketDetailHeaderDate();
+        // Note: Sections will re-render when they check DateNav.getDate()
+        // For now, we rely on section modules to read BucketDateNav via DateNav
+      });
+
+      // Create and insert bucket detail header
+      const header = createBucketDetailHeader(bucketKey);
+      if (header) {
+        accEl.insertBefore(header, accEl.firstChild.nextSibling);
+        updateBucketDetailHeaderDate();
+      }
+    }
 
     // For the Health bucket, show a sleep/steps/calories stats summary
     // at the top so the user can see those figures without drilling deeper.
