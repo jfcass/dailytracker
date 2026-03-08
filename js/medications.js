@@ -93,7 +93,7 @@ const Medications = (() => {
 
     const allMeds      = getActiveMeds();
     const prnMeds      = allMeds.filter(m => m.as_needed);
-    const reminderMeds = allMeds.filter(m => m.med_reminder && !m.as_needed);
+    const reminderMeds = allMeds.filter(m => m.med_reminder);
     const dayData      = Data.getDay(currentDate);
     const medSlots     = dayData.med_slots     ?? defaultSlots();
     const medRems      = dayData.med_reminders ?? {};
@@ -158,7 +158,7 @@ const Medications = (() => {
     });
 
     // Reminder meds (only if not yet logged today)
-    allMeds.filter(m => m.med_reminder && !m.as_needed).forEach(m => {
+    allMeds.filter(m => m.med_reminder).forEach(m => {
       if (medRems[m.id]) return;  // already logged
       items.push({ kind: 'reminder', id: m.id, emoji: m.emoji ?? '', label: m.name, count: m.recommended_dose || '' });
     });
@@ -393,12 +393,26 @@ const Medications = (() => {
     const listHtml = Object.entries(groups).map(([time, grpEntries]) => {
       const rows = grpEntries.map(e => {
         if (e.kind === 'reminder-editing') {
-          return `<div class="meds-log-entry">
+          return `<div class="meds-log-entry meds-log-entry--editing">
             <span class="meds-log-name">${escHtml(e.name)}</span>
-            <input type="time" class="meds-reminder-time-input" value="${escHtml(reminderEditTime)}">
-            <button data-reminder-confirm="${escHtml(e.id)}" class="meds-log-edit">✓</button>
-            <button data-reminder-cancel-edit="${escHtml(e.id)}" class="meds-log-edit">✕</button>
-            <button data-reminder-undo="${escHtml(e.id)}" class="meds-log-edit" style="color:var(--clr-error)">Undo</button>
+            <span class="meds-log-badge meds-log-badge--rem">REM</span>
+            <button class="meds-log-edit" data-reminder-cancel-edit="${escHtml(e.id)}">Close</button>
+          </div>
+          <div class="meds-log-inline-edit">
+            <div class="prn-log-form">
+              <div class="prn-log-form__row">
+                <span class="prn-log-form__label">Time</span>
+                <input class="prn-log-form__select" type="time" class="meds-reminder-time-input"
+                       id="meds-reminder-time-input" value="${escHtml(reminderEditTime)}" style="max-width:120px">
+              </div>
+              <div class="prn-log-form__actions">
+                <button class="prn-cancel-btn" style="color:var(--clr-error);border-color:var(--clr-error)"
+                        data-reminder-delete="${escHtml(e.id)}">Delete</button>
+                <span style="flex:1"></span>
+                <button class="prn-cancel-btn" data-reminder-cancel-edit="${escHtml(e.id)}">Cancel</button>
+                <button class="prn-log-btn"    data-reminder-confirm="${escHtml(e.id)}">Save</button>
+              </div>
+            </div>
           </div>`;
         }
         const badgeClass = e.kind === 'prn' ? 'meds-log-badge--prn' : e.kind === 'reminder' ? 'meds-log-badge--rem' : '';
@@ -770,17 +784,15 @@ const Medications = (() => {
     });
 
     // Reminder inline edit (Zone 4)
-    el.querySelectorAll('.meds-reminder-time-input').forEach(inp => {
-      inp.addEventListener('input', e => { reminderEditTime = e.target.value; });
-    });
+    el.querySelector('#meds-reminder-time-input')?.addEventListener('input', e => { reminderEditTime = e.target.value; });
     el.querySelectorAll('[data-reminder-confirm]').forEach(btn => {
       btn.addEventListener('click', () => saveReminder(btn.dataset.reminderConfirm));
     });
     el.querySelectorAll('[data-reminder-cancel-edit]').forEach(btn => {
       btn.addEventListener('click', () => { reminderEditId = null; render(); });
     });
-    el.querySelectorAll('[data-reminder-undo]').forEach(btn => {
-      btn.addEventListener('click', () => undoReminder(btn.dataset.reminderUndo));
+    el.querySelectorAll('[data-reminder-delete]').forEach(btn => {
+      btn.addEventListener('click', () => deleteReminder(btn.dataset.reminderDelete));
     });
   }
 
@@ -925,9 +937,10 @@ const Medications = (() => {
     render();
   }
 
-  function undoReminder(medId) {
+  function deleteReminder(medId) {
     const day = Data.getDay(currentDate);
     if (day.med_reminders) delete day.med_reminders[medId];
+    reminderEditId = null;
     scheduleSave();
     render();
   }

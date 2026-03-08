@@ -16,9 +16,6 @@ const MedsManage = (() => {
   let _editDoses      = [];     // doses[] being built in the edit form
   let _editDosesForId = null;   // tracks which _editId the doses were loaded for
 
-  // Collapsible group state (Set of group keys that are collapsed)
-  let _collapsedGroups = new Set();
-
   // Group definitions for list view
   const GROUPS = [
     { key: 'am',        label: 'AM',         test: m => (m.slots ?? []).includes('am') },
@@ -27,6 +24,9 @@ const MedsManage = (() => {
     { key: 'as_needed', label: 'As Needed',   test: m => !!m.as_needed },
     { key: 'reminder',  label: 'Reminders',   test: m => !!m.med_reminder && !(m.slots ?? []).length && !m.as_needed },
   ];
+
+  // Collapsible group state (Set of group keys that are collapsed — all collapsed by default)
+  let _collapsedGroups = new Set(GROUPS.map(g => g.key).concat(['_other']));
 
   // ── Open / Close ──────────────────────────────────────────────────────────
 
