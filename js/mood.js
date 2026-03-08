@@ -293,7 +293,7 @@ const Mood = (() => {
 
     document.getElementById('daily-note')?.addEventListener('input', onNoteInput);
 
-    currentDate = Data.today();
+    currentDate = (typeof DateNav !== 'undefined') ? DateNav.getDate() : Data.today();
     render();
   }
 
