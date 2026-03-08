@@ -8552,8 +8552,8 @@ button {
 #hub-home {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 6px 14px 14px;
+  gap: 14px;
+  padding: 16px 20px 20px;
   overflow-y: auto;
   flex: 1;
 }
@@ -8563,7 +8563,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 6px 14px 0;
+  margin: 6px 20px 0;
   padding: 9px 13px;
   background: var(--hub-amber-dim);
   border: 1px solid var(--hub-amber-bd);
@@ -8883,8 +8883,7 @@ button {
 
 /* ── Hub header: greeting, avatar, weather chips ── */
 #hub-header {
-  padding: 20px 20px 14px;
-  border-bottom: 1px solid var(--clr-border);
+  padding: 22px 20px 18px;
   flex-shrink: 0;
   font-family: var(--hub-font);
 }
@@ -9000,7 +8999,6 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
@@ -9009,24 +9007,27 @@ button {
 /* ── Hub weather cards — 3-column grid matching the mockup ── */
 .hub-wx-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .hub-wx-card {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 11px 14px;
-  border-radius: 12px;
+  padding: 11px 12px;
+  border-radius: 14px;
   background: var(--clr-surface-2);
   border: 1px solid var(--clr-border);
-  gap: 10px;
+  gap: 8px;
   font-family: var(--hub-font);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .hub-wx-ico {
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -9046,16 +9047,20 @@ button {
   font-family: var(--hub-font);
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hub-wx-val--green { color: var(--hub-green); }
 .hub-wx-val--amber { color: var(--hub-amber); }
 .hub-wx-val--red   { color: var(--clr-error); }
 
 .hub-wx-lbl {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--clr-text-2);
   font-weight: 400;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Hub calendar picker button ── */
@@ -9077,12 +9082,50 @@ button {
 .hub-cal-btn:hover,
 .hub-cal-btn:active { color: var(--clr-text); background: var(--clr-surface-2); }
 .hub-cal-btn svg { display: block; }
-.hub-cal-input {
-  position: absolute;
-  inset: 0;
+
+/* ── Hub date-picker menu popover ── */
+.hub-date-menu {
+  position: fixed;
+  z-index: 900;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.18);
+  min-width: 160px;
+  font-family: var(--hub-font);
   opacity: 0;
-  cursor: pointer;
+  transform: translateY(-6px) scale(0.96);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.hub-date-menu--open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.hub-date-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
-  height: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  font-family: var(--hub-font);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--clr-text);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.hub-date-menu__item:hover,
+.hub-date-menu__item:active { background: var(--clr-surface-2); }
+.hub-date-menu__item--active { color: var(--hub-green); }
+.hub-date-menu__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
 }
 

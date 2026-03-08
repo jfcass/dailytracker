@@ -486,6 +486,80 @@ const Hub = (() => {
     return tile;
   }
 
+  // ── Date menu popover ────────────────────────────────────────────
+  function _showDateMenu(anchor) {
+    // Remove any existing date menu
+    document.querySelector('.hub-date-menu')?.remove();
+
+    const menu = document.createElement('div');
+    menu.className = 'hub-date-menu';
+
+    const isToday = viewDate() === Data.today();
+
+    menu.innerHTML = `
+      <button class="hub-date-menu__item${isToday ? ' hub-date-menu__item--active' : ''}"
+              data-action="today" type="button">
+        <span class="hub-date-menu__icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </span>
+        Today
+      </button>
+      <button class="hub-date-menu__item" data-action="pick" type="button">
+        <span class="hub-date-menu__icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+        Pick date…
+      </button>`;
+
+    // Position below the anchor
+    const rect = anchor.getBoundingClientRect();
+    menu.style.top  = rect.bottom + 6 + 'px';
+    menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+    document.body.appendChild(menu);
+
+    // Animate in
+    requestAnimationFrame(() => menu.classList.add('hub-date-menu--open'));
+
+    // Handle clicks
+    menu.addEventListener('click', e => {
+      const action = e.target.closest('[data-action]')?.dataset.action;
+      if (!action) return;
+      _closeDateMenu();
+
+      if (action === 'today') {
+        if (typeof DateNav !== 'undefined') DateNav.setDate(Data.today());
+      } else if (action === 'pick') {
+        const picker = document.getElementById('app-date-picker');
+        if (!picker) return;
+        picker.value = viewDate();
+        try { picker.showPicker(); } catch { picker.click(); }
+      }
+    });
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', _closeDateMenu, { once: true });
+    }, 10);
+  }
+
+  function _closeDateMenu() {
+    const menu = document.querySelector('.hub-date-menu');
+    if (menu) {
+      menu.classList.remove('hub-date-menu--open');
+      setTimeout(() => menu.remove(), 120);
+    }
+  }
+
   /**
    * Renders the full-width hub header (date/greeting row + 3 weather cards)
    * into #hub-header. Called from renderHome().
@@ -533,17 +607,20 @@ const Hub = (() => {
       const aqiCat = weather.aqi_category ?? null;
       const aqiNum = weather.aqi_us       ?? null;
       if (aqiCat || aqiNum != null) {
+        // Use .includes() so "Good air quality" / "Good" both match
+        const catLower = (aqiCat ?? '').toLowerCase();
         const aqiColor = !aqiCat ? '' :
-          aqiCat === 'Good'                          ? 'hub-wx-val--green' :
-          (aqiCat === 'Moderate' || aqiCat.includes('Sensitive')) ? 'hub-wx-val--amber' :
+          catLower.includes('good')                                       ? 'hub-wx-val--green' :
+          (catLower.includes('moderate') || catLower.includes('sensitive')) ? 'hub-wx-val--amber' :
           'hub-wx-val--red';
-        const aqiDisplay = aqiCat ?? `AQI ${aqiNum}`;
-        const aqiSub     = aqiNum != null ? `AQI ${aqiNum}` : 'Air Quality';
+        // Short display: just the category keyword (Good / Moderate / etc.)
+        const aqiShort = aqiCat ? aqiCat.split(/\s/)[0] : `AQI ${aqiNum}`;
+        const aqiSub   = aqiNum != null ? `AQI ${aqiNum}` : 'Air Quality';
         cards.push(`
           <div class="hub-wx-card">
             <span class="hub-wx-ico">💨</span>
             <div class="hub-wx-text">
-              <span class="hub-wx-val ${aqiColor}">${aqiDisplay}</span>
+              <span class="hub-wx-val ${aqiColor}">${aqiShort}</span>
               <span class="hub-wx-lbl">${aqiSub}</span>
             </div>
           </div>`);
@@ -600,42 +677,13 @@ const Hub = (() => {
       if (typeof App !== 'undefined') App.switchTab('settings');
     });
 
-    // Calendar button → triggers the existing main date picker
+    // Calendar button → shows date menu (Today + Pick date)
     el.querySelector('.hub-cal-btn')?.addEventListener('click', e => {
       e.stopPropagation();
-      const picker = document.getElementById('app-date-picker');
-      if (!picker) return;
-      picker.value = viewDate();
-      try { picker.showPicker(); } catch { picker.click(); }
+      _showDateMenu(e.currentTarget);
     });
 
-    // ── Swipe date row: right = prev day, left = next day (or next tab if on today) ──
-    const dateRow = el.querySelector('.hub-date-row');
-    if (dateRow) {
-      let _sx = null;
-      dateRow.addEventListener('pointerdown', e => { _sx = e.clientX; });
-      dateRow.addEventListener('pointerup', e => {
-        if (_sx === null) return;
-        const dx = e.clientX - _sx;
-        _sx = null;
-        if (Math.abs(dx) < 40) return;
-        if (dx < 0) {
-          // Swipe left: next day unless already on today — then next bottom nav tab
-          if (viewDate() === Data.today()) {
-            const navBtns = [...document.querySelectorAll('.bottom-nav-btn')];
-            const curIdx  = navBtns.findIndex(b => b.classList.contains('bottom-nav-btn--active'));
-            const nextTab = navBtns[(curIdx + 1) % navBtns.length]?.dataset?.tab;
-            if (nextTab && typeof App !== 'undefined') App.switchTab(nextTab);
-          } else {
-            document.getElementById('app-next-day')?.click();
-          }
-        } else {
-          // Swipe right: go to previous day
-          document.getElementById('app-prev-day')?.click();
-        }
-      });
-      dateRow.addEventListener('pointercancel', () => { _sx = null; });
-    }
+    // Swipe navigation is handled app-wide by initSwipe() in app.js
   }
 
   /** Renders the 2×2 tile grid into #hub-home. */

@@ -289,6 +289,23 @@ const App = (() => {
         '.health-chart-scroll, .rpt-heatmap, .rpt-chart-wrap, .conditions-bar'
       )) return;
 
+      // ── Today tab: swipe = date navigation ──────────────────────
+      if (currentTab === 'today') {
+        const viewDate = (typeof DateNav !== 'undefined') ? DateNav.getDate() : Data.today();
+        if (dx > 0) {
+          // Swipe right → previous day (always)
+          document.getElementById('app-prev-day')?.click();
+          return;
+        }
+        // Swipe left → next day, unless already on today → next tab
+        if (viewDate !== Data.today()) {
+          document.getElementById('app-next-day')?.click();
+          return;
+        }
+        // On today: fall through to tab switching below
+      }
+
+      // ── Other tabs or today-on-today-swipe-left: tab navigation ──
       const tabs = getVisibleTabs();
       const idx  = tabs.indexOf(currentTab);
       if (idx === -1) return;
