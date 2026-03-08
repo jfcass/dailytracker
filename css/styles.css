@@ -8475,7 +8475,7 @@ button {
   --hub-amber-bd:   rgba(212,150,90,0.26);
   --hub-font:       'Outfit', sans-serif;
   --hub-radius:     22px;
-  --hub-tile-min-h: 186px;
+  --hub-tile-min-h: 205px;
   --hub-btn-h:      48px;
   --hub-slide-dur:  0.24s;
 }
@@ -8604,12 +8604,13 @@ button {
   transition: transform 0.13s;
   font-family: var(--hub-font);
   -webkit-tap-highlight-color: transparent;
+margin-top: 20px;
 }
 
 .hub-tile:active { transform: scale(0.965); }
 
 .hub-tile__bar {
-  height: 3px; flex-shrink: 0;
+  height: 5px; flex-shrink: 0;
   background: linear-gradient(90deg, var(--hub-green) 0%, #82d4a8 50%, var(--hub-green) 100%);
 }
 
