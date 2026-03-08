@@ -8591,6 +8591,31 @@ button {
   line-height: 1.4;
 }
 
+.hub-reminder__check {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hub-amber);
+  background: transparent;
+  color: var(--hub-amber);
+  font-size: 14px;
+  font-family: var(--hub-font);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hub-reminder__check:active {
+  background: var(--hub-amber);
+  color: #000;
+}
+
 /* ── Tile card ── */
 .hub-tile {
   background: var(--clr-surface);
