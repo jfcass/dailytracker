@@ -8486,6 +8486,59 @@ button {
 #hub-container[hidden],
 #accordion-wrapper[hidden] { display: none !important; }
 
+/* Hides sections not belonging to the currently open hub bucket */
+.hub-bucket-hidden { display: none !important; }
+
+/* ── Bucket accordion back bar ── */
+.hub-bucket-backbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 11px;
+  border-bottom: 1px solid var(--clr-border);
+  position: sticky;
+  top: 0;
+  background: var(--clr-bg);
+  z-index: 50;
+  font-family: var(--hub-font, 'Outfit', sans-serif);
+}
+
+.hub-bucket-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--hub-green-dim, rgba(94,184,138,0.13));
+  border: 1px solid var(--hub-green-bd, rgba(94,184,138,0.28));
+  border-radius: 20px;
+  padding: 6px 14px 6px 10px;
+  cursor: pointer;
+  font-family: var(--hub-font, 'Outfit', sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hub-green, #5eb88a);
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.hub-bucket-back-btn:active { background: rgba(94,184,138,0.24); }
+
+.hub-bucket-back-chevron {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.hub-bucket-back-lbl { font-size: 13px; }
+
+.hub-bucket-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--clr-text);
+  letter-spacing: -0.3px;
+  font-family: var(--hub-font, 'Outfit', sans-serif);
+}
+
 #hub-container {
   display: flex;
   flex-direction: column;

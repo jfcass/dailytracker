@@ -100,15 +100,10 @@ const App = (() => {
     const s = e.state;
     if (!s?.ht) return;
 
-    // Hub-internal navigation states — handle before generic overlay exit
-    if (s.ht === 'hub-section' && typeof Hub !== 'undefined') {
-      Hub.closeSection();
-      return;
-    }
-    if (s.ht === 'hub-bucket' && typeof Hub !== 'undefined') {
-      Hub.closeBucket();
-      return;
-    }
+    // Hub bucket: back-swipe fires with the prior { ht:'tab' } state, so
+    // switchTab → Hub.render() → applyLayout() handles the cleanup automatically.
+    // This guard handles the rare case of a forward swipe into hub-bucket state.
+    if (s.ht === 'hub-bucket') return;
 
     // Always exit any full-screen overlays if open
     if (typeof Symptoms   !== 'undefined') Symptoms._exitIssuesView();

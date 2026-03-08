@@ -19,11 +19,12 @@ const Hub = (() => {
     },
     wellbeing: {
       label: 'Wellbeing',
-      sections: ['section-mood', 'section-sleep'],   // adjust IDs if different
+      sections: ['section-mood'],          // sleep stats live in the Health tile carousel
     },
     health: {
       label: 'Health',
-      sections: ['section-symptoms', 'section-meds', 'section-bowel', 'tab-treatments'],
+      // Ordered by frequency of use: meds → digestion → symptoms → treatments
+      sections: ['section-meds', 'section-bowel', 'section-symptoms', 'tab-treatments'],
     },
     reflections: {
       label: 'Reflections',
@@ -460,123 +461,125 @@ const Hub = (() => {
 
   // ── Navigation ────────────────────────────────────────────────────
 
-  let _openSectionEl    = null;  // currently overlaid section element
-  let _openSectionBack  = null;  // back button injected into it
+  let _activeBucketKey = null;   // which bucket is currently open in accordion view
 
   /**
-   * Shows the bucket detail panel for the given bucketKey.
-   * Renders a list of sections in that bucket with status summaries.
+   * Returns the bucketKey that contains sectionId, or null.
+   */
+  function _bucketForSection(sectionId) {
+    for (const [key, b] of Object.entries(BUCKETS)) {
+      if (b.sections.includes(sectionId)) return key;
+    }
+    return null;
+  }
+
+  /**
+   * DOM cleanup: removes back bar, un-hides all sections, clears state.
+   * Safe to call even when no bucket is open.
+   */
+  function _cleanupBucketView() {
+    const accEl = document.getElementById('accordion-wrapper');
+    if (accEl) {
+      accEl.querySelector('.hub-bucket-backbar')?.remove();
+      accEl.querySelector('.hub-tx-row')?.remove();
+      accEl.querySelectorAll('.hub-bucket-hidden').forEach(el => el.classList.remove('hub-bucket-hidden'));
+    }
+    _activeBucketKey = null;
+  }
+
+  /**
+   * Shows the bucket as an accordion view.
+   * Hides hub-container, shows accordion-wrapper filtered to this bucket's sections.
+   * Sections are expanded so the user sees content immediately.
    */
   function showBucket(bucketKey) {
     const bucket = BUCKETS[bucketKey];
     if (!bucket) return;
 
-    const panel = document.getElementById('hub-bucket-panel');
-    if (!panel) return;
+    _activeBucketKey = bucketKey;
 
-    // Push history so the back gesture returns here instead of to a previous tab
+    // Push history so swipe-back triggers switchTab('today') → applyLayout() → cleanup
     history.pushState({ ht: 'hub-bucket', bucket: bucketKey }, '');
 
-    panel.innerHTML = '';
+    const hubEl = document.getElementById('hub-container');
+    const accEl = document.getElementById('accordion-wrapper');
+    if (!hubEl || !accEl) return;
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'hub-panel-header';
-    header.innerHTML = `
-      <button class="hub-back-btn" type="button">&#8249; Today</button>
-      <span class="hub-panel-title">${bucket.label}</span>`;
-    header.querySelector('.hub-back-btn').addEventListener('click', closeBucket);
-    panel.appendChild(header);
+    hubEl.hidden = true;
+    accEl.hidden = false;
 
-    // Section rows
-    bucket.sections.forEach(sectionId => {
-      const sec = document.getElementById(sectionId);
-      // For tab-treatments, the element is #tab-treatments, not a tracker-section
-      const nameEl = sec?.querySelector('.section-title, h2, .section-header h2');
-      const name = nameEl?.textContent?.trim().replace(/[▾▸]/g, '').trim()
-        || sectionId.replace('section-', '').replace('tab-', '')
-           .replace(/-/g, ' ')
-           .replace(/\b\w/g, c => c.toUpperCase());
+    // Build set of tracker-section IDs for this bucket (exclude tab-* IDs)
+    const sectionIds = new Set(bucket.sections.filter(id => id.startsWith('section-')));
 
-      const row = document.createElement('div');
-      row.className = 'hub-section-row';
-      row.innerHTML = `
-        <span class="hub-section-row__name">${name}</span>
-        <span class="hub-section-row__arrow">&#8250;</span>`;
-      row.addEventListener('click', () => openSection(sectionId));
-      panel.appendChild(row);
+    // Hide sections not in bucket; show + expand sections in bucket
+    accEl.querySelectorAll('.tracker-section').forEach(sec => {
+      if (sectionIds.has(sec.id)) {
+        sec.classList.remove('hub-bucket-hidden', 'tracker-section--collapsed');
+      } else {
+        sec.classList.add('hub-bucket-hidden');
+      }
     });
 
-    panel.classList.add('is-open');
-  }
+    // Inject prominent back bar at top of accordion-wrapper
+    const backBar = document.createElement('div');
+    backBar.className = 'hub-bucket-backbar';
+    backBar.innerHTML = `
+      <button class="hub-bucket-back-btn" type="button">
+        <span class="hub-bucket-back-chevron">&#8249;</span>
+        <span class="hub-bucket-back-lbl">Today</span>
+      </button>
+      <span class="hub-bucket-title">${bucket.label}</span>`;
+    backBar.querySelector('.hub-bucket-back-btn').addEventListener('click', closeBucket);
+    accEl.insertBefore(backBar, accEl.firstChild);
 
-  function closeBucket() {
-    const panel = document.getElementById('hub-bucket-panel');
-    if (panel) {
-      panel.classList.remove('is-open');
-      // Wait for CSS transition then clear
-      setTimeout(() => { panel.innerHTML = ''; }, 260);
+    // Render Treatments and add a nav row if this bucket includes tab-treatments
+    if (bucket.sections.includes('tab-treatments')) {
+      if (typeof Treatments !== 'undefined') Treatments.render();
+      const txRow = document.createElement('div');
+      txRow.className = 'hub-tx-row hub-section-row';
+      txRow.innerHTML = `
+        <span class="hub-section-row__name">Treatments</span>
+        <span class="hub-section-row__arrow">&#8250;</span>`;
+      txRow.addEventListener('click', () => App.switchTab('treatments'));
+      accEl.appendChild(txRow);
     }
+
+    // Scroll to top of accordion view
+    accEl.scrollTop = 0;
   }
 
   /**
-   * Opens a section full-screen by adding .hub-section-active.
-   * For #tab-treatments, renders the Treatments tab into a temporary overlay instead.
+   * Closes the bucket accordion view and returns to hub home.
+   * Also goes back in history to keep the stack consistent.
    */
-  function openSection(sectionId) {
-    // Close any already-open section first
-    if (_openSectionEl) closeSection();
+  function closeBucket() {
+    _cleanupBucketView();
 
-    const el = document.getElementById(sectionId);
-    if (!el) return;
-
-    // The section lives inside #accordion-wrapper which may be hidden (display:none)
-    // when Hub layout is active. A position:fixed child of a display:none ancestor is
-    // never rendered — we must unhide the wrapper before applying the overlay class.
+    const hubEl = document.getElementById('hub-container');
     const accEl = document.getElementById('accordion-wrapper');
-    if (accEl) accEl.hidden = false;
+    if (hubEl) hubEl.hidden = false;
+    if (accEl) accEl.hidden = true;
+    renderHome();
 
-    // Expand the section if it's collapsed (accordion might have it collapsed)
-    el.classList.remove('tracker-section--collapsed');
-
-    // Render Treatments if this is the treatments tab
-    if (sectionId === 'tab-treatments' && typeof Treatments !== 'undefined') {
-      Treatments.render();
-    }
-
-    // Inject back button at top of section
-    const back = document.createElement('div');
-    back.className = 'hub-section-back';
-    back.innerHTML = `&#8249; Back`;
-    back.addEventListener('click', closeSection);
-    el.insertBefore(back, el.firstChild);
-
-    // Push history so the back gesture returns here instead of to a previous tab
-    history.pushState({ ht: 'hub-section', sectionId }, '');
-
-    // Apply overlay class
-    el.classList.add('hub-section-active');
-
-    _openSectionEl   = el;
-    _openSectionBack = back;
-
-    // Scroll section to top
-    el.scrollTop = 0;
+    // Pop the history state we pushed in showBucket()
+    history.back();
   }
 
-  function closeSection() {
-    if (!_openSectionEl) return;
-    _openSectionEl.classList.remove('hub-section-active');
-    if (_openSectionBack && _openSectionBack.parentNode === _openSectionEl) {
-      _openSectionEl.removeChild(_openSectionBack);
-    }
-    _openSectionEl   = null;
-    _openSectionBack = null;
+  /**
+   * Opens the accordion bucket view for the bucket containing sectionId,
+   * then scrolls to and expands that specific section.
+   */
+  function openSection(sectionId) {
+    const bucketKey = _bucketForSection(sectionId);
+    if (!bucketKey) return;
 
-    // Re-hide accordion-wrapper if we're still in hub layout
-    if ((Data.getSettings().today_layout ?? 'accordion') === 'hub') {
-      const accEl = document.getElementById('accordion-wrapper');
-      if (accEl) accEl.hidden = true;
+    showBucket(bucketKey);
+
+    // Scroll to the specific section after DOM settles
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.classList.remove('tracker-section--collapsed');
+      requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
   }
 
@@ -591,6 +594,9 @@ const Hub = (() => {
     const hubEl  = document.getElementById('hub-container');
     const accEl  = document.getElementById('accordion-wrapper');
     if (!hubEl || !accEl) return;
+
+    // Always close any open bucket view first (back-swipe, date change, layout toggle, etc.)
+    _cleanupBucketView();
 
     if (layout === 'hub') {
       hubEl.hidden = false;
@@ -610,6 +616,6 @@ const Hub = (() => {
     applyLayout();
   }
 
-  return { render, applyLayout, openSection, closeSection, closeBucket };
+  return { render, applyLayout, openSection, closeBucket };
 
 })();
