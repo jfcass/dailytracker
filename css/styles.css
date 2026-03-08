@@ -8481,6 +8481,11 @@ button {
 }
 
 /* ── Outer wrapper ── */
+/* The [hidden] attribute has low specificity — these overrides ensure it wins
+   over the display:flex / display:block rules below. */
+#hub-container[hidden],
+#accordion-wrapper[hidden] { display: none !important; }
+
 #hub-container {
   display: flex;
   flex-direction: column;

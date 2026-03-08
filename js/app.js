@@ -99,6 +99,17 @@ const App = (() => {
   function handlePopState(e) {
     const s = e.state;
     if (!s?.ht) return;
+
+    // Hub-internal navigation states — handle before generic overlay exit
+    if (s.ht === 'hub-section' && typeof Hub !== 'undefined') {
+      Hub.closeSection();
+      return;
+    }
+    if (s.ht === 'hub-bucket' && typeof Hub !== 'undefined') {
+      Hub.closeBucket();
+      return;
+    }
+
     // Always exit any full-screen overlays if open
     if (typeof Symptoms   !== 'undefined') Symptoms._exitIssuesView();
     if (typeof MedsManage !== 'undefined') MedsManage.exit();
@@ -145,6 +156,7 @@ const App = (() => {
       Bowel.setDate(date);
       Gratitudes.setDate(date);
       if (typeof Books !== 'undefined') Books.setDate(date);
+      if (typeof Hub   !== 'undefined') Hub.render();
     });
 
     Weather.init();

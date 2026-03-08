@@ -33,14 +33,18 @@ const Hub = (() => {
 
   // ── Data helpers ──────────────────────────────────────────────────
 
-  /** Count consecutive days going back from today where predicate returns true. */
+  /** Count consecutive days going back from today where predicate returns true.
+   *  If today's entry doesn't satisfy the predicate, it's skipped rather than
+   *  treated as a break — you haven't broken the streak, you just haven't
+   *  done today yet. */
   function countStreak(predicate) {
-    const allDays = Data.getData().days;
-    const sorted  = Object.keys(allDays).sort().reverse(); // newest first
+    const allDays  = Data.getData().days;
+    const sorted   = Object.keys(allDays).sort().reverse(); // newest first
     const todayStr = Data.today();
     let streak = 0;
     for (const d of sorted) {
       if (d > todayStr) continue;           // skip future dates
+      if (d === todayStr && !predicate(allDays[d])) continue; // today not done yet — skip, don't break
       if (predicate(allDays[d])) streak++;
       else break;
     }
@@ -67,9 +71,14 @@ const Hub = (() => {
     return countStreak(day => Array.isArray(day?.gratitudes) && day.gratitudes.length > 0);
   }
 
-  /** Today's wellbeing summary for the Wellbeing tile. */
+  /** Returns the currently viewed date (falls back to today). */
+  function viewDate() {
+    return (typeof DateNav !== 'undefined') ? DateNav.getDate() : Data.today();
+  }
+
+  /** Viewed date's wellbeing summary for the Wellbeing tile. */
   function getTodayWellbeing() {
-    const day = Data.getDay(Data.today());
+    const day = Data.getDay(viewDate());
     return {
       mood:   day?.mood?.mood   ?? null,   // 1–5
       energy: day?.mood?.energy ?? null,   // 1–5
@@ -77,9 +86,9 @@ const Hub = (() => {
     };
   }
 
-  /** Today's health stats for the Health carousel. */
+  /** Viewed date's health stats for the Health carousel. */
   function getTodayStats() {
-    const day = Data.getDay(Data.today());
+    const day = Data.getDay(viewDate());
     return [
       {
         ico: '💤',
@@ -465,6 +474,9 @@ const Hub = (() => {
     const panel = document.getElementById('hub-bucket-panel');
     if (!panel) return;
 
+    // Push history so the back gesture returns here instead of to a previous tab
+    history.pushState({ ht: 'hub-bucket', bucket: bucketKey }, '');
+
     panel.innerHTML = '';
 
     // Header
@@ -518,6 +530,12 @@ const Hub = (() => {
     const el = document.getElementById(sectionId);
     if (!el) return;
 
+    // The section lives inside #accordion-wrapper which may be hidden (display:none)
+    // when Hub layout is active. A position:fixed child of a display:none ancestor is
+    // never rendered — we must unhide the wrapper before applying the overlay class.
+    const accEl = document.getElementById('accordion-wrapper');
+    if (accEl) accEl.hidden = false;
+
     // Expand the section if it's collapsed (accordion might have it collapsed)
     el.classList.remove('tracker-section--collapsed');
 
@@ -532,6 +550,9 @@ const Hub = (() => {
     back.innerHTML = `&#8249; Back`;
     back.addEventListener('click', closeSection);
     el.insertBefore(back, el.firstChild);
+
+    // Push history so the back gesture returns here instead of to a previous tab
+    history.pushState({ ht: 'hub-section', sectionId }, '');
 
     // Apply overlay class
     el.classList.add('hub-section-active');
@@ -551,6 +572,12 @@ const Hub = (() => {
     }
     _openSectionEl   = null;
     _openSectionBack = null;
+
+    // Re-hide accordion-wrapper if we're still in hub layout
+    if ((Data.getSettings().today_layout ?? 'accordion') === 'hub') {
+      const accEl = document.getElementById('accordion-wrapper');
+      if (accEl) accEl.hidden = true;
+    }
   }
 
   // ── Public interface ──────────────────────────────────────────────
@@ -583,6 +610,6 @@ const Hub = (() => {
     applyLayout();
   }
 
-  return { render, applyLayout, openSection };
+  return { render, applyLayout, openSection, closeSection, closeBucket };
 
 })();
