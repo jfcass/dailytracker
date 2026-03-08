@@ -89,7 +89,8 @@ const App = (() => {
     if (name === 'library')    Books.render();
     if (name === 'settings')   Settings.render();
     if (name === 'health-log') HealthLog.render();
-    if (name === 'treatments') Treatments.render();
+    // Treatments is now accessible via Today → Health bucket (Hub layout)
+    // if (name === 'treatments') Treatments.render();
   }
 
   // ── Back-gesture / popstate handling ─────────────────────────────────────────
