@@ -8457,3 +8457,362 @@ button {
   color:      var(--clr-text-2);
   border:     1px solid var(--clr-border);
 }
+
+/* ═══════════════════════════════════════════════════════
+   HUB LAYOUT
+   2×2 bucket tile grid for the Today tab.
+   Font: Outfit (loaded alongside Figtree).
+   Complementary palette: sage green + warm amber.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Hub tokens (extend existing custom-property set) ── */
+:root {
+  --hub-green:      #5eb88a;
+  --hub-green-dim:  rgba(94,184,138,0.13);
+  --hub-green-bd:   rgba(94,184,138,0.28);
+  --hub-amber:      #d4965a;
+  --hub-amber-dim:  rgba(212,150,90,0.12);
+  --hub-amber-bd:   rgba(212,150,90,0.26);
+  --hub-font:       'Outfit', sans-serif;
+  --hub-radius:     22px;
+  --hub-tile-min-h: 186px;
+  --hub-btn-h:      48px;
+  --hub-slide-dur:  0.24s;
+}
+
+/* ── Outer wrapper ── */
+#hub-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--hub-font);
+}
+
+/* ── Hub home (tile grid) ── */
+#hub-home {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 6px 14px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ── Reminder banner ── */
+.hub-reminder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 14px 0;
+  padding: 9px 13px;
+  background: var(--hub-amber-dim);
+  border: 1px solid var(--hub-amber-bd);
+  border-left: 3px solid var(--hub-amber);
+  border-radius: 12px;
+  font-family: var(--hub-font);
+}
+
+.hub-reminder__dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--hub-amber);
+  flex-shrink: 0;
+  animation: hub-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes hub-blink {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:.4; transform:scale(.75); }
+}
+
+.hub-reminder__text {
+  font-size: 12px; font-weight: 500;
+  color: var(--hub-amber);
+  line-height: 1.4;
+}
+
+/* ── Tile card ── */
+.hub-tile {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--hub-radius);
+  overflow: hidden;
+  min-height: var(--hub-tile-min-h);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.13s;
+  font-family: var(--hub-font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hub-tile:active { transform: scale(0.965); }
+
+.hub-tile__bar {
+  height: 3px; flex-shrink: 0;
+  background: linear-gradient(90deg, var(--hub-green) 0%, #82d4a8 50%, var(--hub-green) 100%);
+}
+
+.hub-tile__inner {
+  padding: 11px 13px 13px;
+  display: flex; flex-direction: column;
+  flex: 1; gap: 7px;
+}
+
+/* ── Tile header (name) ── */
+.hub-tile__name {
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -0.2px;
+  color: var(--clr-text);
+  line-height: 1;
+  font-family: var(--hub-font);
+}
+
+/* ── Carousel (Routine streaks + Health stats) ── */
+.hub-carousel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 60px;
+}
+
+.hub-carousel__slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  transition: opacity 0.38s ease, transform 0.38s ease;
+}
+
+.hub-carousel__slide.is-gone {
+  opacity: 0;
+  transform: translateY(7px);
+  pointer-events: none;
+}
+
+/* streak content */
+.hub-c-lbl  { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 1px; }
+.hub-c-row  { display: flex; align-items: baseline; gap: 4px; }
+.hub-c-num  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-c-unit { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; }
+.hub-c-fire { font-size: 15px; }
+.hub-c-none { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); opacity: 0.6; line-height: 1.4; }
+
+/* stat content (Health carousel) — same sizes */
+.hub-s-ico  { font-size: 15px; line-height: 1; margin-bottom: 1px; }
+.hub-s-val  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-s-lbl  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 1px; }
+
+/* ── Carousel dots ── */
+.hub-dots {
+  display: flex; gap: 5px;
+  margin-top: 2px;
+}
+
+.hub-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--clr-border);
+  transition: background 0.3s, transform 0.3s;
+  cursor: pointer;
+}
+
+.hub-dot.is-on {
+  background: var(--hub-amber);
+  transform: scale(1.35);
+}
+
+/* ── Wellbeing rating display ── */
+.hub-rating {
+  flex: 1;
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 1px;
+}
+
+.hub-rating__lbl  { font-size: 11.5px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 1px; }
+.hub-rating__val  { display: flex; align-items: baseline; gap: 5px; }
+.hub-rating__em   { font-size: 20px; line-height: 1; }
+.hub-rating__word { font-size: 28px; font-weight: 800; color: var(--hub-green); letter-spacing: -1px; line-height: 1; }
+.hub-rating__sub  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 1px; }
+
+/* ── Reflections streak ── */
+.hub-streak {
+  flex: 1;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.hub-streak__num  { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--hub-amber); line-height: 1; }
+.hub-streak__fire { font-size: 17px; }
+.hub-streak__lbl  { font-size: 11px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; line-height: 1.35; }
+
+/* ── Log buttons — both types share same height ── */
+.hub-log-simple,
+.hub-log-swipe {
+  height: var(--hub-btn-h);
+  flex-shrink: 0;
+  background: var(--hub-green-dim);
+  border: 1px solid var(--hub-green-bd);
+  border-radius: 11px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+  font-family: var(--hub-font);
+}
+
+/* Simple log (Routine, Wellbeing) */
+.hub-log-simple {
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.hub-log-simple:active { background: rgba(94,184,138,0.24); }
+
+.hub-log-simple__lbl {
+  font-size: 13px; font-weight: 600;
+  color: var(--hub-green); line-height: 1;
+}
+
+/* Swipeable log (Health, Reflections) */
+.hub-log-swipe {
+  display: flex; align-items: center;
+  padding: 0 4px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: pan-y;
+  position: relative;
+}
+.hub-log-swipe:active { background: rgba(94,184,138,0.22); }
+
+.hub-chev {
+  font-size: 13px; font-weight: 800;
+  color: rgba(94,184,138,0.48);
+  min-width: 32px; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.hub-chev:hover { color: var(--hub-green); background: var(--hub-green-dim); }
+
+.hub-log-track {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  display: flex; align-items: center;
+}
+
+.hub-log-lbl {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--hub-green);
+  text-align: center; line-height: 1.25;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.hub-log-lbl.is-out-l  { opacity:0; transform:translateX(-14px); }
+.hub-log-lbl.is-out-r  { opacity:0; transform:translateX( 14px); }
+.hub-log-lbl.is-in     { opacity:0; transform:translateY(  5px); }
+
+/* ── Bucket panel (slides in from right over hub-home) ── */
+#hub-bucket-panel {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--clr-bg);
+  transform: translateX(100%);
+  transition: transform var(--hub-slide-dur) ease;
+  overflow-y: auto;
+  z-index: 10;
+  font-family: var(--hub-font);
+}
+
+#hub-bucket-panel.is-open {
+  transform: translateX(0);
+}
+
+.hub-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--clr-border);
+  position: sticky;
+  top: 0;
+  background: var(--clr-bg);
+  z-index: 1;
+}
+
+.hub-back-btn {
+  font-family: var(--hub-font);
+  font-size: 14px; font-weight: 600;
+  color: var(--hub-green);
+  background: none; border: none;
+  cursor: pointer; padding: 4px 0;
+  display: flex; align-items: center; gap: 4px;
+}
+
+.hub-panel-title {
+  font-family: var(--hub-font);
+  font-size: 16px; font-weight: 800;
+  color: var(--clr-text);
+  letter-spacing: -0.3px;
+}
+
+/* Section rows inside bucket panel */
+.hub-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--clr-border);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.hub-section-row:active { background: var(--clr-surface-2); }
+
+.hub-section-row__name {
+  font-family: var(--hub-font);
+  font-size: 15px; font-weight: 600;
+  color: var(--clr-text);
+}
+
+.hub-section-row__status {
+  font-size: 12px; font-weight: 500;
+  color: var(--clr-text-2);
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.hub-section-row__arrow {
+  font-size: 14px;
+  color: var(--clr-text-2);
+  opacity: 0.5;
+}
+
+/* ── Section overlay (full-screen from hub) ── */
+.tracker-section.hub-section-active {
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 200;
+  overflow-y: auto;
+  border-radius: 0 !important;
+  border: none !important;
+  background: var(--clr-bg);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Back button injected at top of active section */
+.hub-section-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px 8px;
+  font-family: var(--hub-font);
+  font-size: 14px; font-weight: 600;
+  color: var(--hub-green);
+  cursor: pointer;
+  border-bottom: 1px solid var(--clr-border);
+  background: var(--clr-bg);
+  position: sticky;
+  top: 0; z-index: 1;
+}
