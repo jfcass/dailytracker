@@ -206,6 +206,15 @@
         </button>
       </div>
 
+      <!-- ── HUB LAYOUT (shown when today_layout === 'hub') ── -->
+      <div id="hub-container" hidden>
+        <div id="hub-home"><!-- populated by Hub.renderHome() --></div>
+        <div id="hub-bucket-panel"><!-- populated by Hub.showBucket() --></div>
+      </div>
+
+      <!-- ── ACCORDION LAYOUT (shown when today_layout === 'accordion') ── -->
+      <div id="accordion-wrapper">
+
       <!-- ── Section: Habit Tracker (Phase 2) ─────────────────────────── -->
       <section id="section-habits" class="tracker-section" aria-label="Habit Tracker">
 
@@ -517,6 +526,8 @@
         <div id="note-save-status" class="save-status" aria-live="polite"></div>
 
       </section>
+
+      </div><!-- end #accordion-wrapper -->
 
     </div><!-- end #tab-today -->
 
