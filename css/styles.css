@@ -9160,3 +9160,34 @@ margin-top: 20px;
   flex-shrink: 0;
 }
 
+/* Bucket Detail Header */
+.bucket-detail-header {
+  padding: 1rem;
+  background-color: var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  margin-bottom: 1rem;
+}
+
+.bucket-detail-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--clr-text);
+  margin: 0 0 0.5rem 0;
+}
+
+.bucket-detail-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bucket-detail-date-label {
+  font-size: 0.95rem;
+  color: var(--clr-text-2);
+  font-weight: 500;
+}
+
+.bucket-detail-date-label.today {
+  color: var(--clr-accent);
+}
+
