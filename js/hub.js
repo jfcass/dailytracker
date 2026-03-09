@@ -213,7 +213,6 @@ const Hub = (() => {
     header.innerHTML = `
       <div class="bucket-header-row">
         <span class="bucket-detail-date-label">Today</span>
-        <h2 class="bucket-detail-name">${bucket.label}</h2>
       </div>
     `;
 
