@@ -201,7 +201,7 @@ const Hub = (() => {
   // ── Bucket Date Navigation ────────────────────────────────────────
 
   /**
-   * Create bucket detail header showing current date on top, bucket name below
+   * Create bucket detail header showing current date and bucket name on same line
    */
   function createBucketDetailHeader(bucketKey) {
     const bucket = BUCKETS[bucketKey];
@@ -211,10 +211,10 @@ const Hub = (() => {
     header.className = 'bucket-detail-header';
     header.id = `bucket-detail-header-${bucketKey}`;
     header.innerHTML = `
-      <div class="bucket-detail-date">
+      <div class="bucket-header-row">
         <span class="bucket-detail-date-label">Today</span>
+        <h2 class="bucket-detail-name">${bucket.label}</h2>
       </div>
-      <h2 class="bucket-detail-name">${bucket.label}</h2>
     `;
 
     return header;

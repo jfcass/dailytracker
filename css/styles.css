@@ -9166,9 +9166,13 @@ margin-top: 20px;
   background-color: var(--clr-surface);
   border-bottom: 1px solid var(--clr-border);
   margin-bottom: 1rem;
+}
+
+.bucket-header-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .bucket-detail-name {
@@ -9176,18 +9180,15 @@ margin-top: 20px;
   font-weight: 500;
   color: var(--clr-accent);
   margin: 0;
-}
-
-.bucket-detail-date {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  text-align: right;
 }
 
 .bucket-detail-date-label {
-  font-size: 1.75rem;
+  font-size: 30px;
+  font-weight: 800;
   color: var(--clr-text);
-  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
 }
 
 .bucket-detail-date-label.today {
