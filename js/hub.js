@@ -258,22 +258,33 @@ const Hub = (() => {
     });
   }
 
+  // Track swipe listener references so we can remove them
+  let _bucketSwipeListeners = { touchstart: null, touchend: null };
+
   /**
    * Attach swipe gesture listener to bucket detail container
    */
   function attachBucketSwipeListener(container, bucketId) {
+    // Remove old listeners if they exist
+    if (_bucketSwipeListeners.touchstart) {
+      container.removeEventListener('touchstart', _bucketSwipeListeners.touchstart, { passive: true });
+    }
+    if (_bucketSwipeListeners.touchend) {
+      container.removeEventListener('touchend', _bucketSwipeListeners.touchend, { passive: true });
+    }
+
     let touchStartX = null;
     let touchStartY = null;
     const SWIPE_THRESHOLD = 50; // px
     const VERTICAL_THRESHOLD = 30; // px—ignore if vertical movement > this
 
-    container.addEventListener('touchstart', (e) => {
+    const handleTouchStart = (e) => {
       if (e.touches.length !== 1) return; // ignore multi-touch
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
-    }, { passive: true });
+    };
 
-    container.addEventListener('touchend', (e) => {
+    const handleTouchEnd = (e) => {
       if (touchStartX === null) return;
 
       const touchEndX = e.changedTouches[0].clientX;
@@ -300,7 +311,14 @@ const Hub = (() => {
       }
 
       touchStartX = null;
-    }, { passive: true });
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    // Store references for cleanup
+    _bucketSwipeListeners.touchstart = handleTouchStart;
+    _bucketSwipeListeners.touchend = handleTouchEnd;
   }
 
   // ── User display initial cache ────────────────────────────────────
@@ -961,9 +979,19 @@ const Hub = (() => {
       accEl.querySelector('.hub-bucket-backbar')?.remove();
       accEl.querySelector('.hub-bucket-statsbar')?.remove();
       accEl.querySelector('.hub-tx-row')?.remove();
+      accEl.querySelector('.bucket-detail-header')?.remove();
       accEl.querySelectorAll('.hub-bucket-hidden').forEach(el => el.classList.remove('hub-bucket-hidden'));
       // Reset CSS order so sections return to their natural DOM order
       accEl.querySelectorAll('.tracker-section').forEach(el => el.style.removeProperty('order'));
+
+      // Remove swipe listeners
+      if (_bucketSwipeListeners.touchstart) {
+        accEl.removeEventListener('touchstart', _bucketSwipeListeners.touchstart, { passive: true });
+      }
+      if (_bucketSwipeListeners.touchend) {
+        accEl.removeEventListener('touchend', _bucketSwipeListeners.touchend, { passive: true });
+      }
+      _bucketSwipeListeners = { touchstart: null, touchend: null };
     }
     _activeBucketKey = null;
   }
