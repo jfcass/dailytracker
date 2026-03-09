@@ -240,20 +240,25 @@ const Hub = (() => {
     const bucket = BUCKETS[bucketId];
     if (!bucket) return;
 
+    const date = BucketDateNav.getDate();
     // Call setDate on each section module if it exists and has the method
     bucket.sections.forEach(sectionId => {
       if (sectionId === 'section-habits' && typeof Habits !== 'undefined') {
-        Habits.setDate(BucketDateNav.getDate());
+        Habits.setDate(date);
+      } else if (sectionId === 'section-moderation' && typeof Moderation !== 'undefined') {
+        Moderation.setDate(date);
       } else if (sectionId === 'section-mood' && typeof Mood !== 'undefined') {
-        Mood.setDate(BucketDateNav.getDate());
+        Mood.setDate(date);
+      } else if (sectionId === 'section-note' && typeof Mood !== 'undefined') {
+        Mood.setDate(date);
+      } else if (sectionId === 'section-meds' && typeof Medications !== 'undefined') {
+        Medications.setDate(date);
       } else if (sectionId === 'section-symptoms' && typeof Symptoms !== 'undefined') {
-        Symptoms.setDate(BucketDateNav.getDate());
-      } else if (sectionId === 'section-medications' && typeof Medications !== 'undefined') {
-        Medications.setDate(BucketDateNav.getDate());
+        Symptoms.setDate(date);
       } else if (sectionId === 'section-bowel' && typeof Bowel !== 'undefined') {
-        Bowel.setDate(BucketDateNav.getDate());
+        Bowel.setDate(date);
       } else if (sectionId === 'section-gratitudes' && typeof Gratitudes !== 'undefined') {
-        Gratitudes.setDate(BucketDateNav.getDate());
+        Gratitudes.setDate(date);
       }
     });
   }
