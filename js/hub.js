@@ -1056,7 +1056,7 @@ const Hub = (() => {
         // When date changes, update header and re-render sections
         updateBucketDetailHeaderDate();
         renderBucketSections(bucketKey);
-      });
+      }, viewDate()); // always start from the currently viewed date
 
       // Create and insert bucket detail header
       const header = createBucketDetailHeader(bucketKey);

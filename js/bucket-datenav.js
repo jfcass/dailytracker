@@ -12,14 +12,12 @@ const BucketDateNav = (() => {
 
   // ── Public ────────────────────────────────────────────────────────────────
 
-  function init(bucketId, onChangeCb) {
+  function init(bucketId, onChangeCb, initialDate) {
     currentBucketId = bucketId;
     onChange = onChangeCb;
 
-    // Read persisted date from localStorage, fall back to today
-    const key = `ht_bucket_date_${bucketId}`;
-    const stored = localStorage.getItem(key);
-    currentDate = stored && isValidDate(stored) ? stored : Data.today();
+    // Use the provided initial date (from the main Today view), fall back to today
+    currentDate = (initialDate && isValidDate(initialDate)) ? initialDate : Data.today();
 
     // Don't fire onChange on init—caller will render based on currentDate
   }

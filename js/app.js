@@ -289,6 +289,9 @@ const App = (() => {
         '.health-chart-scroll, .rpt-heatmap, .rpt-chart-wrap, .conditions-bar'
       )) return;
 
+      // Don't intercept swipes when inside a bucket detail view — it handles its own date navigation
+      if (document.querySelector('.hub-bucket-backbar')) return;
+
       // ── Today tab: swipe = date navigation ──────────────────────
       if (currentTab === 'today') {
         const viewDate = (typeof DateNav !== 'undefined') ? DateNav.getDate() : Data.today();
