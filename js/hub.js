@@ -212,10 +212,6 @@ const Hub = (() => {
     header.id = `bucket-detail-header-${bucketKey}`;
     header.innerHTML = `
       <div class="bucket-header-row">
-        <button class="hub-bucket-back-btn" type="button">
-          <span class="hub-bucket-back-chevron">&#8249;</span>
-          <span class="hub-bucket-back-lbl">Today</span>
-        </button>
         <span class="bucket-detail-date-label">Today</span>
         <h2 class="bucket-detail-name">${bucket.label}</h2>
       </div>
@@ -986,7 +982,7 @@ const Hub = (() => {
     const accEl = document.getElementById('accordion-wrapper');
     if (accEl) {
       accEl.querySelector('.hub-bucket-backbar')?.remove();
-      accEl.querySelectorAll('.hub-bucket-statsbar').forEach(el => el.remove());
+      accEl.querySelector('.hub-bucket-statsbar')?.remove();
       accEl.querySelector('.hub-tx-row')?.remove();
       accEl.querySelector('.bucket-detail-header')?.remove();
       accEl.querySelectorAll('.hub-bucket-hidden').forEach(el => el.classList.remove('hub-bucket-hidden'));
@@ -1047,6 +1043,18 @@ const Hub = (() => {
       if (el) el.style.order = String(idx + 10);
     });
 
+    // Inject prominent back bar at top of accordion-wrapper
+    const backBar = document.createElement('div');
+    backBar.className = 'hub-bucket-backbar';
+    backBar.innerHTML = `
+      <button class="hub-bucket-back-btn" type="button">
+        <span class="hub-bucket-back-chevron">&#8249;</span>
+        <span class="hub-bucket-back-lbl">Today</span>
+      </button>
+      <span class="hub-bucket-title">${bucket.label}</span>`;
+    backBar.querySelector('.hub-bucket-back-btn').addEventListener('click', closeBucket);
+    accEl.insertBefore(backBar, accEl.firstChild);
+
     // Initialize BucketDateNav for this bucket
     if (typeof BucketDateNav !== 'undefined') {
       BucketDateNav.init(bucketKey, (newDate) => {
@@ -1055,11 +1063,10 @@ const Hub = (() => {
         renderBucketSections(bucketKey);
       }, viewDate()); // always start from the currently viewed date
 
-      // Create and insert bucket detail header (includes back button)
+      // Create and insert bucket detail header
       const header = createBucketDetailHeader(bucketKey);
       if (header) {
-        header.querySelector('.hub-bucket-back-btn')?.addEventListener('click', closeBucket);
-        accEl.insertBefore(header, accEl.firstChild);
+        accEl.insertBefore(header, accEl.firstChild.nextSibling);
         updateBucketDetailHeaderDate();
       }
 
@@ -1068,35 +1075,21 @@ const Hub = (() => {
 
       // Attach swipe listener for date navigation
       attachBucketSwipeListener(accEl, bucketKey);
+    }
 
-      // For the Health bucket, show sleep data then activity stats below the header.
-      if (bucketKey === 'health') {
-        const stats = getTodayStats();
-
-        // Sleep stat (💤) — immediately below header
-        const sleepStat = stats[0];
-        const sleepBar = document.createElement('div');
-        sleepBar.className = 'hub-bucket-statsbar';
-        sleepBar.innerHTML = `
-          <div class="hub-bucket-stat">
-            <span class="hub-bucket-stat__ico">${sleepStat.ico}</span>
-            <span class="hub-bucket-stat__val">${sleepStat.val ?? '—'}</span>
-            <span class="hub-bucket-stat__lbl">${sleepStat.lbl}</span>
-          </div>`;
-        header.insertAdjacentElement('afterend', sleepBar);
-
-        // Activity stats (👣 steps + 🔥 calories) — below sleep
-        const activityStats = stats.slice(1);
-        const activityBar = document.createElement('div');
-        activityBar.className = 'hub-bucket-statsbar';
-        activityBar.innerHTML = activityStats.map(s => `
-          <div class="hub-bucket-stat">
-            <span class="hub-bucket-stat__ico">${s.ico}</span>
-            <span class="hub-bucket-stat__val">${s.val ?? '—'}</span>
-            <span class="hub-bucket-stat__lbl">${s.lbl}</span>
-          </div>`).join('');
-        sleepBar.insertAdjacentElement('afterend', activityBar);
-      }
+    // For the Health bucket, show a sleep/steps/calories stats summary
+    // at the top so the user can see those figures without drilling deeper.
+    if (bucketKey === 'health') {
+      const stats = getTodayStats();
+      const statsBar = document.createElement('div');
+      statsBar.className = 'hub-bucket-statsbar';
+      statsBar.innerHTML = stats.map(s => `
+        <div class="hub-bucket-stat">
+          <span class="hub-bucket-stat__ico">${s.ico}</span>
+          <span class="hub-bucket-stat__val">${s.val ?? '—'}</span>
+          <span class="hub-bucket-stat__lbl">${s.lbl}</span>
+        </div>`).join('');
+      backBar.insertAdjacentElement('afterend', statsBar);
     }
 
     // Render Treatments and add a nav row if this bucket includes tab-treatments
