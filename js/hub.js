@@ -1063,10 +1063,10 @@ const Hub = (() => {
         renderBucketSections(bucketKey);
       }, viewDate()); // always start from the currently viewed date
 
-      // Create and insert bucket detail header (right after back bar for Health bucket)
+      // Create and insert bucket detail header
       const header = createBucketDetailHeader(bucketKey);
       if (header) {
-        backBar.insertAdjacentElement('afterend', header);
+        accEl.insertBefore(header, accEl.firstChild.nextSibling);
         updateBucketDetailHeaderDate();
       }
 
@@ -1077,34 +1077,19 @@ const Hub = (() => {
       attachBucketSwipeListener(accEl, bucketKey);
     }
 
-    // For the Health bucket, show sleep data and activity stats
-    // below the header but before the main sections.
+    // For the Health bucket, show a sleep/steps/calories stats summary
+    // at the top so the user can see those figures without drilling deeper.
     if (bucketKey === 'health') {
       const stats = getTodayStats();
-
-      // Create sleep-only stat bar
-      const sleepStat = stats[0]; // 💤 sleep
-      const sleepBar = document.createElement('div');
-      sleepBar.className = 'hub-bucket-statsbar';
-      sleepBar.innerHTML = `
-        <div class="hub-bucket-stat">
-          <span class="hub-bucket-stat__ico">${sleepStat.ico}</span>
-          <span class="hub-bucket-stat__val">${sleepStat.val ?? '—'}</span>
-          <span class="hub-bucket-stat__lbl">${sleepStat.lbl}</span>
-        </div>`;
-      header.insertAdjacentElement('afterend', sleepBar);
-
-      // Create activity stats bar (steps + calories)
-      const activityStats = stats.slice(1); // 👣 steps, 🔥 calories
-      const activityBar = document.createElement('div');
-      activityBar.className = 'hub-bucket-statsbar';
-      activityBar.innerHTML = activityStats.map(s => `
+      const statsBar = document.createElement('div');
+      statsBar.className = 'hub-bucket-statsbar';
+      statsBar.innerHTML = stats.map(s => `
         <div class="hub-bucket-stat">
           <span class="hub-bucket-stat__ico">${s.ico}</span>
           <span class="hub-bucket-stat__val">${s.val ?? '—'}</span>
           <span class="hub-bucket-stat__lbl">${s.lbl}</span>
         </div>`).join('');
-      sleepBar.insertAdjacentElement('afterend', activityBar);
+      backBar.insertAdjacentElement('afterend', statsBar);
     }
 
     // Render Treatments and add a nav row if this bucket includes tab-treatments
