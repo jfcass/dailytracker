@@ -438,9 +438,6 @@
           </div>
         </div>
 
-        <!-- Vitals bar — sleep + Fitbit stats, rendered by symptoms.js -->
-        <div id="symp-vitals-bar"></div>
-
         <!-- Category manager panel — populated by symptoms.js -->
         <div id="symp-cat-panel" class="symp-cat-panel" hidden></div>
 
@@ -468,6 +465,32 @@
         </div>
         <div id="meds-content"></div>
         <div id="meds-save-status" class="save-status" aria-live="polite"></div>
+      </section>
+
+      <!-- ── Section: Vitals ──────────────────────────────────────────────── -->
+      <section id="section-vitals" class="tracker-section" aria-label="Vitals">
+
+        <div class="section-header" onclick="App.toggleSection('section-vitals')">
+          <h2 class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 width="16" height="16" aria-hidden="true">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Vitals
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                 width="14" height="14" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </h2>
+        </div>
+
+        <div class="section-body">
+          <div id="vitals-stats-row"></div>
+          <div id="vitals-bar"></div>
+        </div>
+
       </section>
 
       <!-- ── Section: Gratitudes ───────────────────────────────────── -->
@@ -666,6 +689,7 @@
   <script src="js/medications.js"></script>
   <script src="js/meds-manage.js"></script>
   <script src="js/treatments.js"></script>
+  <script src="js/vitals.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="js/books.js"></script>
   <script src="js/reports.js"></script>
