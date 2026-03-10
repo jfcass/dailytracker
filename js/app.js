@@ -152,6 +152,7 @@ const App = (() => {
       Medications.setDate(date);
       Bowel.setDate(date);
       Gratitudes.setDate(date);
+      if (typeof Vitals !== 'undefined') Vitals.setDate(date);
       if (typeof Books !== 'undefined') Books.setDate(date);
       if (typeof Hub   !== 'undefined') Hub.render();
     });
@@ -163,6 +164,7 @@ const App = (() => {
     Moderation.init();
     Symptoms.init();
     Medications.init();
+    Vitals.init();
     if (typeof MedsManage !== 'undefined') MedsManage.render();
     Bowel.init();
     Gratitudes.init();
@@ -226,6 +228,7 @@ const App = (() => {
       bowel:      'section-bowel',
       gratitudes: 'section-gratitudes',
       note:       'section-note',
+      vitals:     'section-vitals',
     };
     Object.entries(sectionMap).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -252,6 +255,7 @@ const App = (() => {
     Medications.setDate(date);
     Bowel.setDate(date);
     Gratitudes.setDate(date);
+    if (typeof Vitals !== 'undefined') Vitals.setDate(date);
     if (typeof Books !== 'undefined') Books.setDate(date);
     // Force re-render of whatever tab is active
     switchTab(currentTab, false);
