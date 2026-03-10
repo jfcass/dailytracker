@@ -525,6 +525,7 @@ const Settings = (() => {
       ['bowel',      'Bowel'],
       ['gratitudes', 'Gratitudes'],
       ['note',       'Daily Note'],
+      ['vitals',     'Vitals'],
     ].forEach(([k, l]) => body.appendChild(makeRow(k, l)));
 
     body.appendChild(makeGroupLabel('Other Tabs'));
