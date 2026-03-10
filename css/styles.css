@@ -8647,7 +8647,7 @@ margin-top: 20px;
 
 /* ── Tile header (name) ── */
 .hub-tile__name {
-  font-size: 16px; font-weight: 800;
+  font-size: 22px; font-weight: 800;
   letter-spacing: -0.2px;
   color: var(--clr-text);
   line-height: 1;
@@ -8717,7 +8717,7 @@ margin-top: 20px;
 .hub-rating__lbl  { font-size: 13px; font-weight: 500; color: var(--clr-text-2); margin-bottom: 2px; }
 .hub-rating__val  { display: flex; align-items: baseline; gap: 6px; }
 .hub-rating__em   { font-size: 22px; line-height: 1; }
-.hub-rating__word { font-size: 30px; font-weight: 800; color: var(--hub-green); letter-spacing: -1px; line-height: 1; }
+.hub-rating__word { font-size: 20px; font-weight: 800; color: var(--hub-green); letter-spacing: -1px; line-height: 1; }
 .hub-rating__sub  { font-size: 12px; color: var(--clr-text-2); font-weight: 400; opacity: 0.6; margin-top: 2px; }
 
 /* ── Reflections streak ── */
