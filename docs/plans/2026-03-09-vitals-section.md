@@ -287,6 +287,8 @@ To:
 
 - [ ] **Step 2: Delete the `hub-bucket-statsbar` injection block in `showBucket()`**
 
+**Important:** Do NOT delete the `getTodayStats()` function — it is still used by the Health tile carousel at line 616. Only delete the block below.
+
 Find and delete this entire block (around lines 1079–1092):
 
 ```js
@@ -341,7 +343,7 @@ git commit -m "refactor: remove statsbar from hub.js, add section-vitals to Heal
 
 - [ ] **Step 1: Add `Vitals.setDate(date)` to the `DateNav.init` callback**
 
-In the `DateNav.init(date => { ... })` callback (around line 152), add after `Medications.setDate(date)`:
+In the `DateNav.init(date => { ... })` callback, add after `Gratitudes.setDate(date)` (around line 154, the last setDate call in the block):
 
 ```js
       if (typeof Vitals !== 'undefined') Vitals.setDate(date);
@@ -573,7 +575,7 @@ git push
   - "Vitals" section appears after Medications in the Today tab
   - Stats row shows steps / calories / floors (dashes if no data)
   - Vitals bar shows sleep detail + HR chips if Fitbit data exists, otherwise empty
-  - `section-symptoms` no longer shows a vitals bar above the symptom entries
+  - `section-symptoms` no longer shows HR/HRV/SpO2 chips or sleep detail above symptom entries
   - Collapse/expand works; state persists across page reload
 
 - [ ] **Step 3: Verify Hub layout**
