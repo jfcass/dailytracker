@@ -24,7 +24,7 @@ const Hub = (() => {
     health: {
       label: 'Health',
       // Ordered by frequency of use: meds → digestion → symptoms → treatments
-      sections: ['section-meds', 'section-bowel', 'section-symptoms', 'tab-treatments'],
+      sections: ['section-vitals', 'section-meds', 'section-bowel', 'section-symptoms', 'tab-treatments'],
     },
     reflections: {
       label: 'Reflections',
@@ -250,6 +250,8 @@ const Hub = (() => {
         Mood.setDate(date);
       } else if (sectionId === 'section-note' && typeof Mood !== 'undefined') {
         Mood.setDate(date);
+      } else if (sectionId === 'section-vitals' && typeof Vitals !== 'undefined') {
+        Vitals.setDate(date);
       } else if (sectionId === 'section-meds' && typeof Medications !== 'undefined') {
         Medications.setDate(date);
       } else if (sectionId === 'section-symptoms' && typeof Symptoms !== 'undefined') {
@@ -981,7 +983,6 @@ const Hub = (() => {
     const accEl = document.getElementById('accordion-wrapper');
     if (accEl) {
       accEl.querySelector('.hub-bucket-backbar')?.remove();
-      accEl.querySelector('.hub-bucket-statsbar')?.remove();
       accEl.querySelector('.hub-tx-row')?.remove();
       accEl.querySelector('.bucket-detail-header')?.remove();
       accEl.querySelectorAll('.hub-bucket-hidden').forEach(el => el.classList.remove('hub-bucket-hidden'));
@@ -1074,21 +1075,6 @@ const Hub = (() => {
 
       // Attach swipe listener for date navigation
       attachBucketSwipeListener(accEl, bucketKey);
-    }
-
-    // For the Health bucket, show a sleep/steps/calories stats summary
-    // at the top so the user can see those figures without drilling deeper.
-    if (bucketKey === 'health') {
-      const stats = getTodayStats();
-      const statsBar = document.createElement('div');
-      statsBar.className = 'hub-bucket-statsbar';
-      statsBar.innerHTML = stats.map(s => `
-        <div class="hub-bucket-stat">
-          <span class="hub-bucket-stat__ico">${s.ico}</span>
-          <span class="hub-bucket-stat__val">${s.val ?? '—'}</span>
-          <span class="hub-bucket-stat__lbl">${s.lbl}</span>
-        </div>`).join('');
-      backBar.insertAdjacentElement('afterend', statsBar);
     }
 
     // Render Treatments and add a nav row if this bucket includes tab-treatments
