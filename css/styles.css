@@ -6037,84 +6037,108 @@ button {
   white-space: nowrap;
 }
 
-/* ── Health section: vitals bar ─────────────────────────────────────────── */
+/* ── Vitals section ─────────────────────────────────────────────────────── */
 
-#symp-vitals-bar {
-  padding-bottom: 6px;
-  border-bottom:  1px solid var(--clr-border);
-  margin-bottom:  4px;
+/* Stats row */
+.vitals-stats-row {
+  display:         flex;
+  justify-content: space-around;
+  padding:         12px 16px 8px;
+  border-bottom:   1px solid var(--clr-border);
+  margin-bottom:   4px;
 }
-#symp-vitals-bar:empty { display: none; }
+.vitals-stat {
+  flex:           1;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            2px;
+}
+.vitals-stat__ico { font-size: 18px; }
+.vitals-stat__val {
+  font-size:   16px;
+  font-weight: 700;
+  color:       var(--clr-text);
+  line-height: 1.2;
+}
+.vitals-stat__lbl {
+  font-size:      10px;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-.symp-vitals-row {
+/* Vitals bar rows */
+.vitals-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  padding:     6px 16px;
+}
+.vitals-row + .vitals-row { padding-top: 2px; }
+.vitals-label {
+  font-size:      0.7rem;
+  font-weight:    700;
+  color:          var(--clr-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width:      36px;
+}
+.vitals-sleep-stats {
   display:     flex;
   align-items: center;
   flex-wrap:   wrap;
   gap:         6px;
-  padding:     6px 16px;
 }
-.symp-vitals-row + .symp-vitals-row {
-  padding-top: 2px;
-}
-.symp-vitals-label {
-  font-size:      0.7rem;
-  font-weight:    700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color:          var(--clr-text-2);
-  min-width:      36px; /* aligns labels across rows; expand if label text changes */
-}
-.symp-vitals-sleep-stats {
-  display:     flex;
-  align-items: center;
-  flex-wrap:   wrap;
-  gap:         10px;
-}
-.symp-vitals-sleep-val {
+.vitals-sleep-val {
   font-size:   0.9rem;
   font-weight: 700;
   color:       var(--clr-accent);
 }
-.symp-vitals-meta {
-  font-size: 0.82rem;
+.vitals-sleep-eff {
+  font-size:     0.75rem;
+  font-weight:   600;
+  padding:       2px 6px;
+  border-radius: 10px;
+}
+.vitals-sleep-eff--good { background: #e8f5e9; color: #2e7d32; }
+.vitals-sleep-eff--ok   { background: #fff8e1; color: #f57f17; }
+.vitals-sleep-eff--low  { background: #ffebee; color: #c62828; }
+@media (prefers-color-scheme: dark) {
+  .vitals-sleep-eff--good { background: #1b3a1d; color: #81c784; }
+  .vitals-sleep-eff--ok   { background: #3e2723; color: #ffcc02; }
+  .vitals-sleep-eff--low  { background: #3e0000; color: #ef9a9a; }
+}
+.vitals-sleep-stages {
+  display:       flex;
+  height:        6px;
+  border-radius: 3px;
+  overflow:      hidden;
+  width:         80px;
+  background:    var(--clr-border);
+}
+.vitals-sleep-seg--deep  { background: #5c6bc0; }
+.vitals-sleep-seg--rem   { background: #26a69a; }
+.vitals-sleep-seg--light { background: #78909c; }
+.vitals-sleep-seg--awake { background: #ef9a9a; }
+.vitals-sleep-stages-label {
+  font-size: 0.72rem;
   color:     var(--clr-text-2);
 }
-.symp-vitals-chips-row {
+.vitals-chips-row {
   display:     flex;
   align-items: center;
   flex-wrap:   wrap;
   gap:         6px;
 }
-.symp-vitals-chip {
+.vitals-chip {
   font-size:     0.78rem;
   padding:       3px 9px;
-  border-radius: 20px;
   background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  border-radius: 12px;
   color:         var(--clr-text);
-  white-space:   nowrap;
 }
-
-/* ── Sleep stages ──────────────────────────────────────────────────────── */
-.symp-vitals-sleep-stats      { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-
-/* Efficiency badge */
-.symp-sleep-eff               { font-size: 0.72rem; font-weight: 600; padding: 1px 6px; border-radius: 10px; }
-.symp-sleep-eff--good         { background: var(--clr-accent-dim); color: var(--clr-accent); }
-.symp-sleep-eff--ok           { background: #fff8e1; color: #f57f17; }
-.symp-sleep-eff--low          { background: #ffebee; color: #c62828; }
-@media (prefers-color-scheme: dark) {
-  .symp-sleep-eff--ok         { background: #3e2f00; color: #ffc107; }
-  .symp-sleep-eff--low        { background: #3e0000; color: #ef5350; }
-}
-
-/* Stages bar */
-.symp-sleep-stages            { display: flex; width: 100%; height: 6px; border-radius: 3px; overflow: hidden; gap: 1px; flex-basis: 100%; }
-.symp-sleep-seg               { display: block; height: 100%; border-radius: 2px; min-width: 2px; }
-.symp-sleep-seg--deep         { background: #3f51b5; }   /* indigo — deep */
-.symp-sleep-seg--rem          { background: #9c27b0; }   /* purple — REM */
-.symp-sleep-seg--light        { background: #03a9f4; }   /* light blue — light */
-.symp-sleep-seg--awake        { background: var(--clr-border); }  /* muted — awake */
-.symp-sleep-stages-label      { font-size: 0.72rem; color: var(--clr-text-2); flex-basis: 100%; line-height: 1.3; }
 
 /* ── Symptom redesign: issues toggle button ──────────────────────────────── */
 
@@ -8984,37 +9008,6 @@ margin-top: 20px;
 
 /* Hide conditions bar when hub is active (weather is shown in hub header instead) */
 #conditions-bar.hub-hidden { display: none !important; }
-
-/* ── Health stats bar in Health bucket view ── */
-.hub-bucket-statsbar {
-  display: flex;
-  padding: 12px 16px;
-  background: var(--clr-surface-2);
-  border-bottom: 1px solid var(--clr-border);
-}
-
-.hub-bucket-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 1px;
-}
-
-.hub-bucket-stat__ico { font-size: 18px; }
-.hub-bucket-stat__val {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--clr-text);
-  font-family: var(--hub-font);
-  line-height: 1.2;
-}
-.hub-bucket-stat__lbl {
-  font-size: 10px;
-  color: var(--clr-text-2);
-  font-weight: 500;
-}
 
 /* ── Hide native app chrome in hub mode ── */
 .app-header.hub-hidden,
