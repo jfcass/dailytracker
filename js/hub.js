@@ -461,11 +461,17 @@ const Hub = (() => {
   const MOOD_LABELS  = ['', 'Very Low', 'Low', 'Neutral', 'Good', 'Excellent'];
   const MOOD_EMOJIS  = ['', '😞', '😔', '😐', '😊', '😄'];
 
-  function moodLabel(val) { return MOOD_LABELS[val] ?? '—'; }
-  function moodEmoji(val) { return MOOD_EMOJIS[val] ?? '—'; }
+  function halfLabel(labels, val) {
+    if (val == null) return '—';
+    if (Number.isInteger(val)) return labels[val] ?? '—';
+    const lo = Math.floor(val), hi = Math.ceil(val);
+    return `${labels[lo] ?? lo} – ${labels[hi] ?? hi}`;
+  }
+  function moodLabel(val) { return halfLabel(MOOD_LABELS, val); }
+  function moodEmoji(val) { return MOOD_EMOJIS[Number.isInteger(val) ? val : Math.ceil(val)] ?? '—'; }
 
   const ENERGY_LABELS = ['', 'Exhausted', 'Low', 'Moderate', 'Good', 'High'];
-  function energyLabel(val) { return ENERGY_LABELS[val] ?? '—'; }
+  function energyLabel(val) { return halfLabel(ENERGY_LABELS, val); }
 
   // ── Carousel builder ──────────────────────────────────────────────
 
