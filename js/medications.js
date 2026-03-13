@@ -323,7 +323,6 @@ const Medications = (() => {
     const recentDoses = buildRecentDoses(prnDoses);
     const items = pausedMeds.map(med => {
       const cooldown = cooldownRemaining(med, recentDoses);
-      const isLogging = prnFormOpen && prnMedId === med.id;
       return `<div class="meds-paused-item">
         <span class="meds-paused-name">${escHtml(med.emoji ? med.emoji + ' ' : '')}${escHtml(med.name)}</span>
         <span class="meds-paused-badge">Paused</span>
