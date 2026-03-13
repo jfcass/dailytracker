@@ -27,6 +27,7 @@ const Data = (() => {
       hidden_sections: [],
       today_accordion: false,
       today_layout:    'accordion',   // 'accordion' | 'hub'
+      habit_configs:   {},            // { [name]: { frequency, freq_count, freq_period_days, reminder } }
     },
     days:           {},
     issues:         {},
@@ -274,6 +275,12 @@ const Data = (() => {
 
     migrateModeration(d);
     migrateWeather(d);
+
+    // Migrate: ensure habit_configs exists
+    if (!d.settings.habit_configs) {
+      d.settings.habit_configs = {};
+    }
+
     return d;
   }
 
