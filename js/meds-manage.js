@@ -51,7 +51,8 @@ const MedsManage = (() => {
 
   function exit() {
     document.getElementById('view-meds-manage').hidden = true;
-    _editId = null;
+    _editId           = null;
+    _confirmingDelete = false;
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -254,7 +255,7 @@ const MedsManage = (() => {
           <button class="mmg-archive-btn" id="mmg-archive-btn">Archive</button>
         ` : ''}
         ${isArchived ? `
-          <button class="mmg-archive-btn" id="mmg-archive-btn">Restore</button>
+          <button class="mmg-archive-btn" id="mmg-restore-btn">Restore</button>
           <button class="mmg-delete-btn" id="mmg-delete-btn">Delete</button>
         ` : ''}
         <span style="flex:1"></span>
@@ -403,8 +404,10 @@ const MedsManage = (() => {
     // Form: save
     content.querySelector('#mmg-save-btn')?.addEventListener('click', saveMed);
 
-    // Form: archive/restore
+    // Form: archive (active/paused → archived)
     content.querySelector('#mmg-archive-btn')?.addEventListener('click', toggleArchive);
+    // Form: restore (archived → active)
+    content.querySelector('#mmg-restore-btn')?.addEventListener('click', toggleArchive);
 
     // Form: pause / resume
     content.querySelector('#mmg-pause-btn')?.addEventListener('click', pauseMed);
@@ -478,7 +481,8 @@ const MedsManage = (() => {
       med.active = !med.active;
       if (!med.active) med.paused = false;  // clear paused state on archive
     }
-    _editId = null;
+    _editId           = null;
+    _confirmingDelete = false;
     render();
     scheduleSave();
     if (typeof Medications !== 'undefined') Medications.render();
