@@ -1010,7 +1010,8 @@ const Medications = (() => {
       });
       // Slot appearances and extras
       Object.values(day.med_slots ?? {}).forEach(slot => {
-        if ((slot.meds ?? []).includes(medId)) dayCount++;
+        const skipped = slot.skipped ?? [];
+        if ((slot.meds ?? []).includes(medId) && !skipped.includes(medId)) dayCount++;
         (slot.extras ?? []).forEach(e => {
           if (e.medication_id === medId) dayCount++;
         });
