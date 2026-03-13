@@ -370,6 +370,11 @@ const Treatments = (() => {
               <input class="hl-edit-input" type="time" value="${escHtml(fStart)}"
                      oninput="Treatments._setStart(this.value)">
             </div>
+            <div class="tx-form-field">
+              <label class="tx-form-label">End time <span class="tx-optional">(optional)</span></label>
+              <input class="hl-edit-input" type="time" value="${escHtml(fEnd)}"
+                     oninput="Treatments._setEnd(this.value)">
+            </div>
           </div>
 
           ${noMedsWarning}
@@ -865,6 +870,7 @@ const Treatments = (() => {
     _delete:         id => deleteTreatment(id),
     _setDate:        v => { fDate = v; },
     _setStart:       v => { fStart = v; },
+    _setEnd:         v => { fEnd = v; },
     _setIntention:   v => { fIntention = v; },
     _setFormBpSys:   v => { fFormBpSys = v; },
     _setFormBpDia:   v => { fFormBpDia = v; },
