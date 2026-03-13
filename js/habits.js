@@ -346,6 +346,94 @@ const Habits = (() => {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
+  /** Returns the HabitConfig for a habit, falling back to daily defaults. */
+  function getHabitConfig(name) {
+    const configs = Data.getSettings().habit_configs ?? {};
+    return {
+      frequency:        'daily',
+      freq_count:       1,
+      freq_period_days: 7,
+      reminder:         false,
+      ...(configs[name] ?? {}),
+    };
+  }
+
+  /**
+   * Returns { start: 'YYYY-MM-DD', end: 'YYYY-MM-DD', shortLabel: string }
+   * for the period containing refDate (defaults to today).
+   * daily → shortLabel 'today'; weekly → 'wk'; monthly → 'mo'; quarterly → 'qtr'; custom → '${N}d'
+   */
+  function getPeriodBounds(cfg, refDate) {
+    const ref = refDate ?? Data.today();
+    const d   = new Date(ref + 'T12:00:00');
+
+    if (cfg.frequency === 'daily') {
+      return { start: ref, end: ref, shortLabel: 'today' };
+    }
+
+    if (cfg.frequency === 'weekly') {
+      const dow  = d.getDay();
+      const diff = (dow === 0 ? -6 : 1 - dow);
+      const mon  = new Date(d); mon.setDate(d.getDate() + diff);
+      const sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+      return {
+        start:      mon.toISOString().slice(0, 10),
+        end:        sun.toISOString().slice(0, 10),
+        shortLabel: 'wk',
+      };
+    }
+
+    if (cfg.frequency === 'monthly') {
+      const y = d.getFullYear(), m = d.getMonth();
+      const last = new Date(y, m + 1, 0);
+      return {
+        start:      `${y}-${String(m + 1).padStart(2, '0')}-01`,
+        end:        last.toISOString().slice(0, 10),
+        shortLabel: 'mo',
+      };
+    }
+
+    if (cfg.frequency === 'quarterly') {
+      const y  = d.getFullYear();
+      const qm = Math.floor(d.getMonth() / 3) * 3;
+      const last = new Date(y, qm + 3, 0);
+      return {
+        start:      `${y}-${String(qm + 1).padStart(2, '0')}-01`,
+        end:        last.toISOString().slice(0, 10),
+        shortLabel: 'qtr',
+      };
+    }
+
+    // custom: rolling window of freq_period_days days
+    const n   = cfg.freq_period_days ?? 7;
+    const s   = new Date(d); s.setDate(d.getDate() - (n - 1));
+    return {
+      start:      s.toISOString().slice(0, 10),
+      end:        ref,
+      shortLabel: `${n}d`,
+    };
+  }
+
+  /** Count days in [start, end] (inclusive) where the habit was done. */
+  function countPeriodCompletions(name, start, end) {
+    const allDays = Data.getData().days;
+    return Object.entries(allDays)
+      .filter(([date, day]) =>
+        date >= start && date <= end && day?.habits?.[name] === true
+      ).length;
+  }
+
+  /** Returns true if the habit's period goal is not yet met (habit is still "due" this period). */
+  function isHabitDue(name) {
+    const cfg = getHabitConfig(name);
+    if (cfg.frequency === 'daily') {
+      return Data.getDay(Data.today())?.habits?.[name] !== true;
+    }
+    const { start, end } = getPeriodBounds(cfg, Data.today());
+    const done = countPeriodCompletions(name, start, end);
+    return done < cfg.freq_count;
+  }
+
   function fmtDateLabel(dateStr) {
     const today = Data.today();
     if (dateStr === today)                  return 'Today';
