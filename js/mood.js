@@ -194,8 +194,14 @@ const Mood = (() => {
     if (!day.mood || typeof day.mood !== 'object') {
       day.mood = { mood: null, energy: null, stress: null, focus: null };
     }
-    // Tap the active value again to clear it
-    day.mood[field] = day.mood[field] === val ? null : val;
+    const current = day.mood[field];
+    if (current === val - 0.5) {
+      day.mood[field] = null;          // half → unset
+    } else if (current === val) {
+      day.mood[field] = val - 0.5;    // whole → half
+    } else {
+      day.mood[field] = val;           // anything else → whole
+    }
     render();
     saveMood();
   }
