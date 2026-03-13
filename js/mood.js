@@ -122,7 +122,9 @@ const Mood = (() => {
       ['focus',  focus],
     ].forEach(([field, val]) => {
       document.querySelectorAll(`.mood-btn[data-field="${field}"]`).forEach(btn => {
-        btn.classList.toggle('mood-btn--active', +btn.dataset.val === val);
+        const btnVal = +btn.dataset.val;
+        btn.classList.toggle('mood-btn--active', btnVal === val);
+        btn.classList.toggle('mood-btn--half',   btnVal - 0.5 === val);
       });
     });
 
@@ -136,7 +138,7 @@ const Mood = (() => {
     Object.entries(labelMap).forEach(([id, [labels, val, field]]) => {
       const el = document.getElementById(id);
       if (el) {
-        el.textContent  = val ? labels[val] : '';
+        el.textContent  = val != null ? (Number.isInteger(val) ? (labels[val] ?? '') : String(val)) : '';
         el.style.color  = valColor(field, val);
         el.style.fontStyle = val ? 'normal' : '';
       }
