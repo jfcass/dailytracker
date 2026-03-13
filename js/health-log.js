@@ -522,15 +522,19 @@ const HealthLog = (() => {
 
     let summary = `${recent} entr${recent === 1 ? 'y' : 'ies'} in the last 7 days`;
     if (lastEntry) {
-      const qLabel = BWL_LABELS[lastEntry.quality] ?? '';
+      const qLabel = Number.isInteger(lastEntry.quality)
+        ? (BWL_LABELS[lastEntry.quality] ?? '')
+        : `Type ${lastEntry.quality}`;
       summary += ` · Last: ${fmtDate(lastEntry.date)}${qLabel ? ' ' + qLabel : ''}`;
     }
 
     let rows = '';
     if (entries.length) {
       rows = entries.map(e => {
-        const color  = BWL_COLORS[e.quality] ?? '#6b7280';
-        const label  = BWL_LABELS[e.quality] ?? '';
+        const color  = BWL_COLORS[Math.round(e.quality)] ?? '#6b7280';
+        const label  = Number.isInteger(e.quality)
+          ? (BWL_LABELS[e.quality] ?? '')
+          : `Type ${e.quality}`;
         return `<div class="hl-dig-entry">
           <span class="hl-dig-date">${fmtDate(e.date)}</span>
           ${e.time ? `<span class="hl-dig-time">${escHtml(fmt12h(e.time))}</span>` : ''}
