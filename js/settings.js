@@ -111,6 +111,31 @@ const Settings = (() => {
     return { card, body };
   }
 
+  // ── Habit config helpers ──────────────────────────────────────────────────────
+
+  function freqMax(frequency) {
+    return { weekly: 7, monthly: 28, quarterly: 90, custom: 999 }[frequency] ?? 1;
+  }
+
+  function freqLabel(frequency) {
+    return { weekly: 'times/wk', monthly: 'times/mo', quarterly: 'times/qtr', custom: 'times' }[frequency] ?? '';
+  }
+
+  function getHabitCfg(name) {
+    const s = Data.getSettings();
+    return {
+      frequency: 'daily', freq_count: 1, freq_period_days: 7, reminder: false,
+      ...(s.habit_configs?.[name] ?? {}),
+    };
+  }
+
+  function saveHabitCfg(name, cfg) {
+    const s = Data.getSettings();
+    if (!s.habit_configs) s.habit_configs = {};
+    s.habit_configs[name] = cfg;
+    scheduleSave();
+  }
+
   // ── Habits Card ──────────────────────────────────────────────────────────────
 
   function buildHabitsCard() {
@@ -137,6 +162,10 @@ const Settings = (() => {
     }
 
     habits.forEach((name, i) => {
+      const cfg = getHabitCfg(name);
+      const wrap = document.createElement('div');
+      wrap.className = 'stg-habit-wrap';
+
       const row = document.createElement('div');
       row.className = 'stg-item-row';
       row.innerHTML = `
@@ -169,7 +198,77 @@ const Settings = (() => {
       row.querySelector('[data-op="up"]').addEventListener('click',  () => moveHabit(i, -1));
       row.querySelector('[data-op="down"]').addEventListener('click', () => moveHabit(i, 1));
       row.querySelector('[data-op="del"]').addEventListener('click',  () => removeHabit(i));
-      list.appendChild(row);
+
+      const freqRow = document.createElement('div');
+      freqRow.className = 'habit-freq-row';
+      freqRow.innerHTML = `
+        <select class="habit-freq-select" data-habit="${escHtml(name)}">
+          <option value="daily"     ${cfg.frequency === 'daily'     ? 'selected' : ''}>Daily</option>
+          <option value="weekly"    ${cfg.frequency === 'weekly'    ? 'selected' : ''}>Weekly</option>
+          <option value="monthly"   ${cfg.frequency === 'monthly'   ? 'selected' : ''}>Monthly</option>
+          <option value="quarterly" ${cfg.frequency === 'quarterly' ? 'selected' : ''}>Quarterly</option>
+          <option value="custom"    ${cfg.frequency === 'custom'    ? 'selected' : ''}>Custom</option>
+        </select>
+        ${cfg.frequency !== 'daily' ? `
+          <input class="habit-freq-count" type="number" min="1" max="${freqMax(cfg.frequency)}"
+                 value="${cfg.freq_count}" data-habit="${escHtml(name)}">
+          <span class="habit-freq-label">${freqLabel(cfg.frequency)}</span>
+        ` : ''}
+        ${cfg.frequency === 'custom' ? `
+          <span class="habit-freq-sep">every</span>
+          <input class="habit-freq-days" type="number" min="2" max="365"
+                 value="${cfg.freq_period_days}" data-habit="${escHtml(name)}">
+          <span class="habit-freq-label">days</span>
+        ` : ''}
+        <label class="habit-reminder-toggle">
+          <input type="checkbox" class="habit-reminder-cb" data-habit="${escHtml(name)}"
+                 ${cfg.reminder ? 'checked' : ''}>
+          <span>Remind me</span>
+        </label>
+      `;
+
+      wrap.appendChild(row);
+      wrap.appendChild(freqRow);
+      list.appendChild(wrap);
+    });
+
+    // Event delegation for freq/reminder controls (one change + one input handler)
+    list.addEventListener('change', e => {
+      const sel = e.target.closest('.habit-freq-select');
+      if (sel) {
+        const name = sel.dataset.habit;
+        const cfg  = getHabitCfg(name);
+        cfg.frequency = sel.value;
+        if (sel.value === 'daily') cfg.freq_count = 1;
+        saveHabitCfg(name, cfg);
+        render();
+        return;
+      }
+      const cb = e.target.closest('.habit-reminder-cb');
+      if (cb) {
+        const name = cb.dataset.habit;
+        const cfg  = getHabitCfg(name);
+        cfg.reminder = cb.checked;
+        saveHabitCfg(name, cfg);
+      }
+    });
+
+    list.addEventListener('input', e => {
+      const countInp = e.target.closest('.habit-freq-count');
+      if (countInp) {
+        const name = countInp.dataset.habit;
+        const cfg  = getHabitCfg(name);
+        cfg.freq_count = Math.max(1, parseInt(countInp.value) || 1);
+        saveHabitCfg(name, cfg);
+        return;
+      }
+      const daysInp = e.target.closest('.habit-freq-days');
+      if (daysInp) {
+        const name = daysInp.dataset.habit;
+        const cfg  = getHabitCfg(name);
+        cfg.freq_period_days = Math.max(2, parseInt(daysInp.value) || 7);
+        saveHabitCfg(name, cfg);
+      }
     });
 
     body.appendChild(list);

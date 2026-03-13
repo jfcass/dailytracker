@@ -5115,6 +5115,72 @@ button {
   border-bottom: none;
 }
 
+/* ── Habit wrap (name row + freq row together) ───────────────────────────── */
+.stg-habit-wrap {
+  border-bottom: 1px solid var(--clr-border);
+}
+
+.stg-habit-wrap:last-child {
+  border-bottom: none;
+}
+
+.stg-habit-wrap .stg-item-row {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+/* ── Habit frequency + reminder config row ───────────────────────────────── */
+.habit-freq-row {
+  display:     flex;
+  align-items: center;
+  flex-wrap:   wrap;
+  gap:         6px;
+  padding:     4px 16px 10px;
+}
+
+.habit-freq-select {
+  font-size:     0.78rem;
+  padding:       3px 6px;
+  border-radius: 6px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  cursor:        pointer;
+}
+
+.habit-freq-count,
+.habit-freq-days {
+  width:         52px;
+  font-size:     0.78rem;
+  padding:       3px 5px;
+  border-radius: 6px;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  text-align:    center;
+}
+
+.habit-freq-label,
+.habit-freq-sep {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+}
+
+.habit-reminder-toggle {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+  font-size:   0.78rem;
+  color:       var(--clr-text-2);
+  cursor:      pointer;
+  margin-left: auto;
+}
+
+.habit-reminder-toggle input[type="checkbox"] {
+  accent-color: var(--clr-accent);
+  cursor:       pointer;
+}
+
 .stg-item-name {
   flex:        1;
   font-size:   0.9rem;
