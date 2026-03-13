@@ -13,9 +13,10 @@ const Treatments = (() => {
 
   // ── State ──────────────────────────────────────────────────────────────────
 
-  let detailId   = null;   // null = list view; string = open treatment id
-  let formMode   = null;   // null | 'add' | 'edit'
-  let formId     = null;   // treatment id when editing
+  let detailId     = null;   // null = list view; string = open treatment id
+  let formMode     = null;   // null | 'add' | 'edit'
+  let formId       = null;   // treatment id when editing
+  let currentView  = 'today'; // 'today' | 'list'
 
   // Treatment form field state
   let fDate      = '';
@@ -55,9 +56,75 @@ const Treatments = (() => {
       container.innerHTML = renderForm();
     } else if (detailId) {
       container.innerHTML = renderDetail(detailId);
+    } else if (currentView === 'today') {
+      container.innerHTML = renderToday();
     } else {
       container.innerHTML = renderList();
     }
+  }
+
+  // ── Today view ─────────────────────────────────────────────────────────────
+
+  function renderToday() {
+    const todayStr = Data.today();
+    const treatments = Object.values(Data.getData().treatments ?? {})
+      .filter(t => t.date === todayStr)
+      .sort((a, b) => (b.start_time ?? '').localeCompare(a.start_time ?? ''));
+
+    let bodyHtml = '';
+    if (treatments.length === 0) {
+      bodyHtml = `
+        <div class="tx-today-empty">
+          <p class="tx-empty">No treatment logged today.</p>
+          <button class="tx-add-btn" onclick="Treatments._startAdd()">Log Treatment</button>
+        </div>`;
+    } else {
+      const cards = treatments.map(t => {
+        const bpArr = Data.getData().blood_pressure ?? [];
+        const atRestBp = bpArr.find(r => r.treatment_id === t.id && r.context === 'At Rest');
+        const inProgress = t.start_time && !t.end_time;
+        const duration = calcDuration(t.start_time, t.end_time);
+        const med = (Data.getData().treatment_medications ?? {})[t.medication_id];
+        const medLabel = t.medication_id && med
+          ? escHtml(med.name) + (t.dose ? ' · ' + escHtml(t.dose) : '')
+          : escHtml(t.dose || '');
+        const intentSnip = t.intention
+          ? escHtml(t.intention.slice(0, 70)) + (t.intention.length > 70 ? '…' : '')
+          : '';
+        const timeStr = t.start_time ? escHtml(fmt12h(t.start_time)) : '';
+        const bpStr = atRestBp
+          ? `At Rest: ${escHtml(String(atRestBp.systolic))}/${escHtml(String(atRestBp.diastolic))}` +
+            (atRestBp.pulse != null ? ` · ${escHtml(String(atRestBp.pulse))} bpm` : '')
+          : '';
+
+        return `
+          <div class="tx-today-card" onclick="Treatments._openDetail('${t.id}')">
+            <div class="tx-today-card__row1">
+              ${timeStr ? `<span class="tx-today-card__time">${timeStr}</span>` : ''}
+              ${inProgress ? `<span class="tx-today-badge tx-today-badge--progress">In Progress</span>` : ''}
+              ${duration ? `<span class="tx-today-card__duration">${escHtml(duration)}</span>` : ''}
+            </div>
+            ${medLabel    ? `<div class="tx-today-card__med">${medLabel}</div>` : ''}
+            ${intentSnip  ? `<div class="tx-today-card__intention">${intentSnip}</div>` : ''}
+            ${bpStr       ? `<div class="tx-today-card__bp">${bpStr}</div>` : ''}
+          </div>`;
+      }).join('');
+      bodyHtml = `
+        ${cards}
+        <button class="tx-add-btn tx-add-btn--ghost" onclick="Treatments._startAdd()"
+                style="margin-top:12px">+ Log Another</button>`;
+    }
+
+    return `
+      <div class="tx-today-view">
+        <div class="tx-tab-header">
+          <h2 class="tx-tab-title">Today's Treatment</h2>
+        </div>
+        ${bodyHtml}
+        <div class="tx-view-all-link">
+          <button class="tx-link-btn" onclick="Treatments._showList()">View all treatments →</button>
+        </div>
+      </div>`;
   }
 
   // ── List view ──────────────────────────────────────────────────────────────
@@ -75,7 +142,8 @@ const Treatments = (() => {
 
     return `
       <div class="tx-tab-header">
-        <h2 class="tx-tab-title">Treatments</h2>
+        <button class="tx-back-btn" onclick="Treatments._showToday()">← Today</button>
+        <h2 class="tx-tab-title">All Treatments</h2>
         <button class="tx-add-btn" onclick="Treatments._startAdd()">+ New</button>
       </div>
       <div class="tx-list">${rows}</div>`;
@@ -155,7 +223,7 @@ const Treatments = (() => {
 
     return `
       <div class="tx-detail">
-        <button class="tx-back-btn" onclick="Treatments._back()">← Back to Treatments</button>
+        <button class="tx-back-btn" onclick="Treatments._back()">← ${currentView === 'today' ? 'Today' : 'All Treatments'}</button>
 
         <div class="tx-detail-header">
           <h2 class="tx-detail-title">${medLabel || 'Treatment'}</h2>
@@ -576,6 +644,18 @@ const Treatments = (() => {
 
   function pad(n) { return String(n).padStart(2, '0'); }
 
+  function calcDuration(start, end) {
+    if (!start || !end) return null;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    if (mins <= 0) return null;
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+
   function escHtml(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, c =>
@@ -622,6 +702,8 @@ const Treatments = (() => {
     },
     _setDose:        v => { fDose = v; },
     _setNotes:       v => { fNotes = v; },
+    _showList:       () => { currentView = 'list'; detailId = null; render(); },
+    _showToday:      () => { currentView = 'today'; detailId = null; render(); },
     _goToTxMedsSettings,
     _openBPForm:     treatmentId => openBPForm(treatmentId),
     _editBP:         bpId => editBP(bpId),
