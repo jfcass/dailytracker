@@ -518,4 +518,4 @@ Use `crypto.randomUUID()` (supported in all modern browsers).
 Full auth flow requires pushing to GitHub Pages. Local servers won't complete the OAuth redirect.
 
 ##Current Work
-At the end of every session, update the "Current Work" section at the top of this file to reflect what was just built or changed.
+**Half-scores (2026-03-13):** Added half-score support (e.g., 3.5) to mood/energy/stress/focus rating buttons and bowel quality buttons via double-press cycle (unset → whole → half → unset). Visual feedback via `--half` CSS class with a "½" badge pseudo-element. Half values stored as floats in existing JSON fields — no schema changes. Both Accordion and Hub layouts supported. Health Log updated to handle half-quality bowel display defensively.
