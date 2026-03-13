@@ -27,6 +27,10 @@ const Treatments = (() => {
   let fDose      = '';
   let fNotes     = '';
 
+  // End time editing state in detail view
+  let endTimeEditing = false;  // true = end time row is in edit mode
+  let fEndTimeEdit   = '';     // current value in end time edit field
+
   // Inline BP form within detail view
   let bpFormOpen = false;
   let bpEditId   = null;   // null = new BP; string = editing existing BP id
@@ -221,14 +225,41 @@ const Treatments = (() => {
       ? buildBPFormHtml(id)
       : `<button class="tx-add-bp-btn" onclick="Treatments._openBPForm('${id}')">+ Add BP reading</button>`;
 
+    const duration   = calcDuration(t.start_time, t.end_time);
+    const inProgress = t.start_time && !t.end_time;
+
+    const endTimeHtml = endTimeEditing
+      ? `<div class="tx-end-time-edit">
+           <label class="tx-form-label">End time</label>
+           <input class="hl-edit-input" type="time" value="${escHtml(fEndTimeEdit)}"
+                  oninput="Treatments._setEndTimeEdit(this.value)">
+           <div class="tx-end-time-edit__actions">
+             <button class="hl-edit-cancel-btn" onclick="Treatments._cancelEditEndTime()">Cancel</button>
+             <button class="hl-edit-save-btn"   onclick="Treatments._saveEndTime('${id}')">Save</button>
+           </div>
+         </div>`
+      : `<div class="tx-end-time-row" onclick="Treatments._startEditEndTime('${id}')">
+           <span class="tx-end-time-label">End time</span>
+           <span class="tx-end-time-value">${t.end_time
+             ? escHtml(fmt12h(t.end_time))
+             : '<span class="tx-add-hint">+ Add end time</span>'}</span>
+         </div>`;
+
     return `
       <div class="tx-detail">
         <button class="tx-back-btn" onclick="Treatments._back()">← ${currentView === 'today' ? 'Today' : 'All Treatments'}</button>
 
         <div class="tx-detail-header">
-          <h2 class="tx-detail-title">${medLabel || 'Treatment'}</h2>
-          <p class="tx-detail-sub">${escHtml(fmtDate(t.date))}${timeRange ? ' · ' + timeRange : ''}</p>
+          <div class="tx-detail-header__row">
+            <h2 class="tx-detail-title">${medLabel || 'Treatment'}</h2>
+            ${inProgress ? `<span class="tx-today-badge tx-today-badge--progress">In Progress</span>` : ''}
+          </div>
+          <p class="tx-detail-sub">
+            ${escHtml(fmtDate(t.date))}${t.start_time ? ' · ' + escHtml(fmt12h(t.start_time)) : ''}${duration ? ' · ' + escHtml(duration) : ''}
+          </p>
         </div>
+
+        ${endTimeHtml}
 
         ${t.intention ? `
         <div class="tx-detail-section">
@@ -449,6 +480,27 @@ const Treatments = (() => {
     render();
   }
 
+  function startEditEndTime(id) {
+    const t = (Data.getData().treatments ?? {})[id];
+    endTimeEditing = true;
+    fEndTimeEdit   = t?.end_time ?? '';
+    render();
+  }
+
+  function saveEndTime(id) {
+    const t = (Data.getData().treatments ?? {})[id];
+    if (!t) return;
+    t.end_time     = fEndTimeEdit || null;
+    endTimeEditing = false;
+    scheduleSave();
+    render();
+  }
+
+  function cancelEditEndTime() {
+    endTimeEditing = false;
+    render();
+  }
+
   function saveForm() {
     if (!fDate) { alert('Please enter a date.'); return; }
     const d = Data.getData();
@@ -594,24 +646,27 @@ const Treatments = (() => {
   // ── Navigation helpers ────────────────────────────────────────────────────
 
   function _openDetail(id) {
-    detailId   = id;
-    bpFormOpen = false;
+    detailId       = id;
+    bpFormOpen     = false;
+    endTimeEditing = false;
     history.pushState({ ht: 'tx-detail', id }, '');
     render();
   }
 
   function _back() {
     if (history.state?.ht === 'tx-detail') { history.back(); return; }
-    detailId   = null;
-    formMode   = null;
-    bpFormOpen = false;
+    detailId       = null;
+    formMode       = null;
+    bpFormOpen     = false;
+    endTimeEditing = false;
     render();
   }
 
   function _exitDetail() {
-    detailId   = null;
-    formMode   = null;
-    bpFormOpen = false;
+    detailId       = null;
+    formMode       = null;
+    bpFormOpen     = false;
+    endTimeEditing = false;
     render();
   }
 
@@ -702,8 +757,12 @@ const Treatments = (() => {
     },
     _setDose:        v => { fDose = v; },
     _setNotes:       v => { fNotes = v; },
-    _showList:       () => { currentView = 'list'; detailId = null; render(); },
-    _showToday:      () => { currentView = 'today'; detailId = null; render(); },
+    _showList:         () => { currentView = 'list'; detailId = null; render(); },
+    _showToday:        () => { currentView = 'today'; detailId = null; render(); },
+    _startEditEndTime: id => startEditEndTime(id),
+    _saveEndTime:      id => saveEndTime(id),
+    _cancelEditEndTime:() => cancelEditEndTime(),
+    _setEndTimeEdit:   v  => { fEndTimeEdit = v; },
     _goToTxMedsSettings,
     _openBPForm:     treatmentId => openBPForm(treatmentId),
     _editBP:         bpId => editBP(bpId),
