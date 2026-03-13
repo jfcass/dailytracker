@@ -1094,9 +1094,11 @@ const Hub = (() => {
       const todayTx = Object.values(Data.getData().treatments ?? {})
         .filter(t => t.date === Data.today());
       let txStatus = '';
+      let inProgressTx = null;
+      let inProgress = false;
       if (todayTx.length > 0) {
-        const inProgressTx = todayTx.find(t => t.start_time && !t.end_time);
-        const inProgress = !!inProgressTx;
+        inProgressTx = todayTx.find(t => t.start_time && !t.end_time);
+        inProgress = !!inProgressTx;
         const count = todayTx.length;
         if (inProgress) {
           txStatus = `${count} today · In Progress`;
