@@ -751,6 +751,30 @@ button {
   font-weight: 500;
 }
 
+/* ── Period-progress badge ─────────────────────────────────────── */
+.period-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--clr-surface-2);
+  color: var(--clr-text-2);
+  border: 1px solid var(--clr-border);
+  margin-left: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+}
+
+.period-badge--done {
+  background: var(--clr-accent-dim);
+  color: var(--clr-accent);
+  border-color: var(--clr-accent);
+}
+
 /* ── Inline save status ── */
 .save-status {
   display:     flex;
