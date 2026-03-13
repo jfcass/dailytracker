@@ -8,9 +8,11 @@
  */
 const MedsManage = (() => {
 
-  let _returnTab   = 'today';   // tab to return to on close
-  let _editId      = null;      // med id currently being edited, null = list view
-  let _showArchive = false;     // show archived meds toggle
+  let _returnTab        = 'today';   // tab to return to on close
+  let _editId           = null;      // med id currently being edited, null = list view
+  let _showArchive      = false;     // show archived meds toggle
+  let _showPaused       = false;     // show paused meds toggle
+  let _confirmingDelete = false;     // delete confirmation state
 
   // Dose chip editing state
   let _editDoses      = [];     // doses[] being built in the edit form
@@ -78,7 +80,8 @@ const MedsManage = (() => {
 
   function renderList() {
     const meds     = getAllMeds();
-    const active   = meds.filter(m => m.active);
+    const active   = meds.filter(m => m.active && !m.paused);
+    const paused   = meds.filter(m => m.active && m.paused);
     const archived = meds.filter(m => !m.active);
 
     const medRow = m => {
@@ -145,6 +148,29 @@ const MedsManage = (() => {
       }
     }
 
+    if (paused.length) {
+      html += `<button class="mmg-archive-toggle" id="mmg-paused-toggle">
+        ${_showPaused ? '▾' : '▸'} Paused (${paused.length})
+      </button>`;
+      if (_showPaused) {
+        html += `<div class="mmg-archived">${paused.map(m => {
+          const chips = [];
+          if ((m.slots ?? []).includes('am'))        chips.push('AM');
+          if ((m.slots ?? []).includes('afternoon')) chips.push('Afternoon');
+          if ((m.slots ?? []).includes('pm'))        chips.push('PM');
+          if (m.as_needed)    chips.push('As Needed');
+          if (m.med_reminder) chips.push('Reminder');
+          return `<div class="mmg-med-row" data-med-id="${escHtml(m.id)}">
+            <div class="mmg-med-name">${escHtml(m.name)}</div>
+            <div class="mmg-med-chips">
+              <span class="mmg-chip mmg-chip--paused">Paused</span>
+              ${chips.map(c => `<span class="mmg-chip">${c}</span>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}</div>`;
+      }
+    }
+
     if (archived.length) {
       html += `<button class="mmg-archive-toggle" id="mmg-archive-toggle">
         ${_showArchive ? '▾' : '▸'} Archived (${archived.length})
@@ -194,6 +220,49 @@ const MedsManage = (() => {
     const doseChips = _editDoses.map((d, i) =>
       `<span class="mmg-dose-tag">${escHtml(d)}<button class="mmg-dose-tag-del" data-dose-idx="${i}" type="button" aria-label="Remove ${escHtml(d)}">×</button></span>`
     ).join('');
+
+    const isActive   = !isNew && med.active && !med.paused;
+    const isPaused   = !isNew && med.active && !!med.paused;
+    const isArchived = !isNew && !med.active;
+
+    let actionsHtml;
+    if (_confirmingDelete && isArchived) {
+      const { totalLogs, totalDays } = (typeof Medications !== 'undefined' && Medications.getMedLogCount)
+        ? Medications.getMedLogCount(_editId)
+        : { totalLogs: 0, totalDays: 0 };
+      actionsHtml = totalLogs > 0
+        ? `<p class="mmg-delete-warn">⚠️ You've logged <strong>${totalLogs}</strong> dose${totalLogs !== 1 ? 's' : ''} of <strong>${escHtml(med.name)}</strong> across <strong>${totalDays}</strong> day${totalDays !== 1 ? 's' : ''}. Deleting removes it permanently. Historical entries remain.</p>
+           <div class="mmg-form-actions">
+             <button class="mmg-btn-secondary" id="mmg-delete-cancel">Keep Archived</button>
+             <span style="flex:1"></span>
+             <button class="mmg-delete-confirm-btn" id="mmg-delete-confirm">Delete Anyway</button>
+           </div>`
+        : `<p class="mmg-delete-warn">Permanently delete <strong>${escHtml(med.name)}</strong>? This cannot be undone.</p>
+           <div class="mmg-form-actions">
+             <button class="mmg-btn-secondary" id="mmg-delete-cancel">Cancel</button>
+             <span style="flex:1"></span>
+             <button class="mmg-delete-confirm-btn" id="mmg-delete-confirm">Delete</button>
+           </div>`;
+    } else {
+      actionsHtml = `<div class="mmg-form-actions">
+        ${isActive ? `
+          <button class="mmg-pause-btn" id="mmg-pause-btn">Pause</button>
+          <button class="mmg-archive-btn" id="mmg-archive-btn">Archive</button>
+        ` : ''}
+        ${isPaused ? `
+          <button class="mmg-resume-btn" id="mmg-resume-btn">Resume</button>
+          <button class="mmg-archive-btn" id="mmg-archive-btn">Archive</button>
+        ` : ''}
+        ${isArchived ? `
+          <button class="mmg-archive-btn" id="mmg-archive-btn">Restore</button>
+          <button class="mmg-delete-btn" id="mmg-delete-btn">Delete</button>
+        ` : ''}
+        <span style="flex:1"></span>
+        <button class="mmg-save-btn" id="mmg-save-btn">
+          ${isNew ? 'Add' : 'Save'}
+        </button>
+      </div>`;
+    }
 
     return `
       <div class="mmg-form">
@@ -249,15 +318,7 @@ const MedsManage = (() => {
         <input type="text" class="mmg-text-input" id="mmg-notes"
                value="${escHtml(med.notes ?? '')}" placeholder="Optional" maxlength="200">
 
-        <div class="mmg-form-actions">
-          ${!isNew ? `<button class="mmg-archive-btn" id="mmg-archive-btn">
-            ${med.active ? 'Archive' : 'Restore'}
-          </button>` : ''}
-          <span style="flex:1"></span>
-          <button class="mmg-save-btn" id="mmg-save-btn">
-            ${isNew ? 'Add' : 'Save'}
-          </button>
-        </div>
+        ${actionsHtml}
       </div>`;
   }
 
@@ -281,6 +342,12 @@ const MedsManage = (() => {
       });
     });
 
+    // Paused toggle
+    content.querySelector('#mmg-paused-toggle')?.addEventListener('click', () => {
+      _showPaused = !_showPaused;
+      render();
+    });
+
     // Archive toggle
     content.querySelector('#mmg-archive-toggle')?.addEventListener('click', () => {
       _showArchive = !_showArchive;
@@ -290,6 +357,7 @@ const MedsManage = (() => {
     // Form: back
     content.querySelector('#mmg-form-back')?.addEventListener('click', () => {
       _editId = null;
+      _confirmingDelete = false;
       render();
     });
 
@@ -337,6 +405,18 @@ const MedsManage = (() => {
 
     // Form: archive/restore
     content.querySelector('#mmg-archive-btn')?.addEventListener('click', toggleArchive);
+
+    // Form: pause / resume
+    content.querySelector('#mmg-pause-btn')?.addEventListener('click', pauseMed);
+    content.querySelector('#mmg-resume-btn')?.addEventListener('click', resumeMed);
+
+    // Form: delete
+    content.querySelector('#mmg-delete-btn')?.addEventListener('click', confirmDeleteMed);
+    content.querySelector('#mmg-delete-confirm')?.addEventListener('click', deleteMed);
+    content.querySelector('#mmg-delete-cancel')?.addEventListener('click', () => {
+      _confirmingDelete = false;
+      render();
+    });
   }
 
   // ── Save / Archive ────────────────────────────────────────────────────────
@@ -385,6 +465,7 @@ const MedsManage = (() => {
     }
 
     _editId = null;
+    _confirmingDelete = false;
     render();
     scheduleSave();
     // Refresh today-tab medications section
@@ -393,8 +474,46 @@ const MedsManage = (() => {
 
   function toggleArchive() {
     const med = getAllMeds().find(m => m.id === _editId);
-    if (med) med.active = !med.active;
+    if (med) {
+      med.active = !med.active;
+      if (!med.active) med.paused = false;  // clear paused state on archive
+    }
     _editId = null;
+    render();
+    scheduleSave();
+    if (typeof Medications !== 'undefined') Medications.render();
+  }
+
+  function pauseMed() {
+    const med = getAllMeds().find(m => m.id === _editId);
+    if (med) med.paused = true;
+    _editId = null;
+    render();
+    scheduleSave();
+    if (typeof Medications !== 'undefined') Medications.render();
+  }
+
+  function resumeMed() {
+    const med = getAllMeds().find(m => m.id === _editId);
+    if (med) med.paused = false;
+    _editId = null;
+    render();
+    scheduleSave();
+    if (typeof Medications !== 'undefined') Medications.render();
+  }
+
+  function confirmDeleteMed() {
+    _confirmingDelete = true;
+    render();
+  }
+
+  function deleteMed() {
+    const data = Data.getData();
+    if (data.medications && _editId) {
+      delete data.medications[_editId];
+    }
+    _editId = null;
+    _confirmingDelete = false;
     render();
     scheduleSave();
     if (typeof Medications !== 'undefined') Medications.render();
