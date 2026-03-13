@@ -7255,6 +7255,30 @@ button {
 }
 .tx-delete-btn:hover { border-color: var(--clr-error); background: var(--clr-surface-2); }
 
+.tx-end-session-btn {
+  font-size:     0.82rem;
+  font-weight:   600;
+  padding:       6px 14px;
+  border-radius: 7px;
+  border:        1px solid #e65100;
+  background:    transparent;
+  color:         #e65100;
+  cursor:        pointer;
+  transition:    background var(--transition);
+}
+.tx-end-session-btn:hover { background: var(--clr-surface-2); }
+@media (prefers-color-scheme: dark) {
+  .tx-end-session-btn { border-color: #ffb74d; color: #ffb74d; }
+}
+
+.tx-save-btn--bottom {
+  display:    block;
+  width:      100%;
+  margin-top: 20px;
+  padding:    12px;
+  font-size:  0.95rem;
+}
+
 /* ── BP section within treatment detail ──────────────────────────────────── */
 
 .tx-bp-groups {

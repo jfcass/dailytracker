@@ -304,6 +304,7 @@ const Treatments = (() => {
 
         <div class="tx-detail-actions">
           <button class="tx-edit-btn"   onclick="Treatments._startEdit('${id}')">Edit</button>
+          ${inProgress ? `<button class="tx-end-session-btn" onclick="Treatments._endSession('${id}')">End Session</button>` : ''}
           <button class="tx-delete-btn" onclick="Treatments._delete('${id}')">Delete</button>
         </div>
       </div>`;
@@ -355,7 +356,6 @@ const Treatments = (() => {
         <div class="tx-tab-header">
           <button class="tx-back-btn" style="padding:6px 0" onclick="Treatments._cancelForm()">← Cancel</button>
           <h2 class="tx-tab-title">${title}</h2>
-          <button class="tx-save-btn" onclick="Treatments._saveForm()">Save</button>
         </div>
         <div class="tx-form">
           <div class="tx-form-row">
@@ -379,20 +379,6 @@ const Treatments = (() => {
           </div>
 
           ${doseField}
-
-          <div class="tx-form-field">
-            <label class="tx-form-label">Intention</label>
-            <textarea class="tx-form-textarea" rows="2"
-                      oninput="Treatments._setIntention(this.value)"
-                      placeholder="What do you intend to explore or work on?">${escHtml(fIntention)}</textarea>
-          </div>
-
-          <div class="tx-form-field">
-            <label class="tx-form-label">Notes</label>
-            <textarea class="tx-form-textarea" rows="3"
-                      oninput="Treatments._setNotes(this.value)"
-                      placeholder="Observations, how you felt, what came up…">${escHtml(fNotes)}</textarea>
-          </div>
 
           ${formMode === 'add' ? `
           <div class="tx-form-section">
@@ -418,6 +404,22 @@ const Treatments = (() => {
               </div>
             </div>
           </div>` : ''}
+
+          <div class="tx-form-field">
+            <label class="tx-form-label">Intention</label>
+            <textarea class="tx-form-textarea" rows="2"
+                      oninput="Treatments._setIntention(this.value)"
+                      placeholder="What do you intend to explore or work on?">${escHtml(fIntention)}</textarea>
+          </div>
+
+          <div class="tx-form-field">
+            <label class="tx-form-label">Notes</label>
+            <textarea class="tx-form-textarea" rows="3"
+                      oninput="Treatments._setNotes(this.value)"
+                      placeholder="Observations, how you felt, what came up…">${escHtml(fNotes)}</textarea>
+          </div>
+
+          <button class="tx-save-btn tx-save-btn--bottom" onclick="Treatments._saveForm()">Save</button>
         </div>
       </div>`;
   }
@@ -586,6 +588,15 @@ const Treatments = (() => {
 
   function cancelEditEndTime() {
     endTimeEditing = false;
+    render();
+  }
+
+  function endSession(id) {
+    const t = (Data.getData().treatments ?? {})[id];
+    if (!t) return;
+    const now = new Date();
+    t.end_time = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    scheduleSave();
     render();
   }
 
@@ -871,6 +882,7 @@ const Treatments = (() => {
     _startEditEndTime: id => startEditEndTime(id),
     _saveEndTime:      id => saveEndTime(id),
     _cancelEditEndTime:() => cancelEditEndTime(),
+    _endSession:       id => endSession(id),
     _setEndTimeEdit:   v  => { fEndTimeEdit = v; },
     _goToTxMedsSettings,
     _toggleBpPhase:  (ctx, treatmentId) => toggleBpPhase(ctx, treatmentId),
