@@ -116,6 +116,7 @@ const Hub = (() => {
    * Delegates to Habits module helpers for period bounds and completion counting.
    */
   function getPendingHabitReminders() {
+    if (viewDate() !== Data.today()) return [];
     const settings = Data.getSettings();
     const habits   = settings.habits ?? [];
     const configs  = settings.habit_configs ?? {};
