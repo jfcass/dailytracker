@@ -27,6 +27,11 @@ const Treatments = (() => {
   let fDose      = '';
   let fNotes     = '';
 
+  // At Rest BP fields in the add form (cleared on each new add, not shown in edit)
+  let fFormBpSys   = '';
+  let fFormBpDia   = '';
+  let fFormBpPulse = '';
+
   // End time editing state in detail view
   let endTimeEditing = false;  // true = end time row is in edit mode
   let fEndTimeEdit   = '';     // current value in end time edit field
@@ -364,11 +369,6 @@ const Treatments = (() => {
               <input class="hl-edit-input" type="time" value="${escHtml(fStart)}"
                      oninput="Treatments._setStart(this.value)">
             </div>
-            <div class="tx-form-field">
-              <label class="tx-form-label">End time</label>
-              <input class="hl-edit-input" type="time" value="${escHtml(fEnd)}"
-                     oninput="Treatments._setEnd(this.value)">
-            </div>
           </div>
 
           ${noMedsWarning}
@@ -393,6 +393,31 @@ const Treatments = (() => {
                       oninput="Treatments._setNotes(this.value)"
                       placeholder="Observations, how you felt, what came up…">${escHtml(fNotes)}</textarea>
           </div>
+
+          ${formMode === 'add' ? `
+          <div class="tx-form-section">
+            <p class="tx-section-label" style="margin-top:16px">
+              Blood Pressure — At Rest
+              <span class="tx-optional"> (optional)</span>
+            </p>
+            <div class="tx-form-row">
+              <div class="tx-form-field">
+                <label class="tx-form-label">Systolic</label>
+                <input class="hl-edit-input" type="number" placeholder="120"
+                       value="${escHtml(fFormBpSys)}" oninput="Treatments._setFormBpSys(this.value)">
+              </div>
+              <div class="tx-form-field">
+                <label class="tx-form-label">Diastolic</label>
+                <input class="hl-edit-input" type="number" placeholder="80"
+                       value="${escHtml(fFormBpDia)}" oninput="Treatments._setFormBpDia(this.value)">
+              </div>
+              <div class="tx-form-field">
+                <label class="tx-form-label">Pulse (bpm)</label>
+                <input class="hl-edit-input" type="number" placeholder="72"
+                       value="${escHtml(fFormBpPulse)}" oninput="Treatments._setFormBpPulse(this.value)">
+              </div>
+            </div>
+          </div>` : ''}
         </div>
       </div>`;
   }
@@ -509,7 +534,10 @@ const Treatments = (() => {
     fIntention = '';
     fMedId     = '';
     fDose      = '';
-    fNotes     = '';
+    fNotes       = '';
+    fFormBpSys   = '';
+    fFormBpDia   = '';
+    fFormBpPulse = '';
     expandedBpPhase = null;
     render();
   }
@@ -591,6 +619,24 @@ const Treatments = (() => {
         notes:         fNotes.trim(),
       };
       detailId = id;  // open the new treatment's detail view
+
+      // Create linked At Rest BP reading if fields were filled
+      const sys = parseInt(fFormBpSys, 10);
+      const dia = parseInt(fFormBpDia, 10);
+      if (fFormBpSys && fFormBpDia && !isNaN(sys) && !isNaN(dia)) {
+        if (!Array.isArray(d.blood_pressure)) d.blood_pressure = [];
+        d.blood_pressure.push({
+          id:           crypto.randomUUID(),
+          date:         fDate,
+          time:         fStart || null,
+          systolic:     sys,
+          diastolic:    dia,
+          pulse:        fFormBpPulse !== '' ? parseInt(fFormBpPulse, 10) : null,
+          context:      'At Rest',
+          notes:        '',
+          treatment_id: id,
+        });
+      }
     }
 
     formMode = null;
@@ -807,8 +853,10 @@ const Treatments = (() => {
     _delete:         id => deleteTreatment(id),
     _setDate:        v => { fDate = v; },
     _setStart:       v => { fStart = v; },
-    _setEnd:         v => { fEnd = v; },
     _setIntention:   v => { fIntention = v; },
+    _setFormBpSys:   v => { fFormBpSys = v; },
+    _setFormBpDia:   v => { fFormBpDia = v; },
+    _setFormBpPulse: v => { fFormBpPulse = v; },
     _setMedId:       v => {
       fMedId = v;
       // Pre-fill the medication's default dose (user can still change it)
