@@ -96,15 +96,7 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
-    const periodBadge = (function() {
-      const cfg = getHabitConfig(name);
-      if (cfg.frequency === 'daily') return '';
-      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
-      const done  = countPeriodCompletions(name, start, end);
-      const total = cfg.freq_count;
-      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
-      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
-    })();
+    const periodBadge = makePeriodBadge(name);
 
     btn.innerHTML = `
       <div class="habit-check" aria-hidden="true">
@@ -130,15 +122,7 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
-    const periodBadge = (function() {
-      const cfg = getHabitConfig(name);
-      if (cfg.frequency === 'daily') return '';
-      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
-      const done  = countPeriodCompletions(name, start, end);
-      const total = cfg.freq_count;
-      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
-      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
-    })();
+    const periodBadge = makePeriodBadge(name);
 
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading' + (checked ? ' habit-row--checked' : '');
@@ -174,15 +158,7 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
-    const periodBadge = (function() {
-      const cfg = getHabitConfig(name);
-      if (cfg.frequency === 'daily') return '';
-      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
-      const done  = countPeriodCompletions(name, start, end);
-      const total = cfg.freq_count;
-      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
-      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
-    })();
+    const periodBadge = makePeriodBadge(name);
 
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading'
@@ -231,15 +207,7 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
-    const periodBadge = (function() {
-      const cfg = getHabitConfig(name);
-      if (cfg.frequency === 'daily') return '';
-      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
-      const done  = countPeriodCompletions(name, start, end);
-      const total = cfg.freq_count;
-      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
-      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
-    })();
+    const periodBadge = makePeriodBadge(name);
 
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading'
@@ -389,6 +357,17 @@ const Habits = (() => {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** Builds the period-progress badge HTML string for a habit (empty string for daily). */
+  function makePeriodBadge(name) {
+    const cfg = getHabitConfig(name);
+    if (cfg.frequency === 'daily') return '';
+    const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
+    const done  = countPeriodCompletions(name, start, end);
+    const total = cfg.freq_count;
+    const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
+    return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
+  }
 
   /** Returns the HabitConfig for a habit, falling back to daily defaults. */
   function getHabitConfig(name) {
