@@ -7279,6 +7279,44 @@ button {
   font-size:  0.95rem;
 }
 
+/* Hub treatments row — End button */
+.tx-hub-end-btn {
+  margin-left:   auto;
+  margin-right:  8px;
+  padding:       3px 10px;
+  font-size:     0.75rem;
+  font-weight:   600;
+  border-radius: 4px;
+  border:        1.5px solid #e65100;
+  color:         #e65100;
+  background:    transparent;
+  cursor:        pointer;
+  white-space:   nowrap;
+}
+@media (prefers-color-scheme: dark) {
+  .tx-hub-end-btn { border-color: #ffb74d; color: #ffb74d; }
+}
+
+/* Today card — End Session button row */
+.tx-today-card__end-row {
+  display:        flex;
+  justify-content: flex-end;
+  margin-top:     8px;
+}
+.tx-today-card__end-btn {
+  padding:       4px 14px;
+  font-size:     0.8rem;
+  font-weight:   600;
+  border-radius: 6px;
+  border:        1.5px solid #e65100;
+  color:         #e65100;
+  background:    transparent;
+  cursor:        pointer;
+}
+@media (prefers-color-scheme: dark) {
+  .tx-today-card__end-btn { border-color: #ffb74d; color: #ffb74d; }
+}
+
 /* ── BP section within treatment detail ──────────────────────────────────── */
 
 .tx-bp-groups {

@@ -1095,7 +1095,8 @@ const Hub = (() => {
         .filter(t => t.date === Data.today());
       let txStatus = '';
       if (todayTx.length > 0) {
-        const inProgress = todayTx.some(t => t.start_time && !t.end_time);
+        const inProgressTx = todayTx.find(t => t.start_time && !t.end_time);
+        const inProgress = !!inProgressTx;
         const count = todayTx.length;
         if (inProgress) {
           txStatus = `${count} today · In Progress`;
@@ -1111,7 +1112,8 @@ const Hub = (() => {
       txRow.style.order = '99'; // always last in the flex column
       txRow.innerHTML = `
         <span class="hub-section-row__name">Treatments</span>
-        ${txStatus ? `<span class="hub-section-row__status${txStatus.includes('In Progress') ? ' hub-section-row__status--progress' : ''}">${txStatus}</span>` : ''}
+        ${txStatus ? `<span class="hub-section-row__status${inProgress ? ' hub-section-row__status--progress' : ''}">${txStatus}</span>` : ''}
+        ${inProgress ? `<button class="tx-hub-end-btn" onclick="event.stopPropagation(); Treatments._endSession('${inProgressTx.id}')">End</button>` : ''}
         <span class="hub-section-row__arrow">&#8250;</span>`;
       txRow.addEventListener('click', () => App.switchTab('treatments'));
       accEl.appendChild(txRow);

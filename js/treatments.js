@@ -116,6 +116,7 @@ const Treatments = (() => {
             ${medLabel    ? `<div class="tx-today-card__med">${medLabel}</div>` : ''}
             ${intentSnip  ? `<div class="tx-today-card__intention">${intentSnip}</div>` : ''}
             ${bpStr       ? `<div class="tx-today-card__bp">${bpStr}</div>` : ''}
+            ${inProgress  ? `<div class="tx-today-card__end-row"><button class="tx-today-card__end-btn" onclick="event.stopPropagation(); Treatments._endSession('${t.id}')">End Session</button></div>` : ''}
           </div>`;
       }).join('');
       bodyHtml = `
