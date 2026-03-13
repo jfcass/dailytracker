@@ -7422,6 +7422,158 @@ button {
   text-decoration: underline;
 }
 
+/* ── Treatments: Today view ─────────────────────────────────────────────── */
+
+.tx-today-empty {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            16px;
+  padding:        32px 16px;
+  text-align:     center;
+}
+
+.tx-today-card {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       12px 14px;
+  margin-bottom: 10px;
+  cursor:        pointer;
+  transition:    background 0.15s;
+}
+.tx-today-card:active { background: var(--clr-surface-2); }
+
+.tx-today-card__row1 {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  margin-bottom: 4px;
+}
+.tx-today-card__time     { font-weight: 600; font-size: 0.95rem; }
+.tx-today-card__duration { color: var(--clr-text-2); font-size: 0.85rem; }
+.tx-today-card__med      { font-size: 0.9rem; color: var(--clr-text-2); margin-bottom: 2px; }
+.tx-today-card__intention{ font-size: 0.88rem; color: var(--clr-text-2); font-style: italic; margin-bottom: 2px; }
+.tx-today-card__bp       { font-size: 0.85rem; color: var(--clr-text-2); }
+
+/* "In Progress" badge — shared between today card and detail header */
+.tx-today-badge {
+  display:       inline-block;
+  padding:       2px 8px;
+  border-radius: 20px;
+  font-size:     0.75rem;
+  font-weight:   600;
+}
+.tx-today-badge--progress {
+  background: #fff3e0;
+  color:      #e65100;
+}
+@media (prefers-color-scheme: dark) {
+  .tx-today-badge--progress {
+    background: #3e2000;
+    color:      #ffb74d;
+  }
+}
+
+.tx-view-all-link {
+  text-align: center;
+  padding:    16px 0 8px;
+}
+
+.tx-add-btn--ghost {
+  background: transparent;
+  color:      var(--clr-accent);
+  border:     1px solid var(--clr-accent);
+}
+
+/* ── Treatments: Editable end time row ───────────────────────────────────── */
+
+.tx-end-time-row {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  padding:         10px 0;
+  border-bottom:   1px solid var(--clr-border);
+  cursor:          pointer;
+}
+.tx-end-time-label { color: var(--clr-text-2); font-size: 0.9rem; }
+.tx-end-time-value { font-size: 0.9rem; }
+.tx-add-hint       { color: var(--clr-accent); font-size: 0.85rem; }
+
+.tx-end-time-edit {
+  padding:       10px 0;
+  border-bottom: 1px solid var(--clr-border);
+}
+.tx-end-time-edit__actions {
+  display:    flex;
+  gap:        8px;
+  margin-top: 8px;
+}
+
+.tx-detail-header__row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex-wrap:   wrap;
+}
+
+/* ── Treatments: BP phase rows ───────────────────────────────────────────── */
+
+.tx-bp-phases { display: flex; flex-direction: column; gap: 2px; }
+
+.tx-bp-phase-row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     10px 0;
+  border-bottom: 1px solid var(--clr-border);
+  cursor:      pointer;
+  user-select: none;
+}
+.tx-bp-phase-label   { font-weight: 600; font-size: 0.85rem; min-width: 110px; }
+.tx-bp-phase-value   { flex: 1; font-size: 0.9rem; }
+.tx-bp-phase-time    { color: var(--clr-text-2); font-size: 0.8rem; }
+.tx-bp-phase-add     { flex: 1; color: var(--clr-accent); font-size: 0.85rem; }
+.tx-bp-phase-chevron { color: var(--clr-text-2); font-size: 0.75rem; margin-left: auto; }
+
+.tx-bp-phase-form {
+  background:    var(--clr-surface-2);
+  border-radius: 8px;
+  padding:       12px;
+  margin:        4px 0 8px;
+}
+
+/* ── Treatments: BP delta summary ────────────────────────────────────────── */
+
+.tx-bp-delta {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  padding:        10px 0;
+  border-top:     1px solid var(--clr-border);
+  margin-top:     6px;
+}
+.tx-bp-delta-label  { font-size: 0.8rem; color: var(--clr-text-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.tx-bp-delta-values { font-size: 0.9rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tx-bp-delta-sep    { color: var(--clr-text-2); }
+
+/* ── Treatments: optional label ──────────────────────────────────────────── */
+
+.tx-optional { color: var(--clr-text-2); font-size: 0.8rem; font-weight: 400; }
+
+/* ── Hub: section row status label ──────────────────────────────────────── */
+
+.hub-section-row__status {
+  font-size:    0.78rem;
+  color:        var(--clr-text-2);
+  margin-left:  auto;
+  margin-right: 6px;
+}
+.hub-section-row__status--progress { color: #e65100; }
+@media (prefers-color-scheme: dark) {
+  .hub-section-row__status--progress { color: #ffb74d; }
+}
+
 /* ── Health Log: treatment badge on BP entries ───────────────────────────── */
 
 .hl-bp-tx-badge {
