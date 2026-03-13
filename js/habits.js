@@ -483,5 +483,6 @@ const Habits = (() => {
 
   function _toggleMuscle(habitName, group) { toggleMuscleGroup(habitName, group); }
 
-  return { init, render, setDate, markHabitDone, _toggleMuscle };
+  return { init, render, setDate, markHabitDone, _toggleMuscle,
+           isHabitDue, getPeriodBounds, countPeriodCompletions, getHabitConfig };
 })();

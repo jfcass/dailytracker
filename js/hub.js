@@ -32,6 +32,8 @@ const Hub = (() => {
     },
   };
 
+  let _habitReminderTimerId = null;   // setInterval for rotating habit reminders in ticker
+
   // ── Data helpers ──────────────────────────────────────────────────
 
   /** Count consecutive days going back from today where predicate returns true.
@@ -110,9 +112,66 @@ const Hub = (() => {
   }
 
   /**
+   * Returns array of habit names that have reminder: true and are still due today.
+   * Delegates to Habits module helpers for period bounds and completion counting.
+   */
+  function getPendingHabitReminders() {
+    const settings = Data.getSettings();
+    const habits   = settings.habits ?? [];
+    const configs  = settings.habit_configs ?? {};
+    const today    = Data.today();
+
+    return habits.filter(name => {
+      const cfg = {
+        frequency: 'daily', freq_count: 1, freq_period_days: 7, reminder: false,
+        ...(configs[name] ?? {}),
+      };
+      if (!cfg.reminder) return false;
+
+      if (typeof Habits !== 'undefined' && Habits.isHabitDue) {
+        return Habits.isHabitDue(name);
+      }
+
+      // Fallback if Habits not available: replicate isHabitDue inline
+      if (cfg.frequency === 'daily') {
+        return Data.getDay(today)?.habits?.[name] !== true;
+      }
+      const d   = new Date(today + 'T12:00:00');
+      let start, end;
+      if (cfg.frequency === 'weekly') {
+        const dow  = d.getDay();
+        const diff = (dow === 0 ? -6 : 1 - dow);
+        const mon  = new Date(d); mon.setDate(d.getDate() + diff);
+        const sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+        start = mon.toISOString().slice(0, 10);
+        end   = sun.toISOString().slice(0, 10);
+      } else if (cfg.frequency === 'monthly') {
+        const y = d.getFullYear(), m = d.getMonth();
+        start = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+        end   = new Date(y, m + 1, 0).toISOString().slice(0, 10);
+      } else if (cfg.frequency === 'quarterly') {
+        const y  = d.getFullYear();
+        const qm = Math.floor(d.getMonth() / 3) * 3;
+        start = `${y}-${String(qm + 1).padStart(2, '0')}-01`;
+        end   = new Date(y, qm + 3, 0).toISOString().slice(0, 10);
+      } else {
+        const n = cfg.freq_period_days ?? 7;
+        const s = new Date(d); s.setDate(d.getDate() - (n - 1));
+        start = s.toISOString().slice(0, 10);
+        end   = today;
+      }
+      const allDays = Data.getData().days;
+      const done = Object.entries(allDays)
+        .filter(([date, day]) => date >= start && date <= end && day?.habits?.[name] === true)
+        .length;
+      return done < cfg.freq_count;
+    });
+  }
+
+  /**
    * Returns the next actionable pending item, or null if nothing due.
    * Result: { text, type, slot?, medId? }
-   *   type = 'slot' | 'reminder' | 'habits'
+   *   type = 'slot' | 'reminder' | 'habits' | 'habit-reminders'
    *
    * Items are sorted by inferred expected time (from yesterday's log),
    * interleaving scheduled slots and reminder meds chronologically.
@@ -182,17 +241,10 @@ const Hub = (() => {
       if (currentMins >= item.expectedMins - 30) return item;
     }
 
-    // Habits fallback — only after 6pm
-    if (now.getHours() >= 18) {
-      const habits  = Data.getSettings().habits ?? [];
-      const dayHabs = dayToday.habits ?? {};
-      const undone  = habits.filter(h => !dayHabs[h]);
-      if (undone.length > 0) {
-        return {
-          text: `${undone.length} habit${undone.length > 1 ? 's' : ''} left`,
-          type: 'habits',
-        };
-      }
+    // Habit reminders — habits with reminder:true that are still due today
+    const habitReminders = getPendingHabitReminders();
+    if (habitReminders.length > 0) {
+      return { type: 'habit-reminders', habits: habitReminders };
     }
 
     return null;
@@ -911,44 +963,92 @@ const Hub = (() => {
     const container = document.getElementById('hub-container');
     const existingBanner = container.querySelector('.hub-reminder');
     if (existingBanner) existingBanner.remove();
+    if (_habitReminderTimerId) { clearInterval(_habitReminderTimerId); _habitReminderTimerId = null; }
 
     const pending = getNextPendingItem();
     if (pending) {
       const banner = document.createElement('div');
       banner.className = 'hub-reminder';
-      const isLoggable = pending.type === 'slot' || pending.type === 'reminder';
-      banner.innerHTML = `
-        <div class="hub-reminder__dot"></div>
-        <div class="hub-reminder__text">${pending.text}</div>
-        ${isLoggable ? `<button class="hub-reminder__check" aria-label="Mark done" type="button">✓</button>` : ''}`;
 
-      // Tap text → navigate to Medications (or Routine for habits)
-      banner.querySelector('.hub-reminder__text')?.addEventListener('click', () => {
-        if (pending.type === 'habits') {
-          openSection('section-habits');
-        } else {
-          openSection('section-meds');
-        }
-      });
-      banner.querySelector('.hub-reminder__dot')?.addEventListener('click', () => {
-        if (pending.type === 'habits') {
-          openSection('section-habits');
-        } else {
-          openSection('section-meds');
-        }
-      });
+      if (pending.type === 'habit-reminders') {
+        // Rotating habit reminder ticker
+        const habits = pending.habits;
+        let idx = 0;
 
-      // Tap ✓ → log immediately, re-render hub
-      if (isLoggable) {
-        banner.querySelector('.hub-reminder__check')?.addEventListener('click', e => {
-          e.stopPropagation();
-          if (pending.type === 'slot') {
-            Medications.logSlot(pending.slot);
-          } else if (pending.type === 'reminder') {
-            Medications.logReminder(pending.medId);
+        const textEl = document.createElement('div');
+        textEl.className = 'hub-reminder__text';
+
+        function showHabit(i) {
+          const name = habits[i];
+          const cfg  = (typeof Habits !== 'undefined' && Habits.getHabitConfig)
+            ? Habits.getHabitConfig(name)
+            : { frequency: 'daily', freq_count: 1, freq_period_days: 7, reminder: false,
+                ...((Data.getSettings().habit_configs ?? {})[name] ?? {}) };
+
+          if (cfg.frequency === 'daily') {
+            textEl.textContent = `📌 ${name} today`;
+          } else {
+            const today = Data.today();
+            const { start, end, shortLabel } = (typeof Habits !== 'undefined' && Habits.getPeriodBounds)
+              ? Habits.getPeriodBounds(cfg, today)
+              : { start: today, end: today, shortLabel: '' };
+            const done = (typeof Habits !== 'undefined' && Habits.countPeriodCompletions)
+              ? Habits.countPeriodCompletions(name, start, end)
+              : 0;
+            textEl.textContent = `📌 ${name} — ${done}/${cfg.freq_count} ${shortLabel}`;
           }
-          renderHome();   // advance to next pending item (or hide banner)
+        }
+        showHabit(0);
+
+        banner.innerHTML = `<div class="hub-reminder__dot"></div>`;
+        banner.appendChild(textEl);
+
+        if (habits.length > 1) {
+          _habitReminderTimerId = setInterval(() => {
+            idx = (idx + 1) % habits.length;
+            showHabit(idx);
+          }, 4000);
+        }
+
+        // Tap → open Routine bucket
+        banner.addEventListener('click', () => openSection('section-habits'));
+
+      } else {
+        // Existing: med slot or reminder (or legacy 'habits' type)
+        const isLoggable = pending.type === 'slot' || pending.type === 'reminder';
+        banner.innerHTML = `
+          <div class="hub-reminder__dot"></div>
+          <div class="hub-reminder__text">${pending.text}</div>
+          ${isLoggable ? `<button class="hub-reminder__check" aria-label="Mark done" type="button">✓</button>` : ''}`;
+
+        // Tap text → navigate to Medications (or Routine for habits)
+        banner.querySelector('.hub-reminder__text')?.addEventListener('click', () => {
+          if (pending.type === 'habits') {
+            openSection('section-habits');
+          } else {
+            openSection('section-meds');
+          }
         });
+        banner.querySelector('.hub-reminder__dot')?.addEventListener('click', () => {
+          if (pending.type === 'habits') {
+            openSection('section-habits');
+          } else {
+            openSection('section-meds');
+          }
+        });
+
+        // Tap ✓ → log immediately, re-render hub
+        if (isLoggable) {
+          banner.querySelector('.hub-reminder__check')?.addEventListener('click', e => {
+            e.stopPropagation();
+            if (pending.type === 'slot') {
+              Medications.logSlot(pending.slot);
+            } else if (pending.type === 'reminder') {
+              Medications.logReminder(pending.medId);
+            }
+            renderHome();   // advance to next pending item (or hide banner)
+          });
+        }
       }
 
       container.insertBefore(banner, home);
@@ -980,6 +1080,7 @@ const Hub = (() => {
    * resets CSS order, clears state. Safe to call even when no bucket is open.
    */
   function _cleanupBucketView() {
+    if (_habitReminderTimerId) { clearInterval(_habitReminderTimerId); _habitReminderTimerId = null; }
     const accEl = document.getElementById('accordion-wrapper');
     if (accEl) {
       accEl.querySelector('.hub-bucket-backbar')?.remove();
