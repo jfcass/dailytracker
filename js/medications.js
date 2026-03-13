@@ -91,7 +91,8 @@ const Medications = (() => {
     const el = document.getElementById('meds-content');
     if (!el) return;
 
-    const allMeds      = getActiveMeds();
+    const allMeds      = getSlotMeds();
+    const pausedMeds   = getPausedMeds();
     const prnMeds      = allMeds.filter(m => m.as_needed);
     const reminderMeds = allMeds.filter(m => m.med_reminder);
     const dayData      = Data.getDay(currentDate);
@@ -132,6 +133,11 @@ const Medications = (() => {
     if (windowMeds.length) {
       const winHtml = renderDosingWindows(windowMeds, prnDoses);
       if (winHtml) html += `<div class="meds-zone">${winHtml}</div>`;
+    }
+
+    // ── Paused Meds section ──
+    if (pausedMeds.length) {
+      html += `<div class="meds-zone">${renderPausedMeds(pausedMeds, prnDoses)}</div>`;
     }
 
     // ── Zone 4: Meds Logged Today ──
@@ -309,6 +315,25 @@ const Medications = (() => {
 
     if (!cards) return '';
     return `<div class="meds-windows-label">Active Dosing Windows</div>${cards}`;
+  }
+
+  // ── Paused Meds ────────────────────────────────────────────────────────────
+
+  function renderPausedMeds(pausedMeds, prnDoses) {
+    const recentDoses = buildRecentDoses(prnDoses);
+    const items = pausedMeds.map(med => {
+      const cooldown = cooldownRemaining(med, recentDoses);
+      const isLogging = prnFormOpen && prnMedId === med.id;
+      return `<div class="meds-paused-item">
+        <span class="meds-paused-name">${escHtml(med.emoji ? med.emoji + ' ' : '')}${escHtml(med.name)}</span>
+        <span class="meds-paused-badge">Paused</span>
+        ${cooldown > 0
+          ? `<span class="meds-prn-cooldown">Ready in ${fmtMs(cooldown)}</span>`
+          : `<button class="meds-prn-chip" data-prn-quick="${escHtml(med.id)}">Log dose</button>`
+        }
+      </div>`;
+    }).join('');
+    return `<div class="meds-zone-label">Paused Medications</div>${items}`;
   }
 
   // ── Zone 4: Meds Logged Today ─────────────────────────────────────────────
@@ -801,7 +826,7 @@ const Medications = (() => {
   function logSlot(slot, time) {
     const t        = time || nowHHMM();
     const day      = Data.getDay(currentDate);
-    const snapshot = getActiveMeds()
+    const snapshot = getSlotMeds()
       .filter(m => (m.slots ?? []).includes(slot))
       .map(m => m.id);
     if (!day.med_slots) day.med_slots = defaultSlots();
@@ -967,6 +992,38 @@ const Medications = (() => {
     return Object.values(Data.getData().medications ?? {}).filter(m => m.active);
   }
 
+  function getSlotMeds() {
+    return Object.values(Data.getData().medications ?? {}).filter(m => m.active && !m.paused);
+  }
+
+  function getPausedMeds() {
+    return Object.values(Data.getData().medications ?? {}).filter(m => m.active && m.paused);
+  }
+
+  function getMedLogCount(medId) {
+    let totalLogs = 0;
+    let totalDays = 0;
+    Object.values(Data.getData().days ?? {}).forEach(day => {
+      let dayCount = 0;
+      // PRN doses
+      (day.prn_doses ?? []).forEach(d => {
+        if (d.medication_id === medId) dayCount++;
+      });
+      // Slot appearances and extras
+      Object.values(day.med_slots ?? {}).forEach(slot => {
+        if ((slot.meds ?? []).includes(medId)) dayCount++;
+        (slot.extras ?? []).forEach(e => {
+          if (e.medication_id === medId) dayCount++;
+        });
+      });
+      if (dayCount > 0) {
+        totalLogs += dayCount;
+        totalDays++;
+      }
+    });
+    return { totalLogs, totalDays };
+  }
+
   /** Look up any med by ID — including archived ones */
   function getMedById(id) {
     return Object.values(Data.getData().medications ?? {}).find(m => m.id === id);
@@ -1069,5 +1126,5 @@ const Medications = (() => {
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   }
 
-  return { init, render, setDate, logSlot, logReminder };
+  return { init, render, setDate, logSlot, logReminder, getMedLogCount };
 })();
