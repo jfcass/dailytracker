@@ -80,8 +80,8 @@ const Bowel = (() => {
   function buildDisplay(wrap, entry) {
     const label = Number.isInteger(entry.quality)
       ? (QUALITY_LABELS[entry.quality] ?? '')
-      : `Type ${entry.quality}`;
-    const color = QUALITY_COLORS[Math.round(entry.quality)] ?? 'var(--clr-accent)';
+      : `${QUALITY_LABELS[Math.floor(entry.quality)] ?? ''} – ${QUALITY_LABELS[Math.ceil(entry.quality)] ?? ''}`;
+    const color = QUALITY_COLORS[Math.ceil(entry.quality)] ?? 'var(--clr-accent)';
 
     wrap.innerHTML = `
       <div class="bwl-display">

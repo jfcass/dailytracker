@@ -20,7 +20,15 @@ const Mood = (() => {
 
   function valColor(field, val) {
     if (!val) return '';
-    return (field === 'stress' ? VAL_COLORS_INV : VAL_COLORS)[val] ?? '';
+    const idx = Number.isInteger(val) ? val : Math.ceil(val);
+    return (field === 'stress' ? VAL_COLORS_INV : VAL_COLORS)[idx] ?? '';
+  }
+
+  function valLabel(labels, val) {
+    if (val == null) return '';
+    if (Number.isInteger(val)) return labels[val] ?? '';
+    const lo = Math.floor(val), hi = Math.ceil(val);
+    return `${labels[lo] ?? lo} – ${labels[hi] ?? hi}`;
   }
 
   // Single wellness score: average of (mood, energy, 6-stress, focus) where present
@@ -138,7 +146,7 @@ const Mood = (() => {
     Object.entries(labelMap).forEach(([id, [labels, val, field]]) => {
       const el = document.getElementById(id);
       if (el) {
-        el.textContent  = val != null ? (Number.isInteger(val) ? (labels[val] ?? '') : String(val)) : '';
+        el.textContent  = val != null ? valLabel(labels, val) : '';
         el.style.color  = valColor(field, val);
         el.style.fontStyle = val ? 'normal' : '';
       }
