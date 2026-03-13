@@ -673,6 +673,22 @@ const Settings = (() => {
       </span>
     `, 'display');
 
+    // Display name row
+    const displayName = s.display_name ?? '';
+    const nameRow = document.createElement('div');
+    nameRow.className = 'stg-pref-row';
+    nameRow.innerHTML = `
+      <span class="stg-pref-label">Your name</span>
+      <input class="stg-text-input" type="text" id="stg-display-name"
+             value="${escHtml(displayName)}" maxlength="30"
+             placeholder="e.g. Alex" aria-label="Display name for greeting">
+    `;
+    nameRow.querySelector('#stg-display-name').addEventListener('input', e => {
+      Data.getSettings().display_name = e.target.value;
+      scheduleSave();
+    });
+    body.appendChild(nameRow);
+
     // Theme row
     const themeRow = document.createElement('div');
     themeRow.className = 'stg-pref-row';

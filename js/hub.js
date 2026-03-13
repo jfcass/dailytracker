@@ -380,20 +380,41 @@ const Hub = (() => {
     _bucketSwipeListeners.touchend = handleTouchEnd;
   }
 
-  // ── User display initial cache ────────────────────────────────────
+  // ── HTML escaping helper ──────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── User display name ─────────────────────────────────────────────
 
   const _LS_INITIAL_KEY = 'ht_display_initial';
 
-  /** Synchronously return cached user initial, or '?' if not yet loaded. */
-  function _getCachedInitial() {
+  /**
+   * Return the name to use in greetings. Prefers settings.display_name if set,
+   * otherwise falls back to the cached Google initial (single letter).
+   */
+  function _getGreetingName() {
+    const customName = (Data.getSettings().display_name ?? '').trim();
+    if (customName) return customName;
+    return localStorage.getItem(_LS_INITIAL_KEY) ?? '?';
+  }
+
+  /**
+   * Return a single character for the avatar. Uses first char of display_name
+   * if set, otherwise the cached Google initial.
+   */
+  function _getAvatarInitial() {
+    const customName = (Data.getSettings().display_name ?? '').trim();
+    if (customName) return customName[0].toUpperCase();
     return localStorage.getItem(_LS_INITIAL_KEY) ?? '?';
   }
 
   /**
    * Async: fetch the user's display initial from Drive /about and cache it.
-   * Silently no-ops if already cached or if no token is available.
+   * Silently no-ops if already cached, if display_name is set, or if no token is available.
    */
   async function _loadUserInitial() {
+    if ((Data.getSettings().display_name ?? '').trim()) return;
     if (localStorage.getItem(_LS_INITIAL_KEY)) return;
     try {
       const token = Auth.getToken() ?? await Auth.requestToken(true);
@@ -820,9 +841,10 @@ const Hub = (() => {
     const dayName  = d.toLocaleDateString('en-US', { weekday: 'long' });
     const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    const hour    = new Date().getHours();
-    const period  = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-    const initial = _getCachedInitial();
+    const hour         = new Date().getHours();
+    const period       = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    const greetingName = _getGreetingName();
+    const avatarChar   = _getAvatarInitial();
 
     // ── Weather cards (3-column horizontal layout) ────────────────
     const weather = Data.getData().days?.[date]?.weather ?? null;
@@ -921,11 +943,11 @@ const Hub = (() => {
       <div class="hub-date-row">
         <div class="hub-greeting-left">
           <div class="hub-greeting-date">${dayName}, ${monthDay}</div>
-          <div class="hub-greeting-msg">Good ${period}, ${initial}.</div>
+          <div class="hub-greeting-msg">Good ${period}, ${escHtml(greetingName)}.</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
           <button class="hub-cal-btn" type="button" aria-label="Pick date">${calSVG}</button>
-          <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${initial}</div>
+          <div class="hub-avatar" role="button" tabindex="0" aria-label="Settings">${escHtml(avatarChar)}</div>
         </div>
       </div>
       ${wxHTML}`;
