@@ -311,8 +311,14 @@ const Habits = (() => {
    * Count consecutive completed days ending at (and including) today.
    * If today's habit is already checked, it counts.
    * If today is unchecked, the streak starts from yesterday.
+   * For non-daily habits, delegates to computePeriodStreak.
    */
   function calcStreak(name) {
+    const cfg = getHabitConfig(name);
+    if (cfg.frequency !== 'daily') {
+      return computePeriodStreak(name, cfg);
+    }
+
     const allDays = Data.getData().days;
     const today   = Data.today();
     const todayOn = allDays[today]?.habits?.[name] === true;
@@ -328,6 +334,29 @@ const Habits = (() => {
       }
     }
     return n;
+  }
+
+  /**
+   * Counts consecutive completed periods (backwards from today) where
+   * done >= freq_count. Returns 0 if the current period is not yet complete.
+   */
+  function computePeriodStreak(name, cfg) {
+    const today = Data.today();
+    let streak   = 0;
+    let probe    = today;
+
+    // Walk backwards period by period
+    for (let i = 0; i < 104; i++) { // max ~2 years of weeks
+      const { start, end } = getPeriodBounds(cfg, probe);
+      const done = countPeriodCompletions(name, start, end);
+      if (done < cfg.freq_count) break;
+      streak++;
+      // Step probe one day before this period's start
+      const prev = new Date(start + 'T12:00:00');
+      prev.setDate(prev.getDate() - 1);
+      probe = prev.toISOString().slice(0, 10);
+    }
+    return streak;
   }
 
   // ── Debounced save ────────────────────────────────────────────────────────
