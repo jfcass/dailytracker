@@ -78,8 +78,10 @@ const Bowel = (() => {
   // ── Display mode ──────────────────────────────────────────────────────────
 
   function buildDisplay(wrap, entry) {
-    const label = QUALITY_LABELS[entry.quality] ?? '';
-    const color = QUALITY_COLORS[entry.quality] ?? 'var(--clr-accent)';
+    const label = Number.isInteger(entry.quality)
+      ? (QUALITY_LABELS[entry.quality] ?? '')
+      : `Type ${entry.quality}`;
+    const color = QUALITY_COLORS[Math.round(entry.quality)] ?? 'var(--clr-accent)';
 
     wrap.innerHTML = `
       <div class="bwl-display">
@@ -105,7 +107,7 @@ const Bowel = (() => {
     const allQualityBtns = QUALITY_LABELS.slice(1).map((label, i) => {
       const val    = i + 1;
       const color  = QUALITY_COLORS[val];
-      const active = fQuality === val ? 'bwl-quality-btn--active' : '';
+      const active = fQuality === val ? 'bwl-quality-btn--active' : (val - 0.5 === fQuality ? 'bwl-quality-btn--half' : '');
       return `<button class="bwl-quality-btn ${active}" type="button"
                       data-quality="${val}" style="--q-clr: ${color}">
                 ${escHtml(label)}
@@ -134,10 +136,19 @@ const Bowel = (() => {
 
     wrap.querySelectorAll('.bwl-quality-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        fQuality = parseInt(btn.dataset.quality, 10);
-        wrap.querySelectorAll('.bwl-quality-btn').forEach(b =>
-          b.classList.toggle('bwl-quality-btn--active', b.dataset.quality === String(fQuality))
-        );
+        const tapped = parseFloat(btn.dataset.quality);
+        if (fQuality === tapped - 0.5) {
+          fQuality = 0;               // half → unset
+        } else if (fQuality === tapped) {
+          fQuality = tapped - 0.5;   // whole → half
+        } else {
+          fQuality = tapped;          // → whole
+        }
+        wrap.querySelectorAll('.bwl-quality-btn').forEach(b => {
+          const bVal = parseFloat(b.dataset.quality);
+          b.classList.toggle('bwl-quality-btn--active', bVal === fQuality);
+          b.classList.toggle('bwl-quality-btn--half',   bVal - 0.5 === fQuality);
+        });
       });
     });
 
