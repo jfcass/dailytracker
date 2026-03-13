@@ -1080,11 +1080,38 @@ const Hub = (() => {
     // Render Treatments and add a nav row if this bucket includes tab-treatments
     if (bucket.sections.includes('tab-treatments')) {
       if (typeof Treatments !== 'undefined') Treatments.render();
+
+      // Compute today's treatment status for the row label
+      const _fmtTxDur = (start, end) => {
+        if (!start || !end) return null;
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        const mins = (eh * 60 + em) - (sh * 60 + sm);
+        if (mins <= 0) return null;
+        return mins < 60 ? `${mins} min`
+          : `${Math.floor(mins / 60)}h${mins % 60 ? ' ' + (mins % 60) + 'm' : ''}`;
+      };
+      const todayTx = Object.values(Data.getData().treatments ?? {})
+        .filter(t => t.date === Data.today());
+      let txStatus = '';
+      if (todayTx.length > 0) {
+        const inProgress = todayTx.some(t => t.start_time && !t.end_time);
+        const count = todayTx.length;
+        if (inProgress) {
+          txStatus = `${count} today · In Progress`;
+        } else {
+          const sorted = [...todayTx].sort((a, b) => (b.start_time ?? '').localeCompare(a.start_time ?? ''));
+          const dur = _fmtTxDur(sorted[0].start_time, sorted[0].end_time);
+          txStatus = `${count} today${dur ? ' · ' + dur : ''}`;
+        }
+      }
+
       const txRow = document.createElement('div');
       txRow.className = 'hub-tx-row hub-section-row';
       txRow.style.order = '99'; // always last in the flex column
       txRow.innerHTML = `
         <span class="hub-section-row__name">Treatments</span>
+        ${txStatus ? `<span class="hub-section-row__status${txStatus.includes('In Progress') ? ' hub-section-row__status--progress' : ''}">${txStatus}</span>` : ''}
         <span class="hub-section-row__arrow">&#8250;</span>`;
       txRow.addEventListener('click', () => App.switchTab('treatments'));
       accEl.appendChild(txRow);
