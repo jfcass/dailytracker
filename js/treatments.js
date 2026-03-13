@@ -32,8 +32,8 @@ const Treatments = (() => {
   let fEndTimeEdit   = '';     // current value in end time edit field
 
   // Inline BP form within detail view
-  let bpFormOpen = false;
-  let bpEditId   = null;   // null = new BP; string = editing existing BP id
+  let expandedBpPhase = null;  // null | 'At Rest' | 'Mid-Treatment' | 'Post-Treatment'
+  let bpEditId        = null;  // null = new BP; string = editing existing BP id
   let fBpDate    = '';
   let fBpTime    = '';
   let fBpSys     = '';
@@ -196,34 +196,52 @@ const Treatments = (() => {
 
     const bpReadings = getBPForTreatment(id);
 
-    // Group BP readings by context
-    let bpGroupsHtml = '';
-    BP_CTX_OPTIONS.forEach(ctx => {
-      const ctxColor = BP_CTX_COLORS[ctx] ?? 'var(--clr-text-2)';
-      const readings = bpReadings.filter(r => r.context === ctx);
-      const rowsHtml = readings.map(r => `
-        <div class="tx-bp-row">
-          <span class="tx-bp-reading">${escHtml(String(r.systolic))}/${escHtml(String(r.diastolic))}</span>
-          ${r.pulse != null ? `<span class="tx-bp-pulse">${escHtml(String(r.pulse))} bpm</span>` : ''}
-          ${r.time ? `<span class="tx-bp-time">${escHtml(fmt12h(r.time))}</span>` : ''}
-          ${r.date !== t.date ? `<span class="tx-bp-date-label">${escHtml(fmtDate(r.date))}</span>` : ''}
-          ${r.notes ? `<span class="tx-bp-notes">${escHtml(r.notes)}</span>` : ''}
-          <span class="tx-bp-actions">
-            <button class="hl-bp-edit-btn" onclick="Treatments._editBP('${r.id}')">Edit</button>
-            <button class="hl-bp-del-btn"  onclick="Treatments._deleteBP('${r.id}','${id}')">Delete</button>
-          </span>
-        </div>`).join('');
+    // Build collapsible phase rows
+    const bpSectionHtml = BP_CTX_OPTIONS.map(ctx => {
+      const ctxColor  = BP_CTX_COLORS[ctx] ?? 'var(--clr-text-2)';
+      const reading   = bpReadings.find(r => r.context === ctx);
+      const isExpanded = expandedBpPhase === ctx;
 
-      bpGroupsHtml += `
-        <div class="tx-bp-ctx-group">
-          <span class="tx-bp-ctx-label" style="color:${ctxColor}">${escHtml(ctx)}</span>
-          ${rowsHtml || `<span class="tx-bp-ctx-empty">—</span>`}
-        </div>`;
-    });
+      let rowHtml = '';
+      if (reading) {
+        const valStr = `${escHtml(String(reading.systolic))}/${escHtml(String(reading.diastolic))}` +
+          (reading.pulse != null ? ` · ${escHtml(String(reading.pulse))} bpm` : '');
+        rowHtml = `
+          <div class="tx-bp-phase-row tx-bp-phase-row--filled"
+               onclick="Treatments._toggleBpPhase('${escHtml(ctx)}','${id}')">
+            <span class="tx-bp-phase-label" style="color:${ctxColor}">${escHtml(ctx)}</span>
+            <span class="tx-bp-phase-value">${valStr}</span>
+            ${reading.time ? `<span class="tx-bp-phase-time">${escHtml(fmt12h(reading.time))}</span>` : ''}
+            <span class="tx-bp-phase-chevron">${isExpanded ? '▲' : '▼'}</span>
+          </div>
+          ${isExpanded ? buildBPPhaseFormHtml(id, ctx, reading) : ''}`;
+      } else {
+        rowHtml = `
+          <div class="tx-bp-phase-row tx-bp-phase-row--empty"
+               onclick="Treatments._toggleBpPhase('${escHtml(ctx)}','${id}')">
+            <span class="tx-bp-phase-label" style="color:${ctxColor}">${escHtml(ctx)}</span>
+            <span class="tx-bp-phase-add">+ Add reading</span>
+          </div>
+          ${isExpanded ? buildBPPhaseFormHtml(id, ctx, null) : ''}`;
+      }
+      return `<div class="tx-bp-phase">${rowHtml}</div>`;
+    }).join('');
 
-    const bpFormHtml = bpFormOpen
-      ? buildBPFormHtml(id)
-      : `<button class="tx-add-bp-btn" onclick="Treatments._openBPForm('${id}')">+ Add BP reading</button>`;
+    // BP delta summary — shown only when all 3 phases are logged
+    const atRestBp = bpReadings.find(r => r.context === 'At Rest');
+    const midBp    = bpReadings.find(r => r.context === 'Mid-Treatment');
+    const postBp   = bpReadings.find(r => r.context === 'Post-Treatment');
+    const deltaSummaryHtml = (atRestBp && midBp && postBp) ? `
+      <div class="tx-bp-delta">
+        <span class="tx-bp-delta-label">BP across session</span>
+        <span class="tx-bp-delta-values">
+          ${escHtml(String(atRestBp.systolic))}/${escHtml(String(atRestBp.diastolic))}
+          <span class="tx-bp-delta-sep">→</span>
+          ${escHtml(String(midBp.systolic))}/${escHtml(String(midBp.diastolic))}
+          <span class="tx-bp-delta-sep">→</span>
+          ${escHtml(String(postBp.systolic))}/${escHtml(String(postBp.diastolic))}
+        </span>
+      </div>` : '';
 
     const duration   = calcDuration(t.start_time, t.end_time);
     const inProgress = t.start_time && !t.end_time;
@@ -269,8 +287,8 @@ const Treatments = (() => {
 
         <div class="tx-detail-section">
           <p class="tx-section-label">Blood Pressure</p>
-          <div class="tx-bp-groups">${bpGroupsHtml}</div>
-          ${bpFormHtml}
+          <div class="tx-bp-phases">${bpSectionHtml}</div>
+          ${deltaSummaryHtml}
         </div>
 
         ${t.notes ? `
@@ -437,6 +455,48 @@ const Treatments = (() => {
       </div>`;
   }
 
+  function buildBPPhaseFormHtml(treatmentId, ctx, existingReading) {
+    return `
+      <div class="tx-bp-phase-form">
+        <div class="tx-bp-form-row">
+          <div class="tx-form-field">
+            <label class="tx-form-label">Time</label>
+            <input class="hl-edit-input" type="time" value="${escHtml(fBpTime)}"
+                   oninput="Treatments._setBpTime(this.value)">
+          </div>
+          <div class="tx-form-field">
+            <label class="tx-form-label">Systolic</label>
+            <input class="hl-edit-input" type="number" placeholder="120"
+                   value="${escHtml(fBpSys)}" oninput="Treatments._setBpSys(this.value)">
+          </div>
+          <div class="tx-form-field">
+            <label class="tx-form-label">Diastolic</label>
+            <input class="hl-edit-input" type="number" placeholder="80"
+                   value="${escHtml(fBpDia)}" oninput="Treatments._setBpDia(this.value)">
+          </div>
+          <div class="tx-form-field">
+            <label class="tx-form-label">Pulse (opt.)</label>
+            <input class="hl-edit-input" type="number" placeholder="72"
+                   value="${escHtml(fBpPulse)}" oninput="Treatments._setBpPulse(this.value)">
+          </div>
+        </div>
+        <div class="tx-form-field">
+          <label class="tx-form-label">Notes (optional)</label>
+          <input class="hl-edit-input" type="text" value="${escHtml(fBpNotes)}"
+                 oninput="Treatments._setBpNotes(this.value)" placeholder="e.g. after 30 min">
+        </div>
+        <div class="tx-bp-form-actions">
+          <button class="hl-edit-cancel-btn" onclick="Treatments._cancelBPForm()">Cancel</button>
+          ${existingReading
+            ? `<button class="hl-bp-del-btn" onclick="Treatments._deleteBP('${existingReading.id}','${treatmentId}')">Delete</button>`
+            : ''}
+          <button class="hl-edit-save-btn" onclick="Treatments._saveBP('${treatmentId}')">
+            ${existingReading ? 'Save' : 'Add'}
+          </button>
+        </div>
+      </div>`;
+  }
+
   // ── Treatment CRUD ────────────────────────────────────────────────────────
 
   function startAdd() {
@@ -450,7 +510,7 @@ const Treatments = (() => {
     fMedId     = '';
     fDose      = '';
     fNotes     = '';
-    bpFormOpen = false;
+    expandedBpPhase = null;
     render();
   }
 
@@ -551,41 +611,41 @@ const Treatments = (() => {
 
   // ── BP CRUD (within treatment detail) ────────────────────────────────────
 
-  function openBPForm(treatmentId) {
-    const existing = getBPForTreatment(treatmentId);
-    const usedCtxs = new Set(existing.map(r => r.context));
-    // Smart default: pick the first phase not yet logged
-    const defaultCtx = BP_CTX_OPTIONS.find(c => !usedCtxs.has(c)) ?? 'At Rest';
-    const now = new Date();
-    bpFormOpen = true;
-    bpEditId   = null;
-    fBpDate    = Data.today();
-    fBpTime    = pad(now.getHours()) + ':' + pad(now.getMinutes());
-    fBpSys     = '';
-    fBpDia     = '';
-    fBpPulse   = '';
-    fBpCtx     = defaultCtx;
-    fBpNotes   = '';
-    render();
-  }
-
-  function editBP(bpId) {
-    const bp = (Data.getData().blood_pressure ?? []).find(r => r.id === bpId);
-    if (!bp) return;
-    bpFormOpen = true;
-    bpEditId   = bpId;
-    fBpDate    = bp.date    ?? Data.today();
-    fBpTime    = bp.time    ?? '';
-    fBpSys     = String(bp.systolic  ?? '');
-    fBpDia     = String(bp.diastolic ?? '');
-    fBpPulse   = bp.pulse != null ? String(bp.pulse) : '';
-    fBpCtx     = bp.context ?? 'At Rest';
-    fBpNotes   = bp.notes   ?? '';
+  function toggleBpPhase(ctx, treatmentId) {
+    if (expandedBpPhase === ctx) {
+      // Collapse
+      expandedBpPhase = null;
+      bpEditId        = null;
+      render();
+      return;
+    }
+    // Expand and pre-fill form state
+    expandedBpPhase = ctx;
+    const reading   = getBPForTreatment(treatmentId).find(r => r.context === ctx);
+    bpEditId        = reading ? reading.id : null;
+    if (reading) {
+      fBpDate  = reading.date    ?? Data.today();
+      fBpTime  = reading.time    ?? '';
+      fBpSys   = String(reading.systolic  ?? '');
+      fBpDia   = String(reading.diastolic ?? '');
+      fBpPulse = reading.pulse != null ? String(reading.pulse) : '';
+      fBpCtx   = ctx;
+      fBpNotes = reading.notes   ?? '';
+    } else {
+      const now = new Date();
+      fBpDate  = Data.today();
+      fBpTime  = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      fBpSys   = '';
+      fBpDia   = '';
+      fBpPulse = '';
+      fBpCtx   = ctx;
+      fBpNotes = '';
+    }
     render();
   }
 
   function cancelBPForm() {
-    bpFormOpen = false;
+    expandedBpPhase = null;
     bpEditId   = null;
     render();
   }
@@ -629,7 +689,7 @@ const Treatments = (() => {
       });
     }
 
-    bpFormOpen = false;
+    expandedBpPhase = null;
     bpEditId   = null;
     scheduleSave();
     render();
@@ -639,6 +699,7 @@ const Treatments = (() => {
     if (!confirm('Delete this BP reading?')) return;
     const d = Data.getData();
     d.blood_pressure = (d.blood_pressure ?? []).filter(r => r.id !== bpId);
+    expandedBpPhase = null;
     scheduleSave();
     render();
   }
@@ -646,27 +707,27 @@ const Treatments = (() => {
   // ── Navigation helpers ────────────────────────────────────────────────────
 
   function _openDetail(id) {
-    detailId       = id;
-    bpFormOpen     = false;
-    endTimeEditing = false;
+    detailId        = id;
+    expandedBpPhase = null;
+    endTimeEditing  = false;
     history.pushState({ ht: 'tx-detail', id }, '');
     render();
   }
 
   function _back() {
     if (history.state?.ht === 'tx-detail') { history.back(); return; }
-    detailId       = null;
-    formMode       = null;
-    bpFormOpen     = false;
-    endTimeEditing = false;
+    detailId        = null;
+    formMode        = null;
+    expandedBpPhase = null;
+    endTimeEditing  = false;
     render();
   }
 
   function _exitDetail() {
-    detailId       = null;
-    formMode       = null;
-    bpFormOpen     = false;
-    endTimeEditing = false;
+    detailId        = null;
+    formMode        = null;
+    expandedBpPhase = null;
+    endTimeEditing  = false;
     render();
   }
 
@@ -764,8 +825,7 @@ const Treatments = (() => {
     _cancelEditEndTime:() => cancelEditEndTime(),
     _setEndTimeEdit:   v  => { fEndTimeEdit = v; },
     _goToTxMedsSettings,
-    _openBPForm:     treatmentId => openBPForm(treatmentId),
-    _editBP:         bpId => editBP(bpId),
+    _toggleBpPhase:  (ctx, treatmentId) => toggleBpPhase(ctx, treatmentId),
     _cancelBPForm:   () => cancelBPForm(),
     _saveBP:         treatmentId => saveBP(treatmentId),
     _deleteBP:       bpId => deleteBP(bpId),
