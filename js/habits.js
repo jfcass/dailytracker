@@ -96,6 +96,16 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
+    const periodBadge = (function() {
+      const cfg = getHabitConfig(name);
+      if (cfg.frequency === 'daily') return '';
+      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
+      const done  = countPeriodCompletions(name, start, end);
+      const total = cfg.freq_count;
+      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
+      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
+    })();
+
     btn.innerHTML = `
       <div class="habit-check" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -106,6 +116,7 @@ const Habits = (() => {
       </div>
       <span class="habit-name">${escHtml(name)}</span>
       ${badge}
+      ${periodBadge}
     `;
 
     btn.addEventListener('click', () => toggle(name));
@@ -118,6 +129,16 @@ const Habits = (() => {
     let badge = '';
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
+
+    const periodBadge = (function() {
+      const cfg = getHabitConfig(name);
+      if (cfg.frequency === 'daily') return '';
+      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
+      const done  = countPeriodCompletions(name, start, end);
+      const total = cfg.freq_count;
+      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
+      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
+    })();
 
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading' + (checked ? ' habit-row--checked' : '');
@@ -137,6 +158,7 @@ const Habits = (() => {
       </button>
       <span class="habit-name">${escHtml(name)}</span>
       ${badge}
+      ${periodBadge}
       <a class="habit-calm-btn" href="calm://" aria-label="Open Calm app" title="Open Calm">🧘</a>
     `;
 
@@ -151,6 +173,16 @@ const Habits = (() => {
     let badge = '';
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
+
+    const periodBadge = (function() {
+      const cfg = getHabitConfig(name);
+      if (cfg.frequency === 'daily') return '';
+      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
+      const done  = countPeriodCompletions(name, start, end);
+      const total = cfg.freq_count;
+      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
+      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
+    })();
 
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading'
@@ -173,6 +205,7 @@ const Habits = (() => {
       <button class="habit-expand-btn" type="button" aria-expanded="${bookPanelOpen}">
         <span class="habit-name">${escHtml(name)}</span>
         ${badge}
+        ${periodBadge}
         <svg class="habit-chevron${bookPanelOpen ? ' habit-chevron--open' : ''}"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
@@ -198,6 +231,16 @@ const Habits = (() => {
     if      (streak >= 2) badge = `<span class="habit-streak">🔥 ${streak}</span>`;
     else if (streak === 1) badge = `<span class="habit-streak habit-streak--one">1</span>`;
 
+    const periodBadge = (function() {
+      const cfg = getHabitConfig(name);
+      if (cfg.frequency === 'daily') return '';
+      const { start, end, shortLabel } = getPeriodBounds(cfg, currentDate);
+      const done  = countPeriodCompletions(name, start, end);
+      const total = cfg.freq_count;
+      const cls   = done >= total ? 'period-badge period-badge--done' : 'period-badge';
+      return `<span class="${cls}">${done}/${total} ${shortLabel}</span>`;
+    })();
+
     const div = document.createElement('div');
     div.className = 'habit-row habit-row--reading'
       + (checked      ? ' habit-row--checked' : '')
@@ -219,6 +262,7 @@ const Habits = (() => {
       <button class="habit-expand-btn" type="button" aria-expanded="${gymPanelOpen}">
         <span class="habit-name">${escHtml(name)}</span>
         ${badge}
+        ${periodBadge}
         <svg class="habit-chevron${gymPanelOpen ? ' habit-chevron--open' : ''}"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
