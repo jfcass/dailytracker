@@ -29,7 +29,8 @@ All data lives in the user's Google Drive as a single JSON file.
 
 1. **Bump the version** in `js/config.js` — patch (x.x.X) for fixes/tweaks, minor (x.X.0) for new features
 2. **Update CLAUDE.md** if any files, schema, or architecture changed
-3. After pushing, report the new version number to the user
+3. **Update `## Current Work`** at the bottom of this file to reflect what was done this session
+4. After pushing, report the new version number to the user
 
 ## File Structure
 
@@ -80,7 +81,7 @@ icons/
   icon-512.png / .svg
 
 .claude/
-  launch.json           Dev server config: Node HTTP on port 4321
+  launch.json           Dev server config: npx http-server on port 3000 (not used — local testing doesn't work)
 
 docs/
   future-ideas.md       Feature backlog
@@ -130,7 +131,7 @@ App.showMain()
 ```
 
 
-## UN Conventions
+## UI Conventions
 All user-facing times display in 12-hour format with am/pm (e.g., 2:30pm). Never display 24-hour time in the UI.
 
 
@@ -392,6 +393,19 @@ All data lives in `health-tracker-data.json` in Google Drive.
 
   "blood_pressure": [
     { "date": "YYYY-MM-DD", "time": "08:00", "systolic": 120, "diastolic": 80, "notes": "" }
+  ],
+
+  "tasks": [
+    {
+      "id":             "<uuid>",
+      "text":           "Task description",
+      "category":       "Work",
+      "due_date":       "YYYY-MM-DD | null",
+      "completed":      false,
+      "completed_date": "YYYY-MM-DD | null",
+      "created_date":   "YYYY-MM-DD",
+      "notes":          ""
+    }
   ]
 }
 ```
@@ -521,9 +535,5 @@ Use `crypto.randomUUID()` (supported in all modern browsers).
 
 ---
 
-## Local Development
-
-Full auth flow requires pushing to GitHub Pages. Local servers won't complete the OAuth redirect.
-
-##Current Work
-**Half-scores (2026-03-13):** Added half-score support (e.g., 3.5) to mood/energy/stress/focus rating buttons and bowel quality buttons via double-press cycle (unset → whole → half → unset). Visual feedback via `--half` CSS class with a "½" badge pseudo-element. Half values stored as floats in existing JSON fields — no schema changes. Both Accordion and Hub layouts supported. Health Log updated to handle half-quality bowel display defensively.
+## Current Work
+**Tasks due-date widget (2026-03-14):** Replaced the native full-width `<input type="date">` in all three task forms (daily add, daily edit, tab form) with a custom widget: "Due Date" label + calendar icon button when no date is set, MM/DD/YY + pencil icon when a date is set. Hidden `<input type="date">` triggered via `showPicker()`. Also migrated repo to MacBook Air — normalized CRLF→LF line endings via `.gitattributes`, configured git identity and SSH auth.
