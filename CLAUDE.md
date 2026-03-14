@@ -21,10 +21,15 @@ All data lives in the user's Google Drive as a single JSON file.
 
 ## Development Workflow
 
-- **Cannot test locally** — OAuth redirects to GitHub Pages after authentication; `file://` or `localhost` don't work for the full auth flow
+- **Cannot test locally** — OAuth redirects to GitHub Pages; `file://` or `localhost` don't work for the full auth flow. Do NOT attempt to start a local dev server or preview. Testing is done by the user on their phone after `git push`.
 - **Always push to git to test** — every session should end with `git push`
-- **Versioning: Use semantic versioning (e.g., 1.4.2). Increment the patch version for any bug fix or small change, minor version for new features. Update the version constant in config.js as part of every commit. After pushing, report only the version number (not the commit hash).
 - **Keep CLAUDE.md current** — before every `git push`, update this file to reflect any new or removed JS files (File Structure section), schema changes, new settings fields, or architectural changes made during the session.
+
+## Pre-commit Checklist (MUST do before every commit)
+
+1. **Bump the version** in `js/config.js` — patch (x.x.X) for fixes/tweaks, minor (x.X.0) for new features
+2. **Update CLAUDE.md** if any files, schema, or architecture changed
+3. After pushing, report the new version number to the user
 
 ## File Structure
 
