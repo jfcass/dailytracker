@@ -89,6 +89,7 @@ const App = (() => {
     if (name === 'library')    Books.render();
     if (name === 'settings')   Settings.render();
     if (name === 'health-log') HealthLog.render();
+    if (name === 'tasks' && typeof Tasks !== 'undefined') Tasks.renderTab();
     if (name === 'today' && typeof Hub !== 'undefined') Hub.render();
     // When leaving Today, restore the native app chrome hidden by hub mode
     if (name !== 'today' && typeof Hub !== 'undefined') Hub.restoreChrome();
@@ -154,6 +155,7 @@ const App = (() => {
       Gratitudes.setDate(date);
       if (typeof Vitals !== 'undefined') Vitals.setDate(date);
       if (typeof Books !== 'undefined') Books.setDate(date);
+      if (typeof Tasks !== 'undefined') Tasks.setDate(date);
       if (typeof Hub   !== 'undefined') Hub.render();
     });
 
@@ -173,6 +175,7 @@ const App = (() => {
     Settings.init();
     HealthLog.init();
     Treatments.init();
+    if (typeof Tasks !== 'undefined') Tasks.init();
 
     // Sync Fitbit in background — don't await, never blocks the UI
     if (typeof Fitbit !== 'undefined') Fitbit.sync();
@@ -229,6 +232,7 @@ const App = (() => {
       gratitudes: 'section-gratitudes',
       note:       'section-note',
       vitals:     'section-vitals',
+      tasks:      'section-tasks',
     };
     Object.entries(sectionMap).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -236,7 +240,7 @@ const App = (() => {
     });
 
     // Tab nav buttons — hide button; redirect if on a now-hidden tab
-    ['health-log', 'treatments', 'library', 'reports'].forEach(tab => {
+    ['health-log', 'treatments', 'library', 'reports', 'tasks'].forEach(tab => {
       const btn = document.querySelector(`.bottom-nav-btn[data-tab="${tab}"]`);
       if (btn) btn.hidden = hidden.has(`tab-${tab}`);
       if (hidden.has(`tab-${tab}`) && currentTab === tab) switchTab('today');
@@ -257,6 +261,7 @@ const App = (() => {
     Gratitudes.setDate(date);
     if (typeof Vitals !== 'undefined') Vitals.setDate(date);
     if (typeof Books !== 'undefined') Books.setDate(date);
+    if (typeof Tasks !== 'undefined') Tasks.setDate(date);
     // Force re-render of whatever tab is active
     switchTab(currentTab, false);
   }

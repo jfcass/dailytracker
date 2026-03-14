@@ -28,7 +28,7 @@ const Hub = (() => {
     },
     reflections: {
       label: 'Reflections',
-      sections: ['section-gratitudes', 'section-note'],
+      sections: ['section-gratitudes', 'section-note', 'section-tasks'],
     },
   };
 
@@ -313,6 +313,8 @@ const Hub = (() => {
         Bowel.setDate(date);
       } else if (sectionId === 'section-gratitudes' && typeof Gratitudes !== 'undefined') {
         Gratitudes.setDate(date);
+      } else if (sectionId === 'section-tasks' && typeof Tasks !== 'undefined') {
+        Tasks.setDate(date);
       }
     });
   }
@@ -725,9 +727,12 @@ const Hub = (() => {
   function buildReflectionsTile() {
     const tile  = createTileShell('Reflections');
     const inner = tile.querySelector('.hub-tile__inner');
-
+    const date   = viewDate();
     const streak = getGratitudeStreak();
-    const streakEl = document.createElement('div'); streakEl.className = 'hub-streak';
+    const dueCount = (typeof Tasks !== 'undefined') ? Tasks.getDueCount(date) : 0;
+
+    const streakEl = document.createElement('div');
+    streakEl.className = 'hub-streak';
     if (streak > 0) {
       streakEl.innerHTML = `
         <div>
@@ -741,10 +746,20 @@ const Hub = (() => {
       streakEl.innerHTML = `<div class="hub-c-none">Start your<br>next streak</div>`;
     }
 
-    const swipeOpts = ['Log Gratitude', 'Add Note'];
+    if (dueCount > 0) {
+      const tileName = tile.querySelector('.hub-tile__name');
+      if (tileName) {
+        const badge = document.createElement('span');
+        badge.className = 'hub-tile__badge';
+        badge.textContent = String(dueCount);
+        tileName.appendChild(badge);
+      }
+    }
+
+    const swipeOpts = ['Log Gratitude', 'Add Note', 'Tasks'];
     const { btn, chevL, chevR, lblEl } = createSwipeBtn(swipeOpts[0]);
     makeSwipeBtn(btn, chevL, chevR, lblEl, swipeOpts, idx => {
-      const targets = ['section-gratitudes', 'section-note'];
+      const targets = ['section-gratitudes', 'section-note', 'section-tasks'];
       openSection(targets[idx]);
     });
 
@@ -1339,6 +1354,11 @@ const Hub = (() => {
     applyLayout();
   }
 
-  return { render, applyLayout, openSection, closeBucket, restoreChrome };
+  function refreshReflectionsBadge() {
+    const hubEl = document.getElementById('hub-container');
+    if (hubEl && !hubEl.hidden) renderHome();
+  }
+
+  return { render, applyLayout, openSection, closeBucket, restoreChrome, refreshReflectionsBadge };
 
 })();

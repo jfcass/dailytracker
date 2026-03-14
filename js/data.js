@@ -28,6 +28,7 @@ const Data = (() => {
       today_accordion: false,
       today_layout:    'accordion',   // 'accordion' | 'hub'
       habit_configs:   {},            // { [name]: { frequency, freq_count, freq_period_days, reminder } }
+      task_categories: ['App Ideas', 'Shopping', 'Personal', 'Health'],
     },
     days:           {},
     issues:         {},
@@ -37,6 +38,7 @@ const Data = (() => {
     treatment_medications:  {},  // { [uuid]: { id, name, doses[], active, notes } }
     treatments:             {},  // { [uuid]: { id, date, start_time, end_time, intention, medication_id, dose, notes } }
     fitbit:                 null,
+    tasks:                  [],
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
@@ -139,6 +141,14 @@ const Data = (() => {
     // Migration: Initialize issue_categories from symptom_categories if missing
     if (!merged.settings.issue_categories && merged.settings.symptom_categories) {
       merged.settings.issue_categories = [...merged.settings.symptom_categories];
+    }
+    // Migration: Initialize task_categories if missing
+    if (!merged.settings.task_categories) {
+      merged.settings.task_categories = ['App Ideas', 'Shopping', 'Personal', 'Health'];
+    }
+    // Migration: Initialize tasks array if missing
+    if (!Array.isArray(merged.tasks)) {
+      merged.tasks = [];
     }
 
     return merged;

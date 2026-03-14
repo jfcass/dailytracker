@@ -40,6 +40,7 @@ const Settings = (() => {
     wrap.appendChild(buildTreatmentMedsCard());
     wrap.appendChild(buildCategoriesCard());
     wrap.appendChild(buildNoteTagsCard());
+    wrap.appendChild(buildTaskCategoriesCard());
     wrap.appendChild(buildVisibilityCard());
     wrap.appendChild(buildDisplayCard());
     wrap.appendChild(buildAccountCard());
@@ -572,6 +573,89 @@ const Settings = (() => {
     render(); scheduleSave();
   }
 
+  // ── Task Categories Card ──────────────────────────────────────────────────────
+
+  function buildTaskCategoriesCard() {
+    const { card, body } = makeCard(`
+      <span class="stg-card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Task Categories
+      </span>
+    `, 'task-categories');
+
+    const categories = Data.getSettings().task_categories ?? [];
+    const catsWrap   = document.createElement('div');
+    catsWrap.className = 'stg-tags';
+
+    if (categories.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'stg-empty';
+      empty.textContent = 'No categories yet.';
+      catsWrap.appendChild(empty);
+    } else {
+      categories.forEach(cat => {
+        const el = document.createElement('span');
+        el.className = 'stg-tag';
+        el.innerHTML = `${escHtml(cat)}<button class="stg-tag-remove" type="button"
+                                aria-label="Remove ${escHtml(cat)}">×</button>`;
+        el.querySelector('.stg-tag-remove').addEventListener('click', () => removeTaskCategory(cat));
+        catsWrap.appendChild(el);
+      });
+    }
+    body.appendChild(catsWrap);
+
+    const addRow = document.createElement('div');
+    addRow.className = 'stg-add-row';
+    addRow.innerHTML = `
+      <input class="stg-text-input" type="text" placeholder="New category"
+             maxlength="30" aria-label="New task category">
+      <button class="stg-add-btn" type="button">Add</button>`;
+    const inp   = addRow.querySelector('input');
+    const doAdd = () => { if (addTaskCategory(inp.value.trim())) inp.value = ''; inp.focus(); };
+    addRow.querySelector('.stg-add-btn').addEventListener('click', doAdd);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+    body.appendChild(addRow);
+
+    return card;
+  }
+
+  function addTaskCategory(name) {
+    if (!name) return false;
+    const settings = Data.getSettings();
+    if (!settings.task_categories) settings.task_categories = [];
+    if (settings.task_categories.includes(name)) return false;
+    settings.task_categories.push(name);
+    render(); scheduleSave();
+    return true;
+  }
+
+  function removeTaskCategory(name) {
+    const settings  = Data.getSettings();
+    if (!settings.task_categories) return;
+    const idx = settings.task_categories.indexOf(name);
+    if (idx === -1) return;
+    const tasks    = Data.getData().tasks ?? [];
+    const affected = tasks.filter(t => t.category === name);
+    if (affected.length > 0) {
+      const reassign = confirm(
+        `${affected.length} task(s) use "${name}". ` +
+        `OK = move to Uncategorized, Cancel = delete those tasks.`
+      );
+      if (reassign) affected.forEach(t => { t.category = ''; });
+      else {
+        const ids = new Set(affected.map(t => t.id));
+        Data.getData().tasks = tasks.filter(t => !ids.has(t.id));
+      }
+    }
+    settings.task_categories.splice(idx, 1);
+    render(); scheduleSave();
+    if (typeof Tasks !== 'undefined') Tasks.renderTab();
+  }
+
   // ── Visibility Card ───────────────────────────────────────────────────────────
 
   function buildVisibilityCard() {
@@ -625,6 +709,7 @@ const Settings = (() => {
       ['gratitudes', 'Gratitudes'],
       ['note',       'Daily Note'],
       ['vitals',     'Vitals'],
+      ['tasks',      'Tasks'],
     ].forEach(([k, l]) => body.appendChild(makeRow(k, l)));
 
     body.appendChild(makeGroupLabel('Other Tabs'));
@@ -633,6 +718,7 @@ const Settings = (() => {
       ['tab-treatments',  'Treatments'],
       ['tab-library',     'Library'],
       ['tab-reports',     'Reports'],
+      ['tab-tasks',       'Tasks'],
     ].forEach(([k, l]) => body.appendChild(makeRow(k, l)));
 
     return card;
