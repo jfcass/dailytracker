@@ -168,6 +168,64 @@ const Tasks = (() => {
     return row;
   }
 
+  // ── Due Date custom widget ───────────────────────────────────────────────────
+
+  const _CAL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    width="16" height="16" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>`;
+
+  const _PENCIL_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    width="13" height="13" aria-hidden="true">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>`;
+
+  function _buildDueDateHtml(inputId, value) {
+    return `
+      <div class="tasks-due-field">
+        <span class="tasks-due-label">Due Date</span>
+        <div class="tasks-due-picker-wrap">
+          <input type="date" id="${inputId}" class="tasks-due-input-hidden"
+                 value="${escHtml(value ?? '')}">
+          <button type="button" class="tasks-due-trigger" id="${inputId}-btn"
+                  aria-label="Set due date"></button>
+        </div>
+      </div>`;
+  }
+
+  function _initDueDateWidget(inputId) {
+    const input = document.getElementById(inputId);
+    const btn   = document.getElementById(inputId + '-btn');
+    if (!input || !btn) return;
+
+    function updateDisplay() {
+      const val = input.value;
+      if (!val) {
+        btn.innerHTML   = _CAL_ICON;
+        btn.className   = 'tasks-due-trigger tasks-due-trigger--empty';
+      } else {
+        const d  = new Date(val + 'T12:00:00');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        btn.innerHTML = `<span class="tasks-due-trigger-date">${mm}/${dd}/${yy}</span>${_PENCIL_ICON}`;
+        btn.className = 'tasks-due-trigger tasks-due-trigger--set';
+      }
+    }
+
+    updateDisplay();
+    btn.addEventListener('click', () => {
+      try { input.showPicker(); } catch { input.click(); }
+    });
+    input.addEventListener('change', updateDisplay);
+  }
+
   function _attachCatListeners(form, getSelected, setSelected) {
     form.querySelectorAll('.tasks-form-cat-pill:not(.tasks-form-cat-add)').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -205,7 +263,7 @@ const Tasks = (() => {
       <div class="tasks-form-cats" id="tasks-form-cats">
         ${_buildCatPillsHtml(categories, selectedCat)}
       </div>
-      <input id="tasks-form-due" class="tasks-form-date" type="date">
+      ${_buildDueDateHtml('tasks-form-due', '')}
       <div class="tasks-form-actions">
         <button class="tasks-form-cancel" type="button"
                 onclick="Tasks._closeDailyForm()">Cancel</button>
@@ -236,6 +294,7 @@ const Tasks = (() => {
     });
 
     container.appendChild(form);
+    _initDueDateWidget('tasks-form-due');
     form.querySelector('#tasks-form-text').focus();
   }
 
@@ -275,8 +334,7 @@ const Tasks = (() => {
       <div class="tasks-form-cats" id="tasks-form-cats">
         ${_buildCatPillsHtml(categories, selectedCat)}
       </div>
-      <input id="tasks-form-due" class="tasks-form-date" type="date"
-             value="${escHtml(task.due_date ?? '')}">
+      ${_buildDueDateHtml('tasks-form-due', task.due_date ?? '')}
       <textarea id="tasks-form-notes" class="tasks-form-notes"
                 placeholder="Notes (optional)" rows="2">${escHtml(task.notes ?? '')}</textarea>
       <div class="tasks-form-actions">
@@ -291,6 +349,7 @@ const Tasks = (() => {
     form._getSelectedCat = () => selectedCat;
     _attachCatListeners(form, () => selectedCat, v => { selectedCat = v; });
     container.appendChild(form);
+    _initDueDateWidget('tasks-form-due');
     form.querySelector('#tasks-form-text').focus();
   }
 
@@ -531,10 +590,7 @@ const Tasks = (() => {
       <div class="tasks-form-cats" id="tasks-form-tab-cats">
         ${_buildCatPillsHtml(categories, selectedCat)}
       </div>
-      <label class="tasks-form-label">Due date (optional)
-        <input id="tasks-form-tab-due" class="tasks-form-date" type="date"
-               value="${escHtml(task?.due_date ?? '')}">
-      </label>
+      ${_buildDueDateHtml('tasks-form-tab-due', task?.due_date ?? '')}
       <label class="tasks-form-label">Notes
         <textarea id="tasks-form-tab-notes" class="tasks-form-notes"
                   placeholder="Optional notes" rows="2">${escHtml(task?.notes ?? '')}</textarea>
@@ -552,6 +608,7 @@ const Tasks = (() => {
     container._getSelectedCat = () => selectedCat;
     _attachCatListeners(container, () => selectedCat, v => { selectedCat = v; });
     wrap.appendChild(container);
+    _initDueDateWidget('tasks-form-tab-due');
     container.querySelector('#tasks-form-tab-text').focus();
   }
 

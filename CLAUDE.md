@@ -24,6 +24,7 @@ All data lives in the user's Google Drive as a single JSON file.
 - **Cannot test locally** — OAuth redirects to GitHub Pages after authentication; `file://` or `localhost` don't work for the full auth flow
 - **Always push to git to test** — every session should end with `git push`
 - **Versioning: Use semantic versioning (e.g., 1.4.2). Increment the patch version for any bug fix or small change, minor version for new features. Update the version constant in config.js as part of every commit. After pushing, report only the version number (not the commit hash).
+- **Keep CLAUDE.md current** — before every `git push`, update this file to reflect any new or removed JS files (File Structure section), schema changes, new settings fields, or architectural changes made during the session.
 
 ## File Structure
 
@@ -48,11 +49,13 @@ js/
   bowel.js              Digestion/bowel movement tracking
   gratitudes.js         Daily gratitude entries + streak
 
-  symptoms.js           Symptom log + Issues management + vitals bar
+  symptoms.js           Symptom log + Issues management
+  vitals.js             Vitals section: steps/calories/floors stats row + vitals bar (sleep, HR, HRV, SpO2, breathing rate)
   medications.js        Daily med logging: AM/Afternoon/PM slots, PRN doses, reminders
   meds-manage.js        Medication master list editor (full-screen overlay)
   treatments.js         Treatment/therapy plan logging
   health-log.js         Unified health history view with filters
+  tasks.js              Task/To-Do management — top-level tasks (not per-day); surfaces due tasks in daily view
 
   weather.js            Open-Meteo weather + Google Pollen API + Google Air Quality API
   reports.js            Charts: habit streaks, mood trends, symptom heatmap (Chart.js)
