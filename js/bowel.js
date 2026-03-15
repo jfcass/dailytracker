@@ -107,7 +107,9 @@ const Bowel = (() => {
     const allQualityBtns = QUALITY_LABELS.slice(1).map((label, i) => {
       const val    = i + 1;
       const color  = QUALITY_COLORS[val];
-      const active = fQuality === val ? 'bwl-quality-btn--active' : (val - 0.5 === fQuality ? 'bwl-quality-btn--half' : '');
+      const isHalf = fQuality > 0 && !Number.isInteger(fQuality);
+      const active = fQuality === val ? 'bwl-quality-btn--active'
+        : (isHalf && (val === Math.floor(fQuality) || val === Math.ceil(fQuality)) ? 'bwl-quality-btn--half' : '');
       return `<button class="bwl-quality-btn ${active}" type="button"
                       data-quality="${val}" style="--q-clr: ${color}">
                 ${escHtml(label)}
@@ -137,17 +139,22 @@ const Bowel = (() => {
     wrap.querySelectorAll('.bwl-quality-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const tapped = parseFloat(btn.dataset.quality);
-        if (fQuality === tapped - 0.5) {
-          fQuality = 0;               // half → unset
-        } else if (fQuality === tapped) {
-          fQuality = tapped - 0.5;   // whole → half
+        if (fQuality === tapped) {
+          // Tap same whole button → clear
+          fQuality = 0;
+        } else if (Number.isInteger(fQuality) && fQuality > 0 && Math.abs(tapped - fQuality) === 1) {
+          // Tap adjacent to a whole selection → half-point between them
+          fQuality = (tapped + fQuality) / 2;
         } else {
-          fQuality = tapped;          // → whole
+          // No selection, non-adjacent, or currently half → set new whole
+          fQuality = tapped;
         }
         wrap.querySelectorAll('.bwl-quality-btn').forEach(b => {
           const bVal = parseFloat(b.dataset.quality);
+          const isHalf = fQuality > 0 && !Number.isInteger(fQuality);
           b.classList.toggle('bwl-quality-btn--active', bVal === fQuality);
-          b.classList.toggle('bwl-quality-btn--half',   bVal - 0.5 === fQuality);
+          b.classList.toggle('bwl-quality-btn--half',
+            isHalf && (bVal === Math.floor(fQuality) || bVal === Math.ceil(fQuality)));
         });
       });
     });

@@ -4640,28 +4640,8 @@ button {
 }
 
 .bwl-quality-btn--half {
-  background: color-mix(in srgb, var(--q-clr) 20%, transparent);
+  background: color-mix(in srgb, var(--q-clr) 35%, transparent);
   color:      var(--q-clr);
-  position:   relative;
-}
-
-.bwl-quality-btn--half::after {
-  content:         '½';
-  position:        absolute;
-  top:             -5px;
-  right:           -5px;
-  font-size:       0.55rem;
-  font-weight:     800;
-  background:      var(--q-clr);
-  color:           #fff;
-  border-radius:   50%;
-  width:           13px;
-  height:          13px;
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  line-height:     1;
-  pointer-events:  none;
 }
 
 .bwl-quality-btn:active {
