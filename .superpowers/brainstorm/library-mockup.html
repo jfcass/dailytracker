@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Library Tab — Design Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ── App design tokens (mirrored from styles.css) ── */
+  :root {
+    --clr-bg:          #0f1210;
+    --clr-surface:     #1a1f1a;
+    --clr-surface-2:   #222822;
+    --clr-border:      #2a342a;
+    --clr-text:        #e2ebe2;
+    --clr-text-2:      #7a967a;
+    --clr-accent:      #22D4B8;
+    --clr-accent-dim:  #0d2e2a;
+    --clr-error:       #ef5350;
+    --gradient-brand:  linear-gradient(135deg, #1ABEA5 0%, #F4A800 100%);
+    --radius-card:     18px;
+    --shadow-card:     0 2px 20px rgba(0,0,0,.35);
+    --transition:      0.15s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Figtree', sans-serif;
+    background: var(--clr-bg);
+    color: var(--clr-text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 0 0 40px;
+  }
+
+  /* Phone shell */
+  .phone {
+    width: 390px;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── Library Header ── */
+  .lib-header {
+    padding: 48px 20px 20px;
+    background: var(--clr-surface);
+    border-bottom: 1px solid var(--clr-border);
+  }
+  .lib-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .lib-title {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--clr-text);
+    line-height: 1;
+  }
+  .lib-back-btn {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--clr-text-2);
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  /* Stat chips row — mirrors Hub weather chips */
+  .lib-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .lib-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    min-width: 80px;
+  }
+  .lib-chip-val {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--clr-text);
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+  .lib-chip-lbl {
+    font-size: 0.68rem;
+    color: var(--clr-text-2);
+    margin-top: 3px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── Scrollable content ── */
+  .lib-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--clr-text-2);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--clr-border);
+  }
+
+  /* ── NOW READING — Hero card ── */
+  .hero-card {
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+  .hero-card__bar {
+    height: 5px;
+    background: var(--gradient-brand);
+    flex-shrink: 0;
+  }
+  .hero-card__body {
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .hero-cover {
+    width: 88px;
+    height: 128px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    flex-shrink: 0;
+    background: var(--clr-surface-2);
+    overflow: hidden;
+    position: relative;
+  }
+  /* Placeholder cover with gradient spine */
+  .hero-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a3a36 0%, #0d2e2a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--clr-accent);
+    line-height: 1.3;
+  }
+  .hero-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .hero-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--clr-text);
+    line-height: 1.25;
+    letter-spacing: -0.2px;
+  }
+  .hero-author {
+    font-size: 0.78rem;
+    color: var(--clr-text-2);
+  }
+
+  /* Stats 2x2 grid */
+  .hero-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .hero-stat {
+    background: var(--clr-surface-2);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .hero-stat-val {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--clr-text);
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+  .hero-stat-lbl {
+    font-size: 0.62rem;
+    color: var(--clr-text-2);
+    margin-top: 2px;
+    font-weight: 500;
+  }
+
+  /* Progress bar */
+  .hero-progress-wrap {
+    padding: 0 16px 6px;
+  }
+  .hero-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .hero-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--clr-surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .hero-progress-fill {
+    height: 100%;
+    background: var(--gradient-brand);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .hero-progress-pct {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--clr-accent);
+    min-width: 30px;
+    text-align: right;
+  }
+
+  /* Action buttons */
+  .hero-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 16px;
+  }
+  .btn-primary {
+    flex: 1;
+    background: var(--clr-accent);
+    color: #0f1210;
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-secondary {
+    background: var(--clr-surface-2);
+    color: var(--clr-text);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid var(--clr-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+
+  /* Timer bar (shown when timer running) */
+  .hero-timer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--clr-accent-dim);
+    border-top: 1px solid var(--clr-border);
+  }
+  .hero-timer-ico { font-size: 1.1rem; }
+  .hero-timer-display {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--clr-accent);
+    flex: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+  }
+  .btn-timer-sm {
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-timer-pause {
+    background: var(--clr-surface-2);
+    color: var(--clr-text);
+    border: 1px solid var(--clr-border) !important;
+  }
+  .btn-timer-stop {
+    background: var(--clr-accent);
+    color: #0f1210;
+  }
+
+  /* Swipe dots */
+  .swipe-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 0 4px;
+  }
+  .swipe-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--clr-border);
+    transition: background 0.2s, width 0.2s;
+  }
+  .swipe-dot--active {
+    background: var(--clr-accent);
+    width: 18px;
+    border-radius: 3px;
+  }
+
+  /* ── FINISHED / PAUSED — Cover grid (3 per row, swipeable) ── */
+  .cover-section {}
+  .cover-strip-wrap {
+    overflow: hidden;
+    border-radius: var(--radius-card);
+  }
+  .cover-strip {
+    display: flex;
+    gap: 10px;
+    transition: transform 0.3s ease;
+  }
+  .cover-page {
+    min-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .cover-thumb {
+    aspect-ratio: 2/3;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .cover-thumb:active { transform: scale(0.95); }
+  .cover-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .cover-thumb-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 8px;
+    text-align: center;
+    gap: 6px;
+  }
+  .cover-thumb-ico { font-size: 1.4rem; opacity: 0.4; }
+  .cover-thumb-lbl {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: var(--clr-text-2);
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  /* Tapped state overlay */
+  .cover-thumb--active { border-color: var(--clr-accent); }
+  .cover-thumb--active::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(34,212,184,0.12);
+    border-radius: 9px;
+  }
+
+  /* ── Book Detail Panel (slides up) ── */
+  .detail-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .detail-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .detail-sheet {
+    width: 100%;
+    max-width: 390px;
+    margin: 0 auto;
+    background: var(--clr-surface);
+    border-radius: 20px 20px 0 0;
+    border: 1px solid var(--clr-border);
+    border-bottom: none;
+    padding: 0 0 40px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .detail-overlay.open .detail-sheet {
+    transform: translateY(0);
+  }
+  .detail-handle {
+    width: 36px; height: 4px;
+    background: var(--clr-border);
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+  .detail-header {
+    display: flex;
+    gap: 14px;
+    padding: 16px 20px;
+    align-items: flex-start;
+  }
+  .detail-cover {
+    width: 72px; height: 104px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    background: var(--clr-surface-2);
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .detail-cover-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; opacity: 0.3;
+  }
+  .detail-info { flex: 1; min-width: 0; }
+  .detail-title {
+    font-size: 1.05rem; font-weight: 800;
+    color: var(--clr-text); line-height: 1.25;
+    margin-bottom: 3px;
+  }
+  .detail-author {
+    font-size: 0.8rem; color: var(--clr-text-2);
+    margin-bottom: 10px;
+  }
+  .detail-meta {
+    font-size: 0.75rem; color: var(--clr-text-2);
+    line-height: 1.6;
+  }
+  .detail-body {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .detail-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .detail-stat {
+    background: var(--clr-surface-2);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .detail-stat-val {
+    font-size: 1.1rem; font-weight: 800;
+    color: var(--clr-text); letter-spacing: -0.3px;
+  }
+  .detail-stat-lbl {
+    font-size: 0.62rem; color: var(--clr-text-2);
+    margin-top: 2px;
+  }
+  .detail-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .detail-btn {
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid var(--clr-border);
+    background: var(--clr-surface-2);
+    color: var(--clr-text);
+  }
+  .detail-btn--accent {
+    background: var(--clr-accent-dim);
+    color: var(--clr-accent);
+    border-color: var(--clr-accent);
+  }
+  .detail-btn--danger {
+    color: var(--clr-error);
+    border-color: var(--clr-error);
+    background: transparent;
+  }
+  .detail-divider {
+    height: 1px; background: var(--clr-border);
+    margin: 2px 0;
+  }
+  .detail-close-row {
+    padding: 14px 20px 0;
+  }
+  .detail-close-btn {
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    width: 100%;
+    padding: 11px;
+    border-radius: 12px;
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    color: var(--clr-text-2);
+    cursor: pointer;
+  }
+
+  /* Cover update UI */
+  .cover-update-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Note callout ── */
+  .note-callout {
+    background: var(--clr-surface-2);
+    border: 1px solid var(--clr-border);
+    border-left: 3px solid var(--clr-accent);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: var(--clr-text-2);
+    line-height: 1.5;
+  }
+  .note-callout strong { color: var(--clr-text); }
+
+  /* ── Tabs at bottom for switching between mockup views ── */
+  .preview-tabs {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--clr-surface);
+    border-top: 1px solid var(--clr-border);
+    display: flex;
+    z-index: 50;
+  }
+  .preview-tab {
+    flex: 1;
+    padding: 12px 4px 16px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--clr-text-2);
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: 'Figtree', sans-serif;
+    transition: color var(--transition);
+  }
+  .preview-tab.active { color: var(--clr-accent); }
+  .preview-tab .tab-ico { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+
+  /* Accent for finished count badges */
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--clr-accent-dim);
+    color: var(--clr-accent);
+    font-size: 0.68rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    margin-left: 6px;
+  }
+
+  /* State: timer running variant of the Now Reading card */
+  .view { display: none; }
+  .view.active { display: block; }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ── HEADER ── -->
+  <div class="lib-header">
+    <div class="lib-header-row">
+      <div class="lib-title">Library</div>
+    </div>
+    <div class="lib-chips">
+      <div class="lib-chip">
+        <div class="lib-chip-val">🔥 12</div>
+        <div class="lib-chip-lbl">day streak</div>
+      </div>
+      <div class="lib-chip">
+        <div class="lib-chip-val">47h</div>
+        <div class="lib-chip-lbl">total read</div>
+      </div>
+      <div class="lib-chip">
+        <div class="lib-chip-val">3</div>
+        <div class="lib-chip-lbl">books read</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE BODY ── -->
+  <div class="lib-body" id="lib-body">
+
+    <!-- VIEW A: Main library view (default) -->
+    <div id="view-main">
+
+      <!-- NOW READING -->
+      <div>
+        <div class="section-label">Now Reading</div>
+
+        <!-- Hero card -->
+        <div class="hero-card" id="hero-card">
+          <div class="hero-card__bar"></div>
+          <div class="hero-card__body">
+            <div class="hero-cover">
+              <div class="hero-cover-placeholder">BOOK COVER</div>
+            </div>
+            <div class="hero-info">
+              <div class="hero-title">The Pragmatic Programmer</div>
+              <div class="hero-author">David Thomas & Andrew Hunt</div>
+              <div class="hero-stats">
+                <div class="hero-stat">
+                  <div class="hero-stat-val">14</div>
+                  <div class="hero-stat-lbl">days read</div>
+                </div>
+                <div class="hero-stat">
+                  <div class="hero-stat-val">p.214</div>
+                  <div class="hero-stat-lbl">last read</div>
+                </div>
+                <div class="hero-stat">
+                  <div class="hero-stat-val">138</div>
+                  <div class="hero-stat-lbl">pages left</div>
+                </div>
+                <div class="hero-stat">
+                  <div class="hero-stat-val">6h 20m</div>
+                  <div class="hero-stat-lbl">time read</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="hero-progress-wrap">
+            <div class="hero-progress-row">
+              <div class="hero-progress-bar">
+                <div class="hero-progress-fill" style="width:61%"></div>
+              </div>
+              <div class="hero-progress-pct">61%</div>
+            </div>
+          </div>
+
+          <!-- Action buttons (idle state) -->
+          <div class="hero-actions" id="hero-actions-idle">
+            <button class="btn-primary" onclick="startTimer()">▶ Start Timer</button>
+            <button class="btn-secondary" onclick="showLogForm()">Log Session</button>
+          </div>
+
+          <!-- Timer running state (hidden by default) -->
+          <div class="hero-timer" id="hero-timer" style="display:none">
+            <span class="hero-timer-ico">⏱</span>
+            <span class="hero-timer-display" id="timer-display">00:00:00</span>
+            <button class="btn-timer-sm btn-timer-pause" onclick="pauseTimer()">⏸ Pause</button>
+            <button class="btn-timer-sm btn-timer-stop" onclick="stopTimer()">Stop & Log</button>
+          </div>
+        </div>
+
+        <!-- Swipe dots (multiple books) -->
+        <div class="swipe-dots">
+          <div class="swipe-dot swipe-dot--active"></div>
+          <div class="swipe-dot"></div>
+          <div class="swipe-dot"></div>
+        </div>
+        <div style="text-align:center;font-size:0.68rem;color:var(--clr-text-2);margin-top:2px;">swipe for other books</div>
+      </div>
+
+      <!-- ADD BOOK -->
+      <button onclick="alert('Opens add book form')" style="
+        width:100%;padding:18px 13px;border-radius:12px;
+        margin:30px 0;
+        background:transparent;border:1.5px dashed var(--clr-border);
+        color:var(--clr-text-2);font-family:'Figtree',sans-serif;
+        font-size:0.85rem;font-weight:600;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;gap:6px;
+      ">
+        <span style="font-size:1.1rem">+</span> Add a Book
+      </button>
+
+      <!-- FINISHED -->
+      <div class="cover-section">
+        <div class="section-label">
+          Finished
+          <span class="count-badge">8</span>
+        </div>
+        <div class="cover-strip-wrap" id="finished-strip-wrap">
+          <div class="cover-strip" id="finished-strip">
+            <!-- Page 1 -->
+            <div class="cover-page">
+              <div class="cover-thumb" onclick="openDetail('atomic')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📗</span>
+                  <span class="cover-thumb-lbl">Atomic Habits</span>
+                </div>
+              </div>
+              <div class="cover-thumb" onclick="openDetail('thinking')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📘</span>
+                  <span class="cover-thumb-lbl">Thinking Fast & Slow</span>
+                </div>
+              </div>
+              <div class="cover-thumb" onclick="openDetail('deep')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📙</span>
+                  <span class="cover-thumb-lbl">Deep Work</span>
+                </div>
+              </div>
+            </div>
+            <!-- Page 2 -->
+            <div class="cover-page">
+              <div class="cover-thumb" onclick="openDetail('clean')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📒</span>
+                  <span class="cover-thumb-lbl">Clean Code</span>
+                </div>
+              </div>
+              <div class="cover-thumb" onclick="openDetail('dune')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📕</span>
+                  <span class="cover-thumb-lbl">Dune</span>
+                </div>
+              </div>
+              <div class="cover-thumb" onclick="openDetail('rest')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📓</span>
+                  <span class="cover-thumb-lbl">Rest</span>
+                </div>
+              </div>
+            </div>
+            <!-- Page 3 (partial) -->
+            <div class="cover-page">
+              <div class="cover-thumb">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📔</span>
+                  <span class="cover-thumb-lbl">The Power of Now</span>
+                </div>
+              </div>
+              <div class="cover-thumb">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📖</span>
+                  <span class="cover-thumb-lbl">Sapiens</span>
+                </div>
+              </div>
+              <div class="cover-thumb" style="opacity:0;pointer-events:none"></div>
+            </div>
+          </div>
+        </div>
+        <div class="swipe-dots" id="finished-dots">
+          <div class="swipe-dot swipe-dot--active" data-strip="finished" data-idx="0"></div>
+          <div class="swipe-dot" data-strip="finished" data-idx="1"></div>
+          <div class="swipe-dot" data-strip="finished" data-idx="2"></div>
+        </div>
+      </div>
+
+      <!-- PAUSED / GAVE UP -->
+      <div class="cover-section">
+        <div class="section-label">
+          Paused / Gave Up
+          <span class="count-badge">4</span>
+        </div>
+        <div class="cover-strip-wrap" id="paused-strip-wrap">
+          <div class="cover-strip" id="paused-strip">
+            <!-- Page 1 -->
+            <div class="cover-page">
+              <div class="cover-thumb" onclick="openDetail('war')">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📚</span>
+                  <span class="cover-thumb-lbl">War & Peace</span>
+                </div>
+              </div>
+              <div class="cover-thumb">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📚</span>
+                  <span class="cover-thumb-lbl">Infinite Jest</span>
+                </div>
+              </div>
+              <div class="cover-thumb">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📚</span>
+                  <span class="cover-thumb-lbl">GEB</span>
+                </div>
+              </div>
+            </div>
+            <!-- Page 2 (partial) -->
+            <div class="cover-page">
+              <div class="cover-thumb">
+                <div class="cover-thumb-placeholder">
+                  <span class="cover-thumb-ico">📚</span>
+                  <span class="cover-thumb-lbl">Capital</span>
+                </div>
+              </div>
+              <div class="cover-thumb" style="opacity:0;pointer-events:none"></div>
+              <div class="cover-thumb" style="opacity:0;pointer-events:none"></div>
+            </div>
+          </div>
+        </div>
+        <div class="swipe-dots" id="paused-dots">
+          <div class="swipe-dot swipe-dot--active" data-strip="paused" data-idx="0"></div>
+          <div class="swipe-dot" data-strip="paused" data-idx="1"></div>
+        </div>
+      </div>
+
+
+    </div><!-- /view-main -->
+
+  </div><!-- /lib-body -->
+
+</div><!-- /phone -->
+
+<!-- ── Book detail bottom sheet ── -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-sheet" onclick="event.stopPropagation()">
+    <div class="detail-handle"></div>
+    <div class="detail-header">
+      <div class="detail-cover">
+        <div class="detail-cover-placeholder">📗</div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title" id="detail-title">Atomic Habits</div>
+        <div class="detail-author" id="detail-author">James Clear</div>
+        <div class="detail-meta" id="detail-meta">
+          Jan 5 → Feb 2, 2025<br>
+          320 pages · 4h 50m read
+        </div>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-stats">
+        <div class="detail-stat">
+          <div class="detail-stat-val">18</div>
+          <div class="detail-stat-lbl">sessions</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-val">4h 50m</div>
+          <div class="detail-stat-lbl">total read</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-val">28d</div>
+          <div class="detail-stat-lbl">to finish</div>
+        </div>
+      </div>
+
+      <div class="detail-divider"></div>
+
+      <div class="note-callout">
+        <strong>Update cover</strong> — Search for a cover or paste an image URL below.
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input style="
+          flex:1;background:var(--clr-surface-2);border:1.5px solid var(--clr-border);
+          border-radius:10px;padding:9px 12px;color:var(--clr-text);
+          font-family:'Figtree',sans-serif;font-size:0.82rem;
+        " placeholder="Search title or paste image URL…" />
+        <button class="detail-btn detail-btn--accent" style="white-space:nowrap">Update</button>
+      </div>
+
+      <div class="detail-divider"></div>
+
+      <div class="detail-actions">
+        <button class="detail-btn detail-btn--accent">Move to Reading</button>
+        <button class="detail-btn">Edit Details</button>
+        <button class="detail-btn detail-btn--danger">Delete</button>
+      </div>
+    </div>
+    <div class="detail-close-row">
+      <button class="detail-close-btn" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Timer simulation ── */
+  let timerInt = null, timerSecs = 0, timerRunning = false, timerPaused = false;
+
+  function startTimer() {
+    if (timerRunning) return;
+    timerRunning = true;
+    timerPaused  = false;
+    document.getElementById('hero-actions-idle').style.display = 'none';
+    document.getElementById('hero-timer').style.display = 'flex';
+    timerInt = setInterval(() => {
+      timerSecs++;
+      const hh = String(Math.floor(timerSecs / 3600)).padStart(2,'0');
+      const mm = String(Math.floor((timerSecs % 3600) / 60)).padStart(2,'0');
+      const ss = String(timerSecs % 60).padStart(2,'0');
+      document.getElementById('timer-display').textContent = `${hh}:${mm}:${ss}`;
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    if (!timerRunning) return;
+    clearInterval(timerInt);
+    timerRunning = false;
+    timerPaused  = true;
+    const btn = document.querySelector('.btn-timer-pause');
+    btn.textContent = '▶ Resume';
+    btn.onclick = resumeTimer;
+  }
+
+  function resumeTimer() {
+    timerRunning = true;
+    timerPaused  = false;
+    timerInt = setInterval(() => {
+      timerSecs++;
+      const hh = String(Math.floor(timerSecs / 3600)).padStart(2,'0');
+      const mm = String(Math.floor((timerSecs % 3600) / 60)).padStart(2,'0');
+      const ss = String(timerSecs % 60).padStart(2,'0');
+      document.getElementById('timer-display').textContent = `${hh}:${mm}:${ss}`;
+    }, 1000);
+    const btn = document.querySelector('.btn-timer-pause');
+    btn.textContent = '⏸ Pause';
+    btn.onclick = pauseTimer;
+  }
+
+  function stopTimer() {
+    clearInterval(timerInt);
+    timerRunning = false; timerPaused = false; timerSecs = 0;
+    document.getElementById('hero-timer').style.display = 'none';
+    document.getElementById('hero-actions-idle').style.display = 'flex';
+    document.getElementById('timer-display').textContent = '00:00:00';
+  }
+
+  function showLogForm() {
+    alert('Log Session form would appear here');
+  }
+
+  /* ── Cover grid swiping ── */
+  function setupSwipe(stripId, dotsId, wrapId) {
+    const strip = document.getElementById(stripId);
+    const wrap  = document.getElementById(wrapId);
+    const dots  = document.querySelectorAll(`#${dotsId} .swipe-dot`);
+    const pages = strip.querySelectorAll('.cover-page');
+    let cur = 0;
+    let startX = 0;
+
+    wrap.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    wrap.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) < 40) return;
+      if (dx < 0 && cur < pages.length - 1) cur++;
+      else if (dx > 0 && cur > 0) cur--;
+      strip.style.transform = `translateX(calc(-${cur * 100}%))`;
+      dots.forEach((d, i) => d.classList.toggle('swipe-dot--active', i === cur));
+    }, { passive: true });
+
+    // Mouse drag (desktop testing)
+    wrap.addEventListener('mousedown', e => { startX = e.clientX; });
+    wrap.addEventListener('mouseup', e => {
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) < 40) return;
+      if (dx < 0 && cur < pages.length - 1) cur++;
+      else if (dx > 0 && cur > 0) cur--;
+      strip.style.transform = `translateX(calc(-${cur * 100}%))`;
+      dots.forEach((d, i) => d.classList.toggle('swipe-dot--active', i === cur));
+    });
+  }
+
+  setupSwipe('finished-strip', 'finished-dots', 'finished-strip-wrap');
+  setupSwipe('paused-strip',   'paused-dots',   'paused-strip-wrap');
+
+  /* ── Book detail sheet ── */
+  const bookData = {
+    atomic:   { title: 'Atomic Habits',         author: 'James Clear',           meta: 'Jan 5 → Feb 2, 2025 · 320 pages · 4h 50m read' },
+    thinking: { title: 'Thinking, Fast and Slow', author: 'Daniel Kahneman',     meta: 'Nov 12 → Dec 20, 2024 · 499 pages · 8h 10m read' },
+    deep:     { title: 'Deep Work',              author: 'Cal Newport',           meta: 'Sep 3 → Oct 1, 2024 · 296 pages · 5h 30m read' },
+    clean:    { title: 'Clean Code',             author: 'Robert C. Martin',      meta: 'Jul 10 → Aug 5, 2024 · 431 pages · 9h 20m read' },
+    dune:     { title: 'Dune',                   author: 'Frank Herbert',         meta: 'Mar 1 → Apr 15, 2024 · 896 pages · 18h read' },
+    rest:     { title: 'Rest',                   author: 'Alex Soojung-Kim Pang', meta: 'Feb 2 → Feb 28, 2024 · 336 pages · 5h 50m read' },
+    war:      { title: 'War & Peace',            author: 'Leo Tolstoy',           meta: 'Started Jan 1, 2024 · paused at p.230 of 1225' },
+  };
+
+  function openDetail(id) {
+    const b = bookData[id] || bookData.atomic;
+    document.getElementById('detail-title').textContent  = b.title;
+    document.getElementById('detail-author').textContent = b.author;
+    document.getElementById('detail-meta').textContent   = b.meta;
+    document.getElementById('detail-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDetail(e) {
+    if (e && e.target !== document.getElementById('detail-overlay')) return;
+    document.getElementById('detail-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+</script>
+</body>
+</html>

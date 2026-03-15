@@ -52,8 +52,10 @@ const Books = (() => {
 
   let saveTimer = null;
 
-  // Finished-books grid: which cover is expanded
-  let expandedFinishedId = null;
+  // Library tab UI state
+  let heroBookIdx   = 0;    // which currently-reading book is shown in hero
+  let detailBookId  = null; // which book's detail sheet is open
+  let coverUrlInput = '';   // URL input for cover update in detail sheet
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,6 +89,54 @@ const Books = (() => {
       month: 'short', day: 'numeric',
       hour: 'numeric', minute: '2-digit',
     });
+  }
+
+  function fmtTotalTime(mins) {
+    if (mins < 60) return `${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function getLastSessionDate(bookId) {
+    const allDays = Data.getData().days ?? {};
+    const dates = Object.keys(allDays)
+      .filter(d => (allDays[d]?.reading ?? []).some(s => s.book_id === bookId))
+      .sort();
+    return dates.length ? dates[dates.length - 1] : null;
+  }
+
+  function getReadingStreak() {
+    const allDays  = Data.getData().days ?? {};
+    const sorted   = Object.keys(allDays).sort().reverse();
+    const todayStr = Data.today();
+    let streak = 0;
+    for (const d of sorted) {
+      if (d > todayStr) continue;
+      const hasSessions = (allDays[d]?.reading ?? []).length > 0;
+      if (hasSessions) { streak++; continue; }
+      if (d === todayStr) continue; // today not read yet — don't break streak
+      break;
+    }
+    return streak;
+  }
+
+  function getTotalReadMinutes() {
+    const allDays = Data.getData().days ?? {};
+    let total = 0;
+    for (const day of Object.values(allDays)) {
+      for (const s of (day.reading ?? [])) total += (s.minutes ?? 0);
+    }
+    return total;
+  }
+
+  function getBookDaysRead(bookId) {
+    const allDays = Data.getData().days ?? {};
+    const dates = new Set();
+    for (const [date, day] of Object.entries(allDays)) {
+      if ((day.reading ?? []).some(s => s.book_id === bookId)) dates.add(date);
+    }
+    return dates.size;
   }
 
   function scheduleSave() {
@@ -564,191 +614,411 @@ const Books = (() => {
 
     const books    = getBooks();
     const bookList = Object.values(books);
-    const reading  = bookList.filter(b => b.status === 'reading');
-    const paused   = bookList.filter(b => b.status === 'paused');
-    const finished = bookList.filter(b => b.status === 'finished');
 
-    let html = `<div class="book-lib-header">
-      <h3 class="book-lib-title">My Books</h3>
-      <button class="book-lib-done-btn" onclick="App.switchTab('today')">← Today</button>
-    </div>
-    <div id="book-daily"></div>`;
+    // Sort reading: most recently read first
+    const reading = bookList
+      .filter(b => b.status === 'reading')
+      .sort((a, b) => {
+        const la = getLastSessionDate(a.id);
+        const lb = getLastSessionDate(b.id);
+        if (!la && !lb) return 0;
+        if (!la) return 1;
+        if (!lb) return -1;
+        return lb.localeCompare(la);
+      });
+    const paused   = bookList.filter(b => b.status === 'paused');
+    const finished = bookList
+      .filter(b => b.status === 'finished')
+      .sort((a, b) => (b.finish_date ?? '').localeCompare(a.finish_date ?? ''));
+
+    if (heroBookIdx >= reading.length) heroBookIdx = Math.max(0, reading.length - 1);
+
+    const streak    = getReadingStreak();
+    const totalMins = getTotalReadMinutes();
+    const totalDisp = fmtTotalTime(totalMins);
+
+    let html = `
+      <div class="lib-header">
+        <div class="lib-title">Library</div>
+        <div class="lib-chips">
+          <div class="lib-chip">
+            <div class="lib-chip-val">🔥 ${streak}</div>
+            <div class="lib-chip-lbl">day streak</div>
+          </div>
+          <div class="lib-chip">
+            <div class="lib-chip-val">${totalDisp}</div>
+            <div class="lib-chip-lbl">total read</div>
+          </div>
+          <div class="lib-chip">
+            <div class="lib-chip-val">${finished.length}</div>
+            <div class="lib-chip-lbl">books read</div>
+          </div>
+        </div>
+      </div>
+      <div class="lib-body">`;
 
     if (addingBook || editingBookId) {
-      const isEditing = !!editingBookId;
-      const heading   = isEditing ? 'Edit Book' : 'Add Book';
-
-      html += `<div class="book-add-form">
-        <p class="book-form-heading">${heading}</p>`;
-
-      // ── Search (new books only) ──
-      if (!isEditing) {
-        html += `
-        <div class="book-form-field">
-          <label class="book-form-label">Search for a book</label>
-          <div class="book-search-wrap">
-            <input class="book-form-input book-search-input" type="text"
-                   placeholder="Search by title, author, or ISBN…"
-                   value="${escHtml(fbSearchQuery)}"
-                   oninput="Books._fbSearch(this.value)"
-                   autocomplete="off">
-            <span class="book-search-spinner" ${fbSearching ? '' : 'hidden'}>${fbSearching ? 'Searching…' : ''}</span>
-          </div>
-        </div>
-        <div class="book-search-results-slot">${buildSearchResults()}</div>`;
-      }
-
-      // ── Cover preview ──
-      if (fbCoverUrl) {
-        html += `
-        <div class="book-cover-preview">
-          <img src="${escHtml(fbCoverUrl)}" alt="Book cover" class="book-cover-preview-img">
-          <button class="book-cover-clear-btn" type="button"
-                  onclick="Books._fbClearCover()">✕ Remove cover</button>
-        </div>`;
-      }
-
-      // ── Manual fields ──
-      html += `
-        <div class="book-form-field">
-          <label class="book-form-label" for="book-fb-title">
-            Title <span class="book-form-required">*</span>
-          </label>
-          <input id="book-fb-title" class="book-form-input" type="text"
-                 placeholder="Book title" value="${escHtml(fbTitle)}"
-                 oninput="Books._fbField('fbTitle', this.value)">
-        </div>
-        <div class="book-form-field">
-          <label class="book-form-label" for="book-fb-author">
-            Author <span class="book-form-optional">(optional)</span>
-          </label>
-          <input id="book-fb-author" class="book-form-input" type="text"
-                 placeholder="Author name" value="${escHtml(fbAuthor)}"
-                 oninput="Books._fbField('fbAuthor', this.value)">
-        </div>
-        <div class="book-form-field">
-          <label class="book-form-label" for="book-fb-pages">
-            Total pages <span class="book-form-optional">(optional)</span>
-          </label>
-          <input id="book-fb-pages" class="book-form-input book-narrow-input"
-                 type="number" min="1" placeholder="e.g. 320"
-                 value="${escHtml(fbPages)}"
-                 oninput="Books._fbField('fbPages', this.value)">
-        </div>
-        <div class="book-form-actions">
-          <button class="book-form-cancel-btn" onclick="Books._cancelBookEdit()">Cancel</button>
-          <button class="book-form-save-btn"   onclick="Books._saveBook()">Save Book</button>
-        </div>
-      </div>`;
-
+      html += buildLibBookForm();
     } else {
-      html += `<button class="book-add-book-btn" onclick="Books._startAddBook()">+ Add Book</button>`;
+      // ── Now Reading ──
+      html += `<div><div class="lib-section-label">Now Reading</div>`;
+
+      if (reading.length > 0) {
+        html += buildHeroCard(reading[heroBookIdx]);
+        if (reading.length > 1) {
+          html += `<div class="lib-swipe-dots">`;
+          reading.forEach((_, i) => {
+            html += `<div class="lib-swipe-dot${i === heroBookIdx ? ' lib-swipe-dot--active' : ''}"></div>`;
+          });
+          html += `</div><div class="lib-swipe-hint">swipe for other books</div>`;
+        }
+      } else {
+        html += `<div class="lib-empty">No books in progress — add one below.</div>`;
+      }
+
+      // Session form / history (below hero card)
+      if (reading.length > 0) {
+        const sessions = getSessions(currentDate);
+        if (fFormBookId !== null && !editingSession) {
+          html += buildSessionForm(null);
+        }
+        if (sessions.length > 0) {
+          const hasEditingSession = sessions.some(s => s.id === editingSession);
+          if (!hasEditingSession) {
+            const dateLabel = currentDate === Data.today() ? "today's" : currentDate;
+            html += `<button class="book-history-toggle" onclick="Books._toggleSessionHistory()">
+              ${sessionHistoryOpen ? '▲' : '▼'} ${dateLabel} log (${sessions.length})
+            </button>`;
+          }
+          if (sessionHistoryOpen || hasEditingSession) {
+            html += `<div class="book-sessions-list">`;
+            sessions.forEach(s => {
+              if (editingSession === s.id) {
+                html += buildSessionForm(s.id);
+              } else {
+                const b         = books[s.book_id];
+                const pagesRead = calcPagesRead(s.id, s.book_id);
+                const showTitle = bookList.length > 1 && b;
+                html += `<div class="book-session-card">
+                  <span class="book-session-dot"></span>
+                  <div class="book-session-body">
+                    <div class="book-session-summary">
+                      <strong>${fmtTime(s.minutes ?? 0)}</strong>
+                      ${pagesRead  ? ` · ${pagesRead} pages` : ''}
+                      ${s.page_end ? ` · up to p.${s.page_end}` : ''}
+                      ${showTitle  ? `<span class="book-session-book-tag">${escHtml(b.title)}</span>` : ''}
+                    </div>
+                    ${s.notes     ? `<div class="book-session-notes">${escHtml(s.notes)}</div>` : ''}
+                    ${s.logged_at ? `<div class="book-session-logged-at">Logged ${fmtLoggedAt(s.logged_at)}</div>` : ''}
+                  </div>
+                  <div class="book-session-actions">
+                    <button class="book-sess-edit-btn" onclick="Books._startEditSession('${s.id}')">Edit</button>
+                    <button class="book-sess-del-btn"  onclick="Books._deleteSession('${s.id}')">Delete</button>
+                  </div>
+                </div>`;
+              }
+            });
+            html += `</div>`;
+          }
+        }
+      }
+
+      // Add book button
+      html += `<button class="lib-add-btn" onclick="Books._startAddBook()">
+        <span class="lib-add-btn-plus">+</span> Add a Book
+      </button></div>`;
+
+      // ── Finished ──
+      if (finished.length > 0) html += buildCoverGrid('Finished', finished, 'finished');
+
+      // ── Paused / Gave Up ──
+      if (paused.length > 0) html += buildCoverGrid('Paused / Gave Up', paused, 'paused');
     }
 
-    const renderGroup = (label, list) => {
-      if (!list.length) return '';
-      let g = `<div class="book-group"><p class="book-group-title">${label}</p>`;
-      list.forEach(b => {
-        const stats    = getBookStats(b.id);
-        const progress = (b.total_pages && stats.currentPage)
-          ? Math.min(100, Math.round((stats.currentPage / b.total_pages) * 100))
-          : null;
-        const dateInfo = b.status === 'finished'
-          ? `${fmtShortDate(b.start_date)} → ${fmtShortDate(b.finish_date)}`
-          : `Started ${fmtShortDate(b.start_date)}`;
+    html += `</div>`; // /lib-body
 
-        g += `<div class="book-card">
-          ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" class="book-card-cover" alt="" loading="lazy">` : ''}
-          <div class="book-card-main">
-            <div class="book-card-info">
-              <div class="book-card-title">${escHtml(b.title)}</div>
-              ${b.author ? `<div class="book-card-author">${escHtml(b.author)}</div>` : ''}
-              <div class="book-card-stats">
-                ${stats.totalMinutes ? fmtTime(stats.totalMinutes) + ' read' : 'No sessions yet'}
-                ${stats.currentPage  ? ` · p.${stats.currentPage}` : ''}
-                ${b.total_pages      ? ` / ${b.total_pages}` : ''}
-              </div>
-              <div class="book-card-date">${dateInfo}</div>
-            </div>
-            ${progress !== null ? `
-            <div class="book-card-progress">
-              <div class="book-card-progress-bar">
-                <div class="book-card-progress-fill" style="width:${progress}%"></div>
-              </div>
-              <div class="book-card-progress-pct">${progress}%</div>
-            </div>` : ''}
-          </div>
-          <div class="book-card-actions">
-            ${b.status !== 'finished' ? `
-            <button class="book-card-finish-btn" onclick="Books._markFinished('${b.id}')">Mark Finished</button>
-            <button class="book-card-pause-btn"  onclick="Books._togglePause('${b.id}')">
-              ${b.status === 'paused' ? 'Resume' : 'Pause'}
-            </button>` : ''}
-            <button class="book-card-edit-btn" onclick="Books._startEditBook('${b.id}')">Edit</button>
-            <button class="book-card-del-btn"  onclick="Books._deleteBook('${b.id}')">Delete</button>
-          </div>
-        </div>`;
-      });
-      g += '</div>';
-      return g;
-    };
-
-    const renderFinishedGroup = (list) => {
-      if (!list.length) return '';
-      let g = `<div class="book-group"><p class="book-group-title">Finished</p>`;
-      g += `<div class="book-finished-grid">`;
-      list.forEach(b => {
-        const isActive = expandedFinishedId === b.id;
-        g += `<div class="book-finished-thumb${isActive ? ' book-finished-thumb--active' : ''}"
-                   onclick="Books._toggleFinishedBook('${b.id}')">`;
-        if (b.cover_url) {
-          g += `<img src="${escHtml(b.cover_url)}" alt="${escHtml(b.title)}" loading="lazy">`;
-        } else {
-          g += `<span class="book-finished-thumb-label">${escHtml(b.title)}</span>`;
-        }
-        g += `</div>`;
-      });
-      g += `</div>`;
-
-      if (expandedFinishedId) {
-        const b = list.find(x => x.id === expandedFinishedId);
-        if (b) {
-          const stats    = getBookStats(b.id);
-          const dateInfo = [fmtShortDate(b.start_date), fmtShortDate(b.finish_date)]
-            .filter(Boolean).join(' → ');
-          g += `<div class="book-finished-detail">
-            <div class="book-finished-detail-header">
-              ${b.cover_url ? `<img src="${escHtml(b.cover_url)}" class="book-finished-detail-cover" alt="">` : ''}
-              <div>
-                <div class="book-finished-detail-title">${escHtml(b.title)}</div>
-                ${b.author ? `<div class="book-finished-detail-author">${escHtml(b.author)}</div>` : ''}
-              </div>
-            </div>
-            <div class="book-finished-detail-meta">
-              ${dateInfo}${b.total_pages ? ` · ${b.total_pages} pages` : ''}<br>
-              ${stats.totalMinutes ? fmtTime(stats.totalMinutes) + ' read' : 'No reading sessions logged'}
-            </div>
-            <div class="book-finished-detail-actions">
-              <button onclick="Books._startEditBook('${b.id}')">Edit</button>
-              <button class="book-finished-detail-del-btn" onclick="Books._deleteBook('${b.id}')">Delete</button>
-            </div>
-          </div>`;
-        }
-      }
-
-      g += '</div>';
-      return g;
-    };
-
-    html += renderGroup('Currently Reading', reading);
-    html += renderGroup('Paused', paused);
-    html += renderFinishedGroup(finished);
-
-    if (!bookList.length && !addingBook) {
-      html += `<p class="book-empty">No books yet. Add your first book above!</p>`;
+    // Detail overlay
+    if (detailBookId && books[detailBookId]) {
+      html += buildDetailSheet(books[detailBookId]);
     }
 
     panel.innerHTML = html;
+    attachLibrarySwipe();
+    if (timerInterval || timerPaused) updateTimerDisplay();
+  }
+
+  // ── Library sub-renderers ─────────────────────────────────────────────────────
+
+  function buildHeroCard(book) {
+    const stats     = getBookStats(book.id);
+    const daysRead  = getBookDaysRead(book.id);
+    const pagesLeft = (book.total_pages && stats.currentPage)
+      ? Math.max(0, book.total_pages - stats.currentPage) : null;
+    const progress  = (book.total_pages && stats.currentPage)
+      ? Math.min(100, Math.round((stats.currentPage / book.total_pages) * 100)) : null;
+    const isTimerOn = !!timerInterval || timerPaused;
+    const isLogging = fFormBookId !== null && !editingSession;
+    const isToday   = currentDate === Data.today();
+
+    let html = `<div class="lib-hero-card" id="lib-hero-card">
+      <div class="lib-hero-bar"></div>
+      <div class="lib-hero-body">`;
+
+    if (book.cover_url) {
+      html += `<img src="${escHtml(book.cover_url)}" class="lib-hero-cover" alt="" loading="lazy">`;
+    } else {
+      html += `<div class="lib-hero-cover lib-hero-cover--empty">📚</div>`;
+    }
+
+    html += `<div class="lib-hero-info">
+        <div class="lib-hero-title">${escHtml(book.title)}</div>
+        ${book.author ? `<div class="lib-hero-author">${escHtml(book.author)}</div>` : ''}
+        <div class="lib-hero-stats">
+          <div class="lib-hero-stat">
+            <div class="lib-hero-stat-val">${daysRead || '—'}</div>
+            <div class="lib-hero-stat-lbl">days read</div>
+          </div>
+          <div class="lib-hero-stat">
+            <div class="lib-hero-stat-val">${stats.currentPage ? `p.${stats.currentPage}` : '—'}</div>
+            <div class="lib-hero-stat-lbl">last read</div>
+          </div>
+          <div class="lib-hero-stat">
+            <div class="lib-hero-stat-val">${pagesLeft !== null ? pagesLeft : '—'}</div>
+            <div class="lib-hero-stat-lbl">pages left</div>
+          </div>
+          <div class="lib-hero-stat">
+            <div class="lib-hero-stat-val">${stats.totalMinutes ? fmtTotalTime(stats.totalMinutes) : '—'}</div>
+            <div class="lib-hero-stat-lbl">time read</div>
+          </div>
+        </div>
+      </div>
+    </div>`; // /lib-hero-body
+
+    if (progress !== null) {
+      html += `<div class="lib-hero-progress-wrap">
+        <div class="lib-hero-progress-row">
+          <div class="lib-hero-progress-bar">
+            <div class="lib-hero-progress-fill" style="width:${progress}%"></div>
+          </div>
+          <div class="lib-hero-progress-pct">${progress}%</div>
+        </div>
+      </div>`;
+    }
+
+    if (isTimerOn) {
+      html += `<div class="lib-hero-timer${timerPaused ? ' lib-hero-timer--paused' : ''}">
+        <span class="lib-hero-timer-ico">${timerPaused ? '⏸' : '⏱'}</span>
+        <span class="book-timer-display lib-hero-timer-display">00:00:00</span>
+        ${timerPaused
+          ? `<button class="lib-timer-btn lib-timer-btn--pause" onclick="Books._resumeTimer()">▶ Resume</button>`
+          : `<button class="lib-timer-btn lib-timer-btn--pause" onclick="Books._pauseTimer()">⏸ Pause</button>`}
+        <button class="lib-timer-btn lib-timer-btn--stop" onclick="Books._stopTimer()">Stop &amp; Log</button>
+      </div>`;
+    } else if (!isLogging) {
+      html += `<div class="lib-hero-actions">
+        ${isToday ? `<button class="lib-btn-primary" onclick="Books._startTimer()">▶ Start Timer</button>` : ''}
+        <button class="lib-btn-secondary" onclick="Books._startLogSession()">Log Session</button>
+      </div>`;
+    }
+
+    html += `</div>`; // /lib-hero-card
+    return html;
+  }
+
+  function buildCoverGrid(label, bookList, prefix) {
+    const pages = [];
+    for (let i = 0; i < bookList.length; i += 3) pages.push(bookList.slice(i, i + 3));
+
+    let html = `<div class="lib-cover-section">
+      <div class="lib-section-label">${escHtml(label)}<span class="lib-count-badge">${bookList.length}</span></div>
+      <div class="lib-cover-strip-wrap" id="lib-${prefix}-wrap">
+        <div class="lib-cover-strip" id="lib-${prefix}-strip">`;
+
+    pages.forEach(page => {
+      html += `<div class="lib-cover-page">`;
+      for (let i = 0; i < 3; i++) {
+        const b = page[i];
+        if (!b) { html += `<div class="lib-cover-thumb lib-cover-thumb--empty"></div>`; continue; }
+        html += `<div class="lib-cover-thumb" onclick="Books._openDetail('${escHtml(b.id)}')">`;
+        if (b.cover_url) {
+          html += `<img src="${escHtml(b.cover_url)}" alt="${escHtml(b.title)}" loading="lazy">`;
+        } else {
+          html += `<div class="lib-cover-thumb-placeholder">
+            <span class="lib-cover-thumb-ico">📚</span>
+            <span class="lib-cover-thumb-lbl">${escHtml(b.title)}</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      html += `</div>`; // /lib-cover-page
+    });
+
+    html += `</div></div>`; // /strip, /strip-wrap
+
+    if (pages.length > 1) {
+      html += `<div class="lib-swipe-dots" id="lib-${prefix}-dots">`;
+      pages.forEach((_, i) => {
+        html += `<div class="lib-swipe-dot${i === 0 ? ' lib-swipe-dot--active' : ''}"></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`; // /lib-cover-section
+    return html;
+  }
+
+  function buildDetailSheet(book) {
+    const stats    = getBookStats(book.id);
+    const daysRead = getBookDaysRead(book.id);
+    const allSessions = Object.values(Data.getData().days ?? {})
+      .flatMap(d => (d.reading ?? []).filter(s => s.book_id === book.id));
+    const dateInfo = book.status === 'finished'
+      ? `${fmtShortDate(book.start_date)} → ${fmtShortDate(book.finish_date)}`
+      : `Started ${fmtShortDate(book.start_date)}`;
+
+    return `<div class="lib-detail-overlay" id="lib-detail-overlay" onclick="Books._closeDetail(event)">
+      <div class="lib-detail-sheet" onclick="event.stopPropagation()">
+        <div class="lib-detail-handle"></div>
+        <div class="lib-detail-header">
+          ${book.cover_url
+            ? `<img src="${escHtml(book.cover_url)}" class="lib-detail-cover" alt="" loading="lazy">`
+            : `<div class="lib-detail-cover lib-detail-cover--empty">📚</div>`}
+          <div class="lib-detail-info">
+            <div class="lib-detail-title">${escHtml(book.title)}</div>
+            ${book.author ? `<div class="lib-detail-author">${escHtml(book.author)}</div>` : ''}
+            <div class="lib-detail-meta">${escHtml(dateInfo)}${book.total_pages ? ` · ${book.total_pages} pages` : ''}</div>
+          </div>
+        </div>
+        <div class="lib-detail-body">
+          <div class="lib-detail-stats">
+            <div class="lib-detail-stat">
+              <div class="lib-detail-stat-val">${allSessions.length}</div>
+              <div class="lib-detail-stat-lbl">sessions</div>
+            </div>
+            <div class="lib-detail-stat">
+              <div class="lib-detail-stat-val">${stats.totalMinutes ? fmtTotalTime(stats.totalMinutes) : '—'}</div>
+              <div class="lib-detail-stat-lbl">time read</div>
+            </div>
+            <div class="lib-detail-stat">
+              <div class="lib-detail-stat-val">${daysRead}</div>
+              <div class="lib-detail-stat-lbl">days read</div>
+            </div>
+          </div>
+          <div class="lib-detail-divider"></div>
+          <div class="lib-detail-cover-update">
+            <div class="lib-detail-cover-label">Update Cover</div>
+            <div class="lib-detail-cover-row">
+              <input class="lib-detail-cover-input" type="text"
+                     placeholder="Paste image URL…"
+                     value="${escHtml(coverUrlInput)}"
+                     oninput="Books._coverUrlChange(this.value)">
+              <button class="lib-detail-btn lib-detail-btn--accent"
+                      onclick="Books._updateCover('${escHtml(book.id)}')">Save</button>
+            </div>
+          </div>
+          <div class="lib-detail-divider"></div>
+          <div class="lib-detail-actions">
+            ${book.status === 'finished'
+              ? `<button class="lib-detail-btn" onclick="Books._markReading('${escHtml(book.id)}')">Move to Reading</button>`
+              : `<button class="lib-detail-btn lib-detail-btn--accent" onclick="Books._closeDetailAndFinish('${escHtml(book.id)}')">Mark Finished</button>`}
+            <button class="lib-detail-btn" onclick="Books._closeDetailAndEdit('${escHtml(book.id)}')">Edit Details</button>
+            <button class="lib-detail-btn lib-detail-btn--danger" onclick="Books._deleteBook('${escHtml(book.id)}')">Delete</button>
+          </div>
+        </div>
+        <div class="lib-detail-close-row">
+          <button class="lib-detail-close-btn" onclick="Books._closeDetail()">Close</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function buildLibBookForm() {
+    const isEditing = !!editingBookId;
+    let html = `<div class="lib-book-form">
+      <p class="book-form-heading">${isEditing ? 'Edit Book' : 'Add Book'}</p>`;
+    if (!isEditing) {
+      html += `<div class="book-form-field">
+        <label class="book-form-label">Search for a book</label>
+        <div class="book-search-wrap">
+          <input class="book-form-input book-search-input" type="text"
+                 placeholder="Search by title, author, or ISBN…"
+                 value="${escHtml(fbSearchQuery)}"
+                 oninput="Books._fbSearch(this.value)"
+                 autocomplete="off">
+          <span class="book-search-spinner" ${fbSearching ? '' : 'hidden'}>${fbSearching ? 'Searching…' : ''}</span>
+        </div>
+      </div>
+      <div class="book-search-results-slot">${buildSearchResults()}</div>`;
+    }
+    if (fbCoverUrl) {
+      html += `<div class="book-cover-preview">
+        <img src="${escHtml(fbCoverUrl)}" alt="Book cover" class="book-cover-preview-img">
+        <button class="book-cover-clear-btn" type="button" onclick="Books._fbClearCover()">✕ Remove cover</button>
+      </div>`;
+    }
+    html += `
+      <div class="book-form-field">
+        <label class="book-form-label" for="book-fb-title">Title <span class="book-form-required">*</span></label>
+        <input id="book-fb-title" class="book-form-input" type="text"
+               placeholder="Book title" value="${escHtml(fbTitle)}"
+               oninput="Books._fbField('fbTitle', this.value)">
+      </div>
+      <div class="book-form-field">
+        <label class="book-form-label" for="book-fb-author">Author <span class="book-form-optional">(optional)</span></label>
+        <input id="book-fb-author" class="book-form-input" type="text"
+               placeholder="Author name" value="${escHtml(fbAuthor)}"
+               oninput="Books._fbField('fbAuthor', this.value)">
+      </div>
+      <div class="book-form-field">
+        <label class="book-form-label" for="book-fb-pages">Total pages <span class="book-form-optional">(optional)</span></label>
+        <input id="book-fb-pages" class="book-form-input book-narrow-input"
+               type="number" min="1" placeholder="e.g. 320"
+               value="${escHtml(fbPages)}"
+               oninput="Books._fbField('fbPages', this.value)">
+      </div>
+      <div class="book-form-actions">
+        <button class="book-form-cancel-btn" onclick="Books._cancelBookEdit()">Cancel</button>
+        <button class="book-form-save-btn"   onclick="Books._saveBook()">Save Book</button>
+      </div>
+    </div>`;
+    return html;
+  }
+
+  function attachLibrarySwipe() {
+    const heroCard = document.getElementById('lib-hero-card');
+    if (heroCard) {
+      let startX = 0;
+      heroCard.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+      heroCard.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        if (Math.abs(dx) < 40) return;
+        const readingBooks = Object.values(getBooks()).filter(b => b.status === 'reading');
+        if (dx < 0 && heroBookIdx < readingBooks.length - 1) { heroBookIdx++; renderLibraryTab(); }
+        else if (dx > 0 && heroBookIdx > 0) { heroBookIdx--; renderLibraryTab(); }
+      }, { passive: true });
+    }
+    setupCoverGridSwipe('lib-finished-strip', 'lib-finished-dots', 'lib-finished-wrap');
+    setupCoverGridSwipe('lib-paused-strip',   'lib-paused-dots',   'lib-paused-wrap');
+  }
+
+  function setupCoverGridSwipe(stripId, dotsId, wrapId) {
+    const wrap  = document.getElementById(wrapId);
+    const strip = document.getElementById(stripId);
+    if (!wrap || !strip) return;
+    const pages = strip.querySelectorAll('.lib-cover-page');
+    let cur = 0, startX = 0;
+    const goTo = idx => {
+      cur = Math.max(0, Math.min(idx, pages.length - 1));
+      strip.style.transform = `translateX(calc(-${cur * 100}%))`;
+      const dots = document.querySelectorAll(`#${dotsId} .lib-swipe-dot`);
+      dots.forEach((d, i) => d.classList.toggle('lib-swipe-dot--active', i === cur));
+    };
+    wrap.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    wrap.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) < 40) return;
+      goTo(dx < 0 ? cur + 1 : cur - 1);
+    }, { passive: true });
   }
 
   function renderInlineHabits() {
@@ -1026,6 +1296,33 @@ const Books = (() => {
     if (field === 'fbPages')  fbPages  = val;
   }
 
+  function _openDetail(id)    { detailBookId = id; coverUrlInput = ''; renderLibraryTab(); }
+  function _closeDetail(e)    {
+    if (e && e.target?.id !== 'lib-detail-overlay') return;
+    detailBookId = null; coverUrlInput = ''; renderLibraryTab();
+  }
+  function _coverUrlChange(val) { coverUrlInput = val; }
+  function _updateCover(id) {
+    const url  = coverUrlInput.trim();
+    const book = getBooks()[id];
+    if (!url || !book) return;
+    book.cover_url = url;
+    coverUrlInput  = '';
+    scheduleSave();
+    renderLibraryTab();
+  }
+  function _markReading(id) {
+    const book = getBooks()[id];
+    if (!book) return;
+    book.status      = 'reading';
+    book.finish_date = null;
+    detailBookId     = null;
+    scheduleSave();
+    render();
+  }
+  function _closeDetailAndEdit(id)   { detailBookId = null; startEditBook(id); }
+  function _closeDetailAndFinish(id) { detailBookId = null; markFinished(id); }
+
   // ── Init / setDate ───────────────────────────────────────────────────────────
 
   function init() {
@@ -1041,15 +1338,14 @@ const Books = (() => {
     showLibrary        = false;
     editingSession     = null;
     sessionHistoryOpen = false;
+    heroBookIdx        = 0;
+    detailBookId       = null;
+    coverUrlInput      = '';
     fMinutes = fPageEnd = fNotes = fDate = '';
     fFormBookId = null;
     render();
   }
 
-  function _toggleFinishedBook(id) {
-    expandedFinishedId = (expandedFinishedId === id) ? null : id;
-    renderLibraryTab();
-  }
 
   // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -1063,6 +1359,7 @@ const Books = (() => {
     _toggleSessionHistory,
     _fbSearch, _fbSelectResult, _fbClearCover,
     _fField, _fbField,
-    _toggleFinishedBook,
+    _openDetail, _closeDetail, _coverUrlChange, _updateCover,
+    _markReading, _closeDetailAndEdit, _closeDetailAndFinish,
   };
 })();

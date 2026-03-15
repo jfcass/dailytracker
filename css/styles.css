@@ -3199,6 +3199,505 @@ button {
   min-width: 0;
 }
 
+/* ── Library Tab Redesign ────────────────────────────────────────────────── */
+
+/* Header */
+.lib-header {
+  position:    sticky;
+  top:         0;
+  z-index:     10;
+  background:  var(--clr-surface);
+  border-bottom: 1px solid var(--clr-border);
+  padding:     20px;
+}
+.lib-title {
+  font-size:      30px;
+  font-weight:    800;
+  letter-spacing: -0.5px;
+  color:          var(--clr-text);
+  line-height:    1;
+  margin-bottom:  14px;
+}
+.lib-chips {
+  display:   flex;
+  gap:       8px;
+  flex-wrap: wrap;
+}
+.lib-chip {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  background:     var(--clr-surface-2);
+  border:         1px solid var(--clr-border);
+  border-radius:  12px;
+  padding:        8px 14px;
+  min-width:      72px;
+}
+.lib-chip-val {
+  font-size:      18px;
+  font-weight:    800;
+  color:          var(--clr-text);
+  letter-spacing: -0.3px;
+  line-height:    1;
+}
+.lib-chip-lbl {
+  font-size:      0.68rem;
+  color:          var(--clr-text-2);
+  margin-top:     3px;
+  font-weight:    500;
+  letter-spacing: 0.2px;
+}
+
+/* Scrollable body */
+.lib-body {
+  display:        flex;
+  flex-direction: column;
+  gap:            24px;
+  padding:        20px 16px 40px;
+}
+
+/* Section label */
+.lib-section-label {
+  font-size:      0.72rem;
+  font-weight:    700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color:          var(--clr-text-2);
+  margin-bottom:  10px;
+  padding-bottom: 8px;
+  border-bottom:  1px solid var(--clr-border);
+  display:        flex;
+  align-items:    center;
+  gap:            6px;
+}
+.lib-count-badge {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       18px;
+  height:          18px;
+  padding:         0 5px;
+  background:      var(--clr-accent-dim);
+  color:           var(--clr-accent);
+  font-size:       0.68rem;
+  font-weight:     700;
+  border-radius:   9px;
+}
+
+/* Hero card */
+.lib-hero-card {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 18px;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-card);
+}
+.lib-hero-bar {
+  height:     5px;
+  background: var(--gradient-brand);
+}
+.lib-hero-body {
+  display:     flex;
+  gap:         14px;
+  padding:     16px;
+  align-items: flex-start;
+}
+.lib-hero-cover {
+  width:        88px;
+  height:       128px;
+  border-radius: 8px;
+  object-fit:   cover;
+  box-shadow:   0 4px 14px rgba(0,0,0,0.35);
+  flex-shrink:  0;
+  background:   var(--clr-surface-2);
+}
+.lib-hero-cover--empty {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       2.2rem;
+  opacity:         0.35;
+}
+.lib-hero-info {
+  flex:      1;
+  min-width: 0;
+  display:   flex;
+  flex-direction: column;
+  gap:       6px;
+}
+.lib-hero-title {
+  font-size:      1rem;
+  font-weight:    800;
+  color:          var(--clr-text);
+  line-height:    1.25;
+  letter-spacing: -0.2px;
+}
+.lib-hero-author {
+  font-size: 0.78rem;
+  color:     var(--clr-text-2);
+  margin-top: -2px;
+}
+.lib-hero-stats {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   6px;
+  margin-top:            4px;
+}
+.lib-hero-stat {
+  background:    var(--clr-surface-2);
+  border-radius: 10px;
+  padding:       8px 10px;
+}
+.lib-hero-stat-val {
+  font-size:      1.05rem;
+  font-weight:    800;
+  color:          var(--clr-text);
+  letter-spacing: -0.3px;
+  line-height:    1;
+}
+.lib-hero-stat-lbl {
+  font-size:  0.62rem;
+  color:      var(--clr-text-2);
+  margin-top: 2px;
+}
+
+/* Hero progress bar */
+.lib-hero-progress-wrap { padding: 0 16px 6px; }
+.lib-hero-progress-row  {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+.lib-hero-progress-bar {
+  flex:          1;
+  height:        6px;
+  background:    var(--clr-surface-2);
+  border-radius: 3px;
+  overflow:      hidden;
+}
+.lib-hero-progress-fill {
+  height:     100%;
+  background: var(--gradient-brand);
+  transition: width 0.3s ease;
+}
+.lib-hero-progress-pct {
+  font-size:   0.72rem;
+  font-weight: 700;
+  color:       var(--clr-accent);
+  min-width:   30px;
+  text-align:  right;
+}
+
+/* Hero action buttons */
+.lib-hero-actions {
+  display: flex;
+  gap:     8px;
+  padding: 8px 16px 16px;
+}
+.lib-btn-primary {
+  flex:        1;
+  background:  var(--clr-accent);
+  color:       #0f1210;
+  font-size:   0.85rem;
+  font-weight: 700;
+  border:      none;
+  border-radius: 10px;
+  padding:     11px 12px;
+  cursor:      pointer;
+  font-family: inherit;
+}
+.lib-btn-primary:active { opacity: 0.85; }
+.lib-btn-secondary {
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  font-size:     0.85rem;
+  font-weight:   600;
+  border:        1px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       11px 16px;
+  cursor:        pointer;
+  font-family:   inherit;
+}
+.lib-btn-secondary:active { background: var(--clr-border); }
+
+/* Hero timer bar */
+.lib-hero-timer {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     10px 16px;
+  background:  var(--clr-accent-dim);
+  border-top:  1px solid var(--clr-border);
+}
+.lib-hero-timer--paused { opacity: 0.8; }
+.lib-hero-timer-ico     { font-size: 1.1rem; }
+.lib-hero-timer-display {
+  font-size:     1.1rem;
+  font-weight:   800;
+  color:         var(--clr-accent);
+  flex:          1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.lib-timer-btn {
+  font-family:   inherit;
+  font-size:     0.75rem;
+  font-weight:   700;
+  padding:       6px 12px;
+  border-radius: 8px;
+  cursor:        pointer;
+  border:        none;
+}
+.lib-timer-btn--pause {
+  background: var(--clr-surface);
+  color:      var(--clr-text);
+  border:     1px solid var(--clr-border) !important;
+}
+.lib-timer-btn--stop {
+  background: var(--clr-accent);
+  color:      #0f1210;
+}
+
+/* Swipe dots + hint */
+.lib-swipe-dots {
+  display:         flex;
+  justify-content: center;
+  gap:             6px;
+  padding:         10px 0 4px;
+}
+.lib-swipe-dot {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  background:    var(--clr-border);
+  transition:    background 0.2s, width 0.2s;
+}
+.lib-swipe-dot--active {
+  background:    var(--clr-accent);
+  width:         18px;
+  border-radius: 3px;
+}
+.lib-swipe-hint {
+  text-align:  center;
+  font-size:   0.68rem;
+  color:       var(--clr-text-2);
+  margin-top:  2px;
+  margin-bottom: 4px;
+}
+
+/* Add a Book button */
+.lib-add-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  width:           100%;
+  padding:         18px 13px;
+  margin:          30px 0;
+  border-radius:   12px;
+  background:      transparent;
+  border:          1.5px dashed var(--clr-border);
+  color:           var(--clr-text-2);
+  font-size:       0.85rem;
+  font-weight:     600;
+  cursor:          pointer;
+  font-family:     inherit;
+  transition:      border-color var(--transition), color var(--transition);
+}
+.lib-add-btn:hover { border-color: var(--clr-accent); color: var(--clr-accent); }
+.lib-add-btn-plus  { font-size: 1.1rem; }
+
+/* Cover grid (Finished / Paused) */
+.lib-cover-section  { display: flex; flex-direction: column; gap: 0; }
+.lib-cover-strip-wrap {
+  overflow:      hidden;
+  border-radius: 14px;
+}
+.lib-cover-strip {
+  display:    flex;
+  transition: transform 0.3s ease;
+}
+.lib-cover-page {
+  min-width:             100%;
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   10px;
+}
+.lib-cover-thumb {
+  aspect-ratio:  2/3;
+  border-radius: 10px;
+  overflow:      hidden;
+  cursor:        pointer;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  transition:    transform 0.15s ease, border-color 0.15s ease;
+}
+.lib-cover-thumb:active      { transform: scale(0.95); }
+.lib-cover-thumb img         { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lib-cover-thumb--empty      { cursor: default; opacity: 0; pointer-events: none; }
+.lib-cover-thumb-placeholder {
+  width:           100%;
+  height:          100%;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  padding:         8px;
+  gap:             6px;
+}
+.lib-cover-thumb-ico { font-size: 1.4rem; opacity: 0.4; }
+.lib-cover-thumb-lbl {
+  font-size:   0.58rem;
+  font-weight: 700;
+  color:       var(--clr-text-2);
+  line-height: 1.3;
+  word-break:  break-word;
+  text-align:  center;
+}
+
+/* Empty state */
+.lib-empty {
+  font-size: 0.85rem;
+  color:     var(--clr-text-2);
+  padding:   10px 0;
+}
+
+/* Book form card */
+.lib-book-form {
+  background:    var(--clr-surface);
+  border:        1px solid var(--clr-border);
+  border-radius: 14px;
+  padding:       16px;
+}
+
+/* Detail bottom sheet */
+.lib-detail-overlay {
+  position:        fixed;
+  inset:           0;
+  background:      rgba(0,0,0,0.55);
+  z-index:         200;
+  display:         flex;
+  align-items:     flex-end;
+  animation:       lib-fade-in 0.2s ease;
+}
+@keyframes lib-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.lib-detail-sheet {
+  width:         100%;
+  background:    var(--clr-surface);
+  border-radius: 20px 20px 0 0;
+  border:        1px solid var(--clr-border);
+  border-bottom: none;
+  padding-bottom: env(safe-area-inset-bottom, 24px);
+  animation:     lib-slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes lib-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.lib-detail-handle {
+  width:         36px;
+  height:        4px;
+  background:    var(--clr-border);
+  border-radius: 2px;
+  margin:        12px auto 0;
+}
+.lib-detail-header {
+  display:     flex;
+  gap:         14px;
+  padding:     16px 20px;
+  align-items: flex-start;
+}
+.lib-detail-cover {
+  width:         72px;
+  height:        104px;
+  border-radius: 8px;
+  object-fit:    cover;
+  box-shadow:    0 4px 12px rgba(0,0,0,0.35);
+  background:    var(--clr-surface-2);
+  flex-shrink:   0;
+}
+.lib-detail-cover--empty {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       1.8rem;
+  opacity:         0.35;
+}
+.lib-detail-info   { flex: 1; min-width: 0; }
+.lib-detail-title  { font-size: 1.05rem; font-weight: 800; color: var(--clr-text); line-height: 1.25; margin-bottom: 3px; }
+.lib-detail-author { font-size: 0.8rem; color: var(--clr-text-2); margin-bottom: 6px; }
+.lib-detail-meta   { font-size: 0.75rem; color: var(--clr-text-2); line-height: 1.6; }
+
+.lib-detail-body {
+  padding:        0 20px;
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+}
+.lib-detail-stats {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   8px;
+}
+.lib-detail-stat {
+  background:    var(--clr-surface-2);
+  border-radius: 10px;
+  padding:       10px;
+  text-align:    center;
+}
+.lib-detail-stat-val { font-size: 1.1rem; font-weight: 800; color: var(--clr-text); letter-spacing: -0.3px; }
+.lib-detail-stat-lbl { font-size: 0.62rem; color: var(--clr-text-2); margin-top: 2px; }
+
+.lib-detail-divider { height: 1px; background: var(--clr-border); }
+
+.lib-detail-cover-update  { display: flex; flex-direction: column; gap: 8px; }
+.lib-detail-cover-label   { font-size: 0.78rem; font-weight: 600; color: var(--clr-text-2); }
+.lib-detail-cover-row     { display: flex; gap: 8px; }
+.lib-detail-cover-input {
+  flex:          1;
+  background:    var(--clr-surface-2);
+  border:        1.5px solid var(--clr-border);
+  border-radius: 10px;
+  padding:       9px 12px;
+  color:         var(--clr-text);
+  font-family:   inherit;
+  font-size:     0.82rem;
+  transition:    border-color var(--transition);
+}
+.lib-detail-cover-input:focus { outline: none; border-color: var(--clr-accent); }
+
+.lib-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.lib-detail-btn {
+  font-family:   inherit;
+  font-size:     0.78rem;
+  font-weight:   600;
+  padding:       8px 14px;
+  border-radius: 10px;
+  cursor:        pointer;
+  border:        1px solid var(--clr-border);
+  background:    var(--clr-surface-2);
+  color:         var(--clr-text);
+  transition:    background var(--transition), color var(--transition);
+}
+.lib-detail-btn:hover           { background: var(--clr-surface); }
+.lib-detail-btn--accent         { background: var(--clr-accent-dim); color: var(--clr-accent); border-color: var(--clr-accent); }
+.lib-detail-btn--accent:hover   { opacity: 0.88; }
+.lib-detail-btn--danger         { color: var(--clr-error); border-color: var(--clr-error); background: transparent; }
+.lib-detail-btn--danger:hover   { background: var(--clr-error-bg); }
+
+.lib-detail-close-row { padding: 14px 20px 0; }
+.lib-detail-close-btn {
+  font-family:   inherit;
+  font-size:     0.82rem;
+  font-weight:   600;
+  width:         100%;
+  padding:       12px;
+  border-radius: 12px;
+  background:    var(--clr-surface-2);
+  border:        1px solid var(--clr-border);
+  color:         var(--clr-text-2);
+  cursor:        pointer;
+}
+
 /* ── Health section (issue-based model) ──────────────────────────────────── */
 
 /* Section group label */

@@ -536,4 +536,9 @@ Use `crypto.randomUUID()` (supported in all modern browsers).
 ---
 
 ## Current Work
-**Mood star ratings (2026-03-14):** Replaced numeric 1–5 buttons in the Wellbeing section (Mood/Energy/Stress/Focus) with ★ star icons. All 5 stars fill with accent color up to the selected value; the half-star position shows a half-filled star (CSS clip-path on `::before`). Interaction unchanged: tap to set whole value, tap again to go to half (N−0.5), tap again to clear. Updated `mood-btn` CSS (removed circle border/background), added `--filled` class logic in `render()` replacing single `--active` highlight.
+**Library tab redesign (2026-03-14):** Overhauled the Library tab to match the Hub layout's visual language. Key changes in `books.js` and `css/styles.css`:
+- **Header** — bold "Library" title + three stat chips (reading streak, total hours read, books finished), sticky at top. No back button — user switches tabs via nav.
+- **Now Reading hero card** — gradient accent bar, large cover art (88×128px), 2×2 stats grid (days read / last page / pages left / time read), progress bar, Start Timer / Log Session actions, timer bar when running. Multiple currently-reading books are sorted by most recently read; swipe left/right to switch.
+- **Add a Book** button — positioned after Now Reading, before Finished, with 30px vertical margin.
+- **Finished / Paused** sections — 3-cover-per-row swipeable grid; tap a cover to open a detail bottom sheet with stats, cover update (URL paste), and actions (Mark Finished / Move to Reading / Edit / Delete).
+- All new CSS uses `lib-*` prefix. Existing `book-*` classes preserved for inline habits panel and daily session rendering.
