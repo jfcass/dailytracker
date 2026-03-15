@@ -177,24 +177,50 @@ const Gratitudes = (() => {
       updateSaveStatus('Saved');
       setTimeout(() => updateSaveStatus(''), 1500);
 
-      // Preserve which input has focus before re-render destroys the DOM
-      const active   = document.activeElement;
-      const inGrat   = active && active.closest('#grat-list');
-      const focusIdx = inGrat ? parseInt(active.dataset.idx, 10) : -1;
+      // Sync DOM without destroying existing inputs — preserves keyboard/swipe focus
+      const list = document.getElementById('grat-list');
+      if (list) {
+        const inputs = Array.from(list.querySelectorAll('.grat-input'));
 
-      // Re-render to sync displayed inputs with cleaned array + fresh trailing blank
-      render();
-
-      // Restore focus to the same row after re-render
-      if (focusIdx >= 0) {
-        const inputs = document.querySelectorAll('#grat-list .grat-input');
-        const target = inputs[focusIdx] ?? inputs[inputs.length - 1];
-        if (target) {
-          target.focus();
-          const len = target.value.length;
-          target.setSelectionRange(len, len);
+        // Append a new blank row if the last input now has content
+        const lastInput = inputs[inputs.length - 1];
+        if (lastInput && lastInput.value.trim() !== '') {
+          const newIdx = inputs.length;
+          const item   = document.createElement('div');
+          item.className = 'grat-item';
+          item.innerHTML = `
+            <span class="grat-bullet" aria-hidden="true">•</span>
+            <textarea
+              class="grat-input"
+              rows="1"
+              placeholder="I'm grateful for…"
+              data-idx="${newIdx}"
+              oninput="Gratitudes._onInput(this)"
+              onkeydown="Gratitudes._onKeydown(event, ${newIdx})"
+            ></textarea>
+          `;
+          list.appendChild(item);
         }
+
+        // Update delete-button presence on non-focused rows
+        inputs.forEach((ta, i) => {
+          if (ta === document.activeElement) return;
+          const item   = ta.closest('.grat-item');
+          const hasBtn = item.querySelector('.grat-delete-btn');
+          if (ta.value.trim() !== '' && !hasBtn) {
+            const btn = document.createElement('button');
+            btn.className = 'grat-delete-btn';
+            btn.setAttribute('aria-label', 'Remove entry');
+            btn.setAttribute('onclick', `Gratitudes._onDelete(${i})`);
+            btn.textContent = '×';
+            item.appendChild(btn);
+          } else if (ta.value.trim() === '' && hasBtn) {
+            hasBtn.remove();
+          }
+        });
       }
+
+      updateGratitudeStreakBadge();
     }, 800);
   }
 
