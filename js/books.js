@@ -42,6 +42,7 @@ const Books = (() => {
   let fbPages    = '';
   let fbCoverUrl = '';
   let fbIsbn     = '';
+  let fbCoverError = ''; // inline error for oversized file upload
 
   // Book search state
   let fbSearchQuery    = '';
@@ -477,6 +478,7 @@ const Books = (() => {
     fbPages         = '';
     fbCoverUrl      = '';
     fbIsbn          = '';
+    fbCoverError    = '';
     fbSearchQuery   = '';
     fbSearchResults = [];
     fbSearching     = false;
@@ -493,6 +495,7 @@ const Books = (() => {
     fbPages         = String(book.total_pages ?? '');
     fbCoverUrl      = book.cover_url   ?? '';
     fbIsbn          = book.isbn        ?? '';
+    fbCoverError    = '';
     fbSearchQuery   = '';
     fbSearchResults = [];
     fbSearching     = false;
@@ -507,6 +510,7 @@ const Books = (() => {
     fbPages         = '';
     fbCoverUrl      = '';
     fbIsbn          = '';
+    fbCoverError    = '';
     fbSearchQuery   = '';
     fbSearchResults = [];
     fbSearching     = false;
@@ -555,6 +559,7 @@ const Books = (() => {
     fbPages         = '';
     fbCoverUrl      = '';
     fbIsbn          = '';
+    fbCoverError    = '';
     fbSearchQuery   = '';
     fbSearchResults = [];
     fbSearching     = false;
@@ -951,10 +956,24 @@ const Books = (() => {
       <div class="book-search-results-slot">${buildSearchResults()}</div>`;
     }
     if (fbCoverUrl) {
-      html += `<div class="book-cover-preview">
-        <img src="${escHtml(fbCoverUrl)}" alt="Book cover" class="book-cover-preview-img">
-        <button class="book-cover-clear-btn" type="button" onclick="Books._fbClearCover()">✕ Remove cover</button>
+      html += `<div class="lib-form-cover-wrap">
+        <img class="lib-form-cover-img" src="${escHtml(fbCoverUrl)}" alt="Book cover">
+        <button class="lib-form-cover-remove" aria-label="Remove cover"
+                onclick="Books._fbClearCover()">×</button>
       </div>`;
+    } else {
+      html += `<div class="lib-form-cover-empty">
+        <input type="file" accept="image/*" id="lib-cover-file-input" style="display:none"
+               onchange="Books._onCoverFileChange(this)">
+        <button class="lib-form-cover-upload-btn" type="button"
+                onclick="Books._triggerCoverUpload()">📷 Upload</button>
+        <input type="text" class="lib-form-cover-url"
+               placeholder="Paste image URL…"
+               value="${escHtml(fbCoverUrl)}"
+               oninput="Books._fbCoverUrlInput(this.value)"
+               onblur="Books._fbCoverUrlCommit(this.value)">
+      </div>
+      ${fbCoverError ? `<div class="lib-form-cover-error">${escHtml(fbCoverError)}</div>` : ''}`;
     }
     html += `
       <div class="book-form-field">
@@ -1276,6 +1295,29 @@ const Books = (() => {
   function _fbSearch(query)         { triggerSearch(query); }
   function _fbSelectResult(idx)     { selectSearchResult(idx); }
   function _fbClearCover()          { fbCoverUrl = ''; renderLibraryTab(); }
+  function _fbCoverUrlInput(val)  { fbCoverUrl = val; }
+  function _fbCoverUrlCommit(val) {
+    fbCoverUrl = val.trim();
+    if (fbCoverUrl) fbCoverError = '';
+    renderLibraryTab();
+  }
+  function _triggerCoverUpload()  {
+    const el = document.getElementById('lib-cover-file-input');
+    if (el) el.click();
+  }
+  function _onCoverFileChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      fbCoverError = 'Image too large — use a smaller file or paste a URL';
+      renderLibraryTab();
+      return;
+    }
+    fbCoverError = '';
+    const reader = new FileReader();
+    reader.onload = e => { fbCoverUrl = e.target.result; renderLibraryTab(); };
+    reader.readAsDataURL(file);
+  }
 
   function _fField(field, val) {
     if (field === 'fMinutes')    fMinutes    = val;
@@ -1358,6 +1400,7 @@ const Books = (() => {
     _startLogSession, _startEditSession, _cancelSession, _saveSession, _deleteSession,
     _toggleSessionHistory,
     _fbSearch, _fbSelectResult, _fbClearCover,
+    _fbCoverUrlInput, _fbCoverUrlCommit, _triggerCoverUpload, _onCoverFileChange,
     _fField, _fbField,
     _openDetail, _closeDetail, _coverUrlChange, _updateCover,
     _markReading, _closeDetailAndEdit, _closeDetailAndFinish,
