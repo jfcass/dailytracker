@@ -122,7 +122,7 @@ const Mood = (() => {
   function render() {
     const { mood = null, energy = null, stress = null, focus = null } = getMoodData();
 
-    // Toggle active class on each button
+    // Toggle star state classes on each button
     [
       ['mood',   mood],
       ['energy', energy],
@@ -131,8 +131,8 @@ const Mood = (() => {
     ].forEach(([field, val]) => {
       document.querySelectorAll(`.mood-btn[data-field="${field}"]`).forEach(btn => {
         const btnVal = +btn.dataset.val;
-        btn.classList.toggle('mood-btn--active', btnVal === val);
-        btn.classList.toggle('mood-btn--half',   btnVal - 0.5 === val);
+        btn.classList.toggle('mood-btn--filled', val != null && btnVal <= Math.floor(val));
+        btn.classList.toggle('mood-btn--half',   val != null && !Number.isInteger(val) && btnVal === Math.ceil(val));
       });
     });
 

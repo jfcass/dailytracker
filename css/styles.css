@@ -4457,51 +4457,43 @@ button {
 .mood-btn {
   width:            44px;
   height:           44px;
-  border-radius:    50%;
-  border:           2px solid var(--clr-border);
+  border-radius:    4px;
+  border:           none;
   background:       transparent;
-  color:            var(--clr-text-2);
-  font-size:        0.85rem;
-  font-weight:      700;
+  color:            var(--clr-border);
+  font-size:        1.5rem;
+  font-weight:      400;
   cursor:           pointer;
   flex-shrink:      0;
   display:          flex;
   align-items:      center;
   justify-content:  center;
-  transition:       background var(--transition), color var(--transition), border-color var(--transition);
+  transition:       color var(--transition);
   -webkit-tap-highlight-color: transparent;
+  padding:          0;
+  position:         relative;
+  line-height:      1;
 }
 
-.mood-btn--active {
-  background:   var(--clr-accent);
-  border-color: var(--clr-accent);
-  color:        #fff;
+.mood-btn--filled {
+  color: var(--clr-accent);
 }
 
 .mood-btn--half {
-  background:   color-mix(in srgb, var(--clr-accent) 25%, transparent);
-  border-color: var(--clr-accent);
-  color:        var(--clr-accent);
-  position:     relative;
+  color: var(--clr-border);
 }
 
-.mood-btn--half::after {
-  content:         '½';
+.mood-btn--half::before {
+  content:         '★';
   position:        absolute;
-  top:             -5px;
-  right:           -5px;
-  font-size:       0.55rem;
-  font-weight:     800;
-  background:      var(--clr-accent);
-  color:           #fff;
-  border-radius:   50%;
-  width:           14px;
-  height:          14px;
-  display:         flex;
-  align-items:     center;
-  justify-content: center;
-  line-height:     1;
+  top:             50%;
+  left:            50%;
+  transform:       translate(-50%, -50%);
+  color:           var(--clr-accent);
+  clip-path:       inset(0 50% 0 0);
   pointer-events:  none;
+  font-size:       inherit;
+  line-height:     1;
 }
 
 .mood-btn:active { opacity: 0.75; }

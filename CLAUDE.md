@@ -536,4 +536,4 @@ Use `crypto.randomUUID()` (supported in all modern browsers).
 ---
 
 ## Current Work
-**Tasks due-date widget (2026-03-14):** Replaced the native full-width `<input type="date">` in all three task forms (daily add, daily edit, tab form) with a custom widget: "Due Date" label + calendar icon button when no date is set, MM/DD/YY + pencil icon when a date is set. Hidden `<input type="date">` triggered via `showPicker()`. Also migrated repo to MacBook Air — normalized CRLF→LF line endings via `.gitattributes`, configured git identity and SSH auth.
+**Mood star ratings (2026-03-14):** Replaced numeric 1–5 buttons in the Wellbeing section (Mood/Energy/Stress/Focus) with ★ star icons. All 5 stars fill with accent color up to the selected value; the half-star position shows a half-filled star (CSS clip-path on `::before`). Interaction unchanged: tap to set whole value, tap again to go to half (N−0.5), tap again to clear. Updated `mood-btn` CSS (removed circle border/background), added `--filled` class logic in `render()` replacing single `--active` highlight.
