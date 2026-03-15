@@ -4640,8 +4640,8 @@ button {
 }
 
 .bwl-quality-btn--half {
-  background: color-mix(in srgb, var(--q-clr) 35%, transparent);
-  color:      var(--q-clr);
+  background: var(--q-clr);
+  color:      #fff;
 }
 
 .bwl-quality-btn:active {
