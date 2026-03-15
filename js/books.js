@@ -769,11 +769,13 @@ const Books = (() => {
       <div class="lib-hero-bar"></div>
       <div class="lib-hero-body">`;
 
+    html += `<div onclick="Books._editHeroBook()" style="cursor:pointer;display:inline-block">`;
     if (book.cover_url) {
       html += `<img src="${escHtml(book.cover_url)}" class="lib-hero-cover" alt="" loading="lazy">`;
     } else {
       html += `<div class="lib-hero-cover lib-hero-cover--empty">📚</div>`;
     }
+    html += `</div>`;
 
     html += `<div class="lib-hero-info">
         <div class="lib-hero-title">${escHtml(book.title)}</div>
@@ -1295,6 +1297,22 @@ const Books = (() => {
   function _fbSearch(query)         { triggerSearch(query); }
   function _fbSelectResult(idx)     { selectSearchResult(idx); }
   function _fbClearCover()          { fbCoverUrl = ''; renderLibraryTab(); }
+  function _editHeroBook() {
+    const bookList = Object.values(getBooks());
+    const reading  = bookList
+      .filter(b => b.status === 'reading')
+      .sort((a, b) => {
+        const la = getLastSessionDate(a.id);
+        const lb = getLastSessionDate(b.id);
+        if (!la && !lb) return 0;
+        if (!la) return 1;
+        if (!lb) return -1;
+        return lb.localeCompare(la);
+      });
+    const book = reading[heroBookIdx];
+    if (!book) return;
+    startEditBook(book.id);
+  }
   function _fbCoverUrlInput(val)  { fbCoverUrl = val; }
   function _fbCoverUrlCommit(val) {
     fbCoverUrl = val.trim();
@@ -1400,6 +1418,7 @@ const Books = (() => {
     _startLogSession, _startEditSession, _cancelSession, _saveSession, _deleteSession,
     _toggleSessionHistory,
     _fbSearch, _fbSelectResult, _fbClearCover,
+    _editHeroBook,
     _fbCoverUrlInput, _fbCoverUrlCommit, _triggerCoverUpload, _onCoverFileChange,
     _fField, _fbField,
     _openDetail, _closeDetail, _coverUrlChange, _updateCover,

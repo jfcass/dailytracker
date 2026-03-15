@@ -536,9 +536,8 @@ Use `crypto.randomUUID()` (supported in all modern browsers).
 ---
 
 ## Current Work
-**Library tab redesign (2026-03-14):** Overhauled the Library tab to match the Hub layout's visual language. Key changes in `books.js` and `css/styles.css`:
-- **Header** — bold "Library" title + three stat chips (reading streak, total hours read, books finished), sticky at top. No back button — user switches tabs via nav.
-- **Now Reading hero card** — gradient accent bar, large cover art (88×128px), 2×2 stats grid (days read / last page / pages left / time read), progress bar, Start Timer / Log Session actions, timer bar when running. Multiple currently-reading books are sorted by most recently read; swipe left/right to switch.
-- **Add a Book** button — positioned after Now Reading, before Finished, with 30px vertical margin.
-- **Finished / Paused** sections — 3-cover-per-row swipeable grid; tap a cover to open a detail bottom sheet with stats, cover update (URL paste), and actions (Mark Finished / Move to Reading / Edit / Delete).
-- All new CSS uses `lib-*` prefix. Existing `book-*` classes preserved for inline habits panel and daily session rendering.
+**Book cover edit (2026-03-14):** Two enhancements to the Library tab in `books.js` and `css/styles.css`:
+- **Hero cover tap** — tapping the cover (or 📚 placeholder) on the Now Reading hero card opens the full book edit form for that book via `Books._editHeroBook()`.
+- **Edit form cover section** — when a cover exists: image with an overlaid × button to remove it. When no cover: Upload button (file picker → data URL, 2 MB guard) + URL paste field side by side. Error message shown for oversized uploads.
+- New state variable `fbCoverError` tracks inline upload errors; reset in `startAddBook`, `startEditBook`, `cancelBookEdit`, `saveBook`.
+- New CSS classes: `lib-form-cover-wrap`, `lib-form-cover-img`, `lib-form-cover-remove`, `lib-form-cover-empty`, `lib-form-cover-upload-btn`, `lib-form-cover-url`, `lib-form-cover-error`.
